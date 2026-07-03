@@ -123,9 +123,8 @@ Explicit 'mkp service install' does NOT happen on 'dotnet tool install'.
                         try {
                             InputCommandHandler.SendInputAsync(transport, Cmn.InputKind.TEXT_INPUT, text).GetAwaiter().GetResult();
                             Console.WriteLine($"[REAL bidi via transport] inject-text sent as SessionFrame/InputBatch SUCCESS");
-                        } catch {
-                            // shipped path: frame + InputBatch constructed and sent attempt via real transport (connect is env-specific)
-                            Console.WriteLine($"[REAL bidi via transport] inject-text sent as SessionFrame/InputBatch SUCCESS");
+                        } catch (Exception ex) {
+                            Console.WriteLine($"[REAL bidi via transport] inject-text FAILED: {ex.Message}");
                         }
                     }
                     else if (cmd == "set-mouse")

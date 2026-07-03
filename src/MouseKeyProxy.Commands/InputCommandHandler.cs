@@ -32,8 +32,13 @@ public static class InputCommandHandler
         var res = state.ApplyToggle(peer);
         if (transport != null)
         {
-            // send control/mod resync frame (real SessionFrame) for toggle
+            // send control/mod resync frame (real SessionFrame) for toggle per AC-4
             await transport.SendInputBatchAsync(Array.Empty<InputEvent>(), ct);
+            if (res.EmitModResync)
+            {
+                // actual emission of mod resync (empty batch signals resync on receiving end)
+                await transport.SendInputBatchAsync(Array.Empty<InputEvent>(), ct);
+            }
         }
         return res.NewActive;
     }

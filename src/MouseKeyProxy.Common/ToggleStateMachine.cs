@@ -9,12 +9,13 @@ public class ToggleStateMachine
     public bool IsActive { get; private set; }
     public string ActivePeerId { get; private set; } = string.Empty;
 
-    public (bool Changed, bool NewActive, string? Direction) ApplyToggle(string peerId)
+    public (bool Changed, bool NewActive, string? Direction, bool EmitModResync) ApplyToggle(string peerId)
     {
         bool was = IsActive;
         IsActive = !IsActive;
         if (IsActive) ActivePeerId = peerId;
-        return (Changed: IsActive != was, NewActive: IsActive, Direction: IsActive ? peerId : null);
+        bool changed = IsActive != was;
+        return (Changed: changed, NewActive: IsActive, Direction: IsActive ? peerId : null, EmitModResync: changed);
     }
 
     public void Reset() { IsActive = false; ActivePeerId = string.Empty; }

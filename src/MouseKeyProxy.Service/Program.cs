@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Builder;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
+using MouseKeyProxy.Common;
 
 namespace MouseKeyProxy.Service;
 
@@ -24,6 +25,8 @@ internal static class Program
             options.LogName = "Application";
         });
         builder.Logging.AddConsole();
+
+        builder.Services.AddSingleton<SessionFrameDispatcher>(_ => new SessionFrameDispatcher(null, new ToggleStateMachine()));
 
         builder.Services.AddGrpc();
 

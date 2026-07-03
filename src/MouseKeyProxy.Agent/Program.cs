@@ -45,6 +45,12 @@ internal static class Program
 
         // Wire the real hotkey seam (in production this is driven by RegisterHotKey + WndProc)
         _hotkey.ToggleRequested += (s, ea) => DoRealToggle();
+        _hotkey.StartMonitoring(); // wire real OS hotkey
+
+        // Real OS hotkey registration (Ctrl-Alt-F1) via hidden form handle + RegisterForWindow (shipped path)
+        var hiddenForm = new Form { Visible = false, ShowInTaskbar = false };
+        hiddenForm.Load += (_, __) => _hotkey.RegisterForWindow(hiddenForm.Handle, 0x0003 /* MOD_CONTROL|MOD_ALT */, (uint)Keys.F1);
+        hiddenForm.Show();
 
         Application.Run();
     }

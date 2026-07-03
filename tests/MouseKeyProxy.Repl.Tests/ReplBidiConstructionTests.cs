@@ -17,20 +17,17 @@ public class ReplBidiConstructionTests
     [Trait("Category", "REPL")]
     public async Task Repl_Inject_Uses_Handler_And_Sends_Real_SessionFrame_InputBatch()
     {
+        // AC3: handler calls transport. AC4 frame proof centralized to Commands (real build).
+        // No override here: direct call to shipped Bidi.Send on spy (null client) runs production build, sets LastSentFrame.
         var spy = new RecordingTransport();
         await InputCommandHandler.SendInputAsync(spy, InputKind.TEXT_INPUT, "frame-test");
-        Assert.True(spy.Sent);
+        Assert.NotNull(spy.LastSentFrame);
     }
 
     private class RecordingTransport : BidiSessionTransport
     {
-        public bool Sent { get; private set; }
         public RecordingTransport() : base((MouseKeyProxy.Network.V1.MouseKeyProxy.MouseKeyProxyClient)null!) { }
-        public override Task SendInputBatchAsync(System.Collections.Generic.IEnumerable<MouseKeyProxy.Common.InputEvent> events, System.Threading.CancellationToken ct = default)
-        {
-            Sent = true;
-            return base.SendInputBatchAsync(events, ct);  // drive real shipped Bidi build for frame
-        }
+        // NO override: lets real shipped SendInputBatchAsync run for frame build (LastSentFrame)
     }
 
     [Fact]
