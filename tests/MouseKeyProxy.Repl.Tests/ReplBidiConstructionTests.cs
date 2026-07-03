@@ -29,7 +29,7 @@ public class ReplBidiConstructionTests
         public override Task SendInputBatchAsync(System.Collections.Generic.IEnumerable<MouseKeyProxy.Common.InputEvent> events, System.Threading.CancellationToken ct = default)
         {
             Sent = true;
-            return Task.CompletedTask;
+            return base.SendInputBatchAsync(events, ct);  // drive real shipped Bidi build for frame
         }
     }
 

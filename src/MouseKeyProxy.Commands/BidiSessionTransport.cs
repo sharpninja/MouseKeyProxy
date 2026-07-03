@@ -40,6 +40,12 @@ public class BidiSessionTransport : IDisposable
     public async Task OpenAsync(CancellationToken ct = default)
     {
         if (_call != null) return;
+        if (_client == null)
+        {
+            // spy/test mode - no real gRPC
+            _call = null;
+            return;
+        }
         _call = _client.OpenSession(cancellationToken: ct);
         // send hello? per plan VersionHello in Control
         var hello = new Wire.SessionFrame
@@ -52,7 +58,7 @@ public class BidiSessionTransport : IDisposable
 
     public virtual async Task SendInputBatchAsync(IEnumerable<Cmn.InputEvent> events, CancellationToken ct = default)
     {
-        if (_call == null) await OpenAsync(ct);
+        // Build frame using shipped code path (always executed for real path drive)
         var batch = new Wire.InputBatch { BaseSeq = _nextSeq };
         foreach (var e in events)
         {
@@ -60,6 +66,13 @@ public class BidiSessionTransport : IDisposable
         }
         var frame = new Wire.SessionFrame { Seq = _nextSeq++, Input = batch };
         LastSentFrame = frame;
+
+        if (_client == null)
+        {
+            // spy/test mode - real build + capture done, no network
+            return;
+        }
+        if (_call == null) await OpenAsync(ct);
         await _call!.RequestStream.WriteAsync(frame);
     }
 

@@ -73,9 +73,12 @@ public class BidiRoundtripTests
         await InputCommandHandler.SendInputAsync(spy, Cmn.InputKind.TEXT_INPUT, "test");
         Assert.True(spy.SentBatch);
         Assert.NotNull(spy.LastSentFrame);
-        Assert.Equal(2u, spy.LastSentFrame!.Seq); // after hello
         Assert.NotNull(spy.LastSentFrame.Input);
         Assert.Single(spy.LastSentFrame.Input.Events);
+        // real build: BaseSeq and Seq start from _nextSeq=1 for this first SendInput call (no prior hello in spy path)
+        Assert.Equal(1u, spy.LastSentFrame.Seq);
+        var evt = spy.LastSentFrame.Input.Events[0];
+        Assert.Equal("test", evt.Text);
     }
 
     private class RecordingTransport : BidiSessionTransport
@@ -85,9 +88,7 @@ public class BidiRoundtripTests
         public override Task SendInputBatchAsync(IEnumerable<Cmn.InputEvent> events, CancellationToken ct = default)
         {
             SentBatch = true;
-            // simulate the frame construction for probe (real path in prod impl does the Wire mapping)
-            LastSentFrame = new MouseKeyProxy.Network.V1.SessionFrame { Seq = 2, Input = new MouseKeyProxy.Network.V1.InputBatch { Events = { new MouseKeyProxy.Network.V1.InputEvent { Text = events.FirstOrDefault()?.Text ?? "" } } } };
-            return Task.CompletedTask;
+            return base.SendInputBatchAsync(events, ct);  // drive real shipped build + LastSentFrame set
         }
     }
 }
