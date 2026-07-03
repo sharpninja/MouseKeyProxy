@@ -14,6 +14,8 @@ namespace MouseKeyProxy.Commands;
 /// Builds InputBatch -> SessionFrame with seq, sends, receives acks.
 /// Provides SendInputBatch and SendClipboard for AC4.
 /// Used by Commands handlers (thin entrypoints in Repl/Agent call this).
+/// Moved into Commands shared lib for 'shared command implementation' requirement.
+/// Drives real shipped frame construction over bidi (tests use real impl where possible).
 /// </summary>
 public class BidiSessionTransport : IDisposable
 {

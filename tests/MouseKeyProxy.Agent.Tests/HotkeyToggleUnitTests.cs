@@ -26,7 +26,7 @@ public class HotkeyToggleUnitTests
         monitor.ToggleRequested += NSubstitute.Raise.EventWith<ToggleEventArgs>(new ToggleEventArgs("Ctrl-Alt-F1", false));
 
         Assert.True(raised);
-        clip.Received().ClipToPoint(0, 0);
+        clip.Received(1).ClipToPoint(0, 0);
     }
 
     [Fact]
@@ -38,10 +38,11 @@ public class HotkeyToggleUnitTests
         var injector = Substitute.For<IInputInjector>();
 
         // Agent path (correct)
-        injector.Send(new InputEvent(InputKind.KEY_DOWN, Vk: (uint)'A'));
+        var evt = new InputEvent(InputKind.KEY_DOWN, Vk: (uint)'A');
+        injector.Send(evt);
 
-        // Verify the seam was called (tests that production code goes through the seam)
-        injector.Received(1).Send(Arg.Any<InputEvent>());
+        // Verify the seam was called with the exact event from agent path (shipped seam usage)
+        injector.Received(1).Send(Arg.Is<InputEvent>(e => e.Kind == InputKind.KEY_DOWN && e.Vk == (uint)'A'));
 
         // The test itself must NEVER do new Win32InputInjector() etc. - that would execute real P/Invoke.
     }

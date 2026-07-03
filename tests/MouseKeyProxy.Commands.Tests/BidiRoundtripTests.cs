@@ -6,6 +6,7 @@ using Grpc.Core.Testing;
 using Microsoft.Extensions.Logging;
 using MouseKeyProxy.Network;
 using MouseKeyProxy.Network.V1;
+using MouseKeyProxy.Commands; // Bidi moved to Commands lib
 using MouseKeyProxy.Service;
 using NSubstitute;
 using Xunit;

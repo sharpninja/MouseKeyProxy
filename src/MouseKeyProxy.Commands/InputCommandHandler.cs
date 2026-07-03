@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
 using MouseKeyProxy.Common;
-using MouseKeyProxy.Network;
+using MouseKeyProxy.Commands; // Bidi now in shared Commands lib (per skeptic fix)
 
 namespace MouseKeyProxy.Commands;
 
