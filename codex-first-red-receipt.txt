@@ -1,0 +1,406 @@
+Reading additional input from stdin...
+OpenAI Codex v0.142.5
+--------
+workdir: F:\GitHub\MouseKeyProxy-Fresh
+model: gpt-5.5
+provider: openai
+approval: on-request
+sandbox: read-only
+reasoning effort: xhigh
+reasoning summaries: none
+session id: 019f297f-ba72-7671-a5da-5251313a5eb3
+--------
+user
+xhigh effort (use maximum thoroughness: exhaustive test cases for the ACs, multiple theories, edge cases for visibility, error paths, ownership, run immediately to failure and capture full logs + file changes).
+
+Read and use as source of truth: docs/DELEGATION-PLAN.md (contains the full delegation plan, visibility gate, REPL contract with self-contained payloads, wireframes, all FR-MKP and TEST-MKP including 001/002 for hotkey + ownership, proto, matrix, etc.).
+
+For first slice (Byrd red first): write red xUnit v3 + NSubstitute ONLY tests for:
+- Hotkey toggle state machine (active flip only on correct hotkey, Clip only active, no auto edge).
+- Ownership: input/hooks/clip/send only from Agent, Service rejects/does not attempt (mocks prove).
+- Use seams IHotkeyMonitor, IInputInjector, ICursorClip etc.
+- Create/update test files in tests/MouseKeyProxy.Agent.Tests and Common.Tests.
+- Run dotnet test immediately on the projects to show red failures with full output.
+
+Output exact: new/modified files, test code summaries, COMPLETE dotnet test run output (failures), git-like diff if possible. All with receipts. Red state only. No impl code.
+
+warning: Skill descriptions were shortened to fit the 2% skills context budget. Codex can still see every skill, but some descriptions are shorter. Disable unused skills or plugins to leave more room for the rest.
+codex
+IΓÇÖll treat `docs/DELEGATION-PLAN.md` as the contract and keep this first slice red only: tests and evidence, no production implementation. IΓÇÖm going to inspect the repo/test layout and the MCP/per-turn instructions before touching files.
+hook: PreToolUse
+hook: PreToolUse
+hook: PreToolUse
+hook: PreToolUse
+hook: PreToolUse Completed
+exec
+"C:\\Program Files\\WindowsApps\\Microsoft.PowerShell_7.6.3.0_x64__8wekyb3d8bbwe\\pwsh.exe" -Command "Get-Content -Raw C:\\Users\\kingd\\.codex\\skills\\mcpserver\\enforcement\\SKILL.md" in F:\GitHub\MouseKeyProxy-Fresh
+hook: PreToolUse Completed
+exec
+"C:\\Program Files\\WindowsApps\\Microsoft.PowerShell_7.6.3.0_x64__8wekyb3d8bbwe\\pwsh.exe" -Command 'rg --files' in F:\GitHub\MouseKeyProxy-Fresh
+hook: PreToolUse Completed
+exec
+"C:\\Program Files\\WindowsApps\\Microsoft.PowerShell_7.6.3.0_x64__8wekyb3d8bbwe\\pwsh.exe" -Command 'Get-ChildItem -Force' in F:\GitHub\MouseKeyProxy-Fresh
+hook: PreToolUse Completed
+exec
+"C:\\Program Files\\WindowsApps\\Microsoft.PowerShell_7.6.3.0_x64__8wekyb3d8bbwe\\pwsh.exe" -Command "if (Test-Path C:\\Users\\kingd\\.codex\\memories\\MEMORY.md) { Select-String -Path C:\\Users\\kingd\\.codex\\memories\\MEMORY.md -Pattern 'MouseKeyProxy|MKP|Hotkey|DELEGATION-PLAN' -Context 2,2 }" in F:\GitHub\MouseKeyProxy-Fresh
+2026-07-03T19:41:32.380821Z ERROR codex_core::exec: exec error: windows sandbox: runner error: CreateProcessAsUserW failed: 1312
+2026-07-03T19:41:32.381224Z ERROR codex_core::tools::router: error=execution error: Io(Custom { kind: Other, error: "windows sandbox: runner error: CreateProcessAsUserW failed: 1312" })
+ exited -1 in 0ms:
+execution error: Io(Custom { kind: Other, error: "windows sandbox: runner error: CreateProcessAsUserW failed: 1312" })
+2026-07-03T19:41:32.429351Z ERROR codex_core::exec: exec error: windows sandbox: runner error: CreateProcessAsUserW failed: 1312
+2026-07-03T19:41:32.429752Z ERROR codex_core::tools::router: error=execution error: Io(Custom { kind: Other, error: "windows sandbox: runner error: CreateProcessAsUserW failed: 1312" })
+ exited -1 in 0ms:
+execution error: Io(Custom { kind: Other, error: "windows sandbox: runner error: CreateProcessAsUserW failed: 1312" })
+2026-07-03T19:41:32.479590Z ERROR codex_core::exec: exec error: windows sandbox: runner error: CreateProcessAsUserW failed: 1312
+2026-07-03T19:41:32.480220Z ERROR codex_core::tools::router: error=execution error: Io(Custom { kind: Other, error: "windows sandbox: runner error: CreateProcessAsUserW failed: 1312" })
+ exited -1 in 0ms:
+execution error: Io(Custom { kind: Other, error: "windows sandbox: runner error: CreateProcessAsUserW failed: 1312" })
+2026-07-03T19:41:32.542690Z ERROR codex_core::exec: exec error: windows sandbox: runner error: CreateProcessAsUserW failed: 1312
+2026-07-03T19:41:32.543113Z ERROR codex_core::tools::router: error=execution error: Io(Custom { kind: Other, error: "windows sandbox: runner error: CreateProcessAsUserW failed: 1312" })
+ exited -1 in 0ms:
+execution error: Io(Custom { kind: Other, error: "windows sandbox: runner error: CreateProcessAsUserW failed: 1312" })
+hook: PreToolUse
+hook: PreToolUse
+hook: PreToolUse
+hook: PreToolUse
+hook: PreToolUse Completed
+exec
+"C:\\Program Files\\WindowsApps\\Microsoft.PowerShell_7.6.3.0_x64__8wekyb3d8bbwe\\pwsh.exe" -Command "if (Test-Path C:\\Users\\kingd\\.codex\\memories\\MEMORY.md) { Select-String -Path C:\\Users\\kingd\\.codex\\memories\\MEMORY.md -Pattern 'MouseKeyProxy|MKP|Hotkey|DELEGATION-PLAN' -Context 2,2 }" in F:\GitHub\MouseKeyProxy-Fresh
+hook: PreToolUse Completed
+exec
+"C:\\Program Files\\WindowsApps\\Microsoft.PowerShell_7.6.3.0_x64__8wekyb3d8bbwe\\pwsh.exe" -Command 'Get-ChildItem -Force' in F:\GitHub\MouseKeyProxy-Fresh
+hook: PreToolUse Completed
+exec
+"C:\\Program Files\\WindowsApps\\Microsoft.PowerShell_7.6.3.0_x64__8wekyb3d8bbwe\\pwsh.exe" -Command 'rg --files' in F:\GitHub\MouseKeyProxy-Fresh
+hook: PreToolUse Completed
+exec
+"C:\\Program Files\\WindowsApps\\Microsoft.PowerShell_7.6.3.0_x64__8wekyb3d8bbwe\\pwsh.exe" -Command "Get-Content -Raw C:\\Users\\kingd\\.codex\\skills\\mcpserver\\enforcement\\SKILL.md" in F:\GitHub\MouseKeyProxy-Fresh
+ succeeded in 7014ms:
+
+Snippet                        Result
+-------                        ------
+_aliases.ps1                   Alias auto-load complete: 2 applied, 0 skipped.
+_repos.ps1                     
+bing.ps1                       Set $env:BingApiKey to use Bing search.
+chocolatey.ps1                 {Refreshing environment variables from the registry for powershell.exe. Please wait...,.
+clean-folder.ps1               Execute `Clean-Folder -r -f` to remove `bin` and `obj` folders recursively.
+devmode.ps1                    Type `devmode` to enter VS2022 Developer Mode.
+gh_completion.ps1              
+github.ps1                     Use `hub` to go to the GitHub folder.
+module-loader.ps1              Modules already loaded.
+oh-my-posh-macos.ps1           
+oh-my-posh-windows.ps1         Registered alias for OH-MY-POSH
+set-version-PAYTON-LEGION2.ps1 Current Semver is INFO [26-07-03 14:41:54:08] Applicable build agent found: 'LocalBuild.
+set-version.ps1                Current Semver is INFO [26-07-03 14:41:54:08] Applicable build agent found: 'LocalBuild.
+update-snippets.ps1            Call `snipup` or `Update-Snippets` to update from GitHub.
+
+
+CommandType Name                                Version Source
+----------- ----                                ------- ------
+Alias       audio -> Invoke-Audio                       
+Alias       pwg -> ConvertFrom-WingetStdout.ps1         
+
+
+Name      Description
+----      -----------
+als       Snippets: [aliases] Manage Snippets aliases
+clean     Snippets: [dev] Clean-Folder
+hub       Snippets: [dev] Go to GitHub folder [f:\GitHub]
+devmode   Snippets: [dev] Start VS2022 Developer Mode
+posh      Snippets: [ps] OH-MY-POSH
+repos     Snippets: [repos] All Repos
+ch        Snippets: [repos] Chocolatey
+dn        Snippets: [repos] Dotnet
+dt        Snippets: [repos] Dotnet Tool
+np        Snippets: [repos] NPM
+ng        Snippets: [repos] NuGet
+pp        Snippets: [repos] PIP
+pps       Snippets: [repos] PIP-Search
+psg       Snippets: [repos] PSGallery
+scp       Snippets: [repos] Scoop
+wg        Snippets: [repos] WinGet
+profileup Snippets: [snippets] Update Profile from GitHub.
+snipup    Snippets: [snippets] Update Snippets from GitHub.
+
+
+ succeeded in 6830ms:
+
+Snippet                        Result
+-------                        ------
+_aliases.ps1                   Alias auto-load complete: 2 applied, 0 skipped.
+_repos.ps1                     
+bing.ps1                       Set $env:BingApiKey to use Bing search.
+chocolatey.ps1                 {Refreshing environment variables from the registry for powershell.exe. Please wait...,.
+clean-folder.ps1               Execute `Clean-Folder -r -f` to remove `bin` and `obj` folders recursively.
+devmode.ps1                    Type `devmode` to enter VS2022 Developer Mode.
+gh_completion.ps1              
+github.ps1                     Use `hub` to go to the GitHub folder.
+module-loader.ps1              Modules already loaded.
+oh-my-posh-macos.ps1           
+oh-my-posh-windows.ps1         Registered alias for OH-MY-POSH
+set-version-PAYTON-LEGION2.ps1 {[master (root-commit) e6c731b] Added version,  1 file changed, 22 insertions(+),  crea.
+set-version.ps1                Current Semver is INFO [26-07-03 14:41:54:08] Applicable build agent found: 'LocalBuild.
+update-snippets.ps1            Call `snipup` or `Update-Snippets` to update from GitHub.
+
+
+CommandType Name                                Version Source
+----------- ----                                ------- ------
+Alias       audio -> Invoke-Audio                       
+Alias       pwg -> ConvertFrom-WingetStdout.ps1         
+
+
+Name      Description
+----      -----------
+als       Snippets: [aliases] Manage Snippets aliases
+clean     Snippets: [dev] Clean-Folder
+hub       Snippets: [dev] Go to GitHub folder [f:\GitHub]
+devmode   Snippets: [dev] Start VS2022 Developer Mode
+posh      Snippets: [ps] OH-MY-POSH
+repos     Snippets: [repos] All Repos
+ch        Snippets: [repos] Chocolatey
+dn        Snippets: [repos] Dotnet
+dt        Snippets: [repos] Dotnet Tool
+np        Snippets: [repos] NPM
+ng        Snippets: [repos] NuGet
+pp        Snippets: [repos] PIP
+pps       Snippets: [repos] PIP-Search
+psg       Snippets: [repos] PSGallery
+scp       Snippets: [repos] Scoop
+wg        Snippets: [repos] WinGet
+profileup Snippets: [snippets] Update Profile from GitHub.
+snipup    Snippets: [snippets] Update Snippets from GitHub.
+
+
+    Directory: F:\GitHub\MouseKeyProxy-Fresh
+
+Mode                 LastWriteTime         Length Name
+----                 -------------         ------ ----
+d--h-            7/3/2026  2:41 PM                .git
+d----            7/3/2026  2:40 PM                docs
+d----            7/3/2026  2:41 PM                prompts
+d----            7/3/2026  2:39 PM                src
+d----            7/3/2026  2:39 PM                tests
+-a---            7/3/2026  2:41 PM           2413 .version
+-a---            7/3/2026  2:41 PM              0 codex-first-red-receipt.txt
+-a---            7/3/2026  2:38 PM            190 Directory.Build.props
+-a---            7/3/2026  2:38 PM             46 global.json
+-a---            7/3/2026  2:38 PM             64 MouseKeyProxy.slnx
+
+
+2026-07-03T19:41:56.642448Z ERROR codex_core::tools::router: error=Exit code: 1
+Wall time: 6.5 seconds
+Output:
+
+Snippet                        Result
+-------                        ------
+_aliases.ps1                   Alias auto-load complete: 2 applied, 0 skipped.
+_repos.ps1                     
+bing.ps1                       Set $env:BingApiKey to use Bing search.
+chocolatey.ps1                 {Refreshing environment variables from the registry for powershell.exe. Please wait...,.
+clean-folder.ps1               Execute `Clean-Folder -r -f` to remove `bin` and `obj` folders recursively.
+devmode.ps1                    Type `devmode` to enter VS2022 Developer Mode.
+gh_completion.ps1              
+github.ps1                     Use `hub` to go to the GitHub folder.
+module-loader.ps1              Modules already loaded.
+oh-my-posh-macos.ps1           
+oh-my-posh-windows.ps1         Registered alias for OH-MY-POSH
+set-version-PAYTON-LEGION2.ps1 Current Semver is INFO [26-07-03 14:41:54:08] Applicable build agent found: 'LocalBuild.
+set-version.ps1                Current Semver is INFO [26-07-03 14:41:54:08] Applicable build agent found: 'LocalBuild.
+update-snippets.ps1            Call `snipup` or `Update-Snippets` to update from GitHub.
+
+
+CommandType Name                                Version Source
+----------- ----                                ------- ------
+Alias       audio -> Invoke-Audio                       
+Alias       pwg -> ConvertFrom-WingetStdout.ps1         
+
+
+Name      Description
+----      -----------
+als       Snippets: [aliases] Manage Snippets aliases
+clean     Snippets: [dev] Clean-Folder
+hub       Snippets: [dev] Go to GitHub folder [f:\GitHub]
+devmode   Snippets: [dev] Start VS2022 Developer Mode
+posh      Snippets: [ps] OH-MY-POSH
+repos     Snippets: [repos] All Repos
+ch        Snippets: [repos] Chocolatey
+dn        Snippets: [repos] Dotnet
+dt        Snippets: [repos] Dotnet Tool
+np        Snippets: [repos] NPM
+ng        Snippets: [repos] NuGet
+pp        Snippets: [repos] PIP
+pps       Snippets: [repos] PIP-Search
+psg       Snippets: [repos] PSGallery
+scp       Snippets: [repos] Scoop
+wg        Snippets: [repos] WinGet
+profileup Snippets: [snippets] Update Profile from GitHub.
+snipup    Snippets: [snippets] Update Snippets from GitHub.
+
+Get-Content: 
+Line |
+   2 |  Get-Content -Raw C:\Users\kingd\.codex\skills\mcpserver\enforcement\S ΓÇª
+     |  ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+     | Cannot find path 'C:\Users\kingd\.codex\skills\mcpserver\enforcement\SKILL.md' because it does not exist.
+
+ exited 1 in 6547ms:
+
+Snippet                        Result
+-------                        ------
+_aliases.ps1                   Alias auto-load complete: 2 applied, 0 skipped.
+_repos.ps1                     
+bing.ps1                       Set $env:BingApiKey to use Bing search.
+chocolatey.ps1                 {Refreshing environment variables from the registry for powershell.exe. Please wait...,.
+clean-folder.ps1               Execute `Clean-Folder -r -f` to remove `bin` and `obj` folders recursively.
+devmode.ps1                    Type `devmode` to enter VS2022 Developer Mode.
+gh_completion.ps1              
+github.ps1                     Use `hub` to go to the GitHub folder.
+module-loader.ps1              Modules already loaded.
+oh-my-posh-macos.ps1           
+oh-my-posh-windows.ps1         Registered alias for OH-MY-POSH
+set-version-PAYTON-LEGION2.ps1 Current Semver is INFO [26-07-03 14:41:54:08] Applicable build agent found: 'LocalBuild.
+set-version.ps1                Current Semver is INFO [26-07-03 14:41:54:08] Applicable build agent found: 'LocalBuild.
+update-snippets.ps1            Call `snipup` or `Update-Snippets` to update from GitHub.
+
+
+CommandType Name                                Version Source
+----------- ----                                ------- ------
+Alias       audio -> Invoke-Audio                       
+Alias       pwg -> ConvertFrom-WingetStdout.ps1         
+
+
+Name      Description
+----      -----------
+als       Snippets: [aliases] Manage Snippets aliases
+clean     Snippets: [dev] Clean-Folder
+hub       Snippets: [dev] Go to GitHub folder [f:\GitHub]
+devmode   Snippets: [dev] Start VS2022 Developer Mode
+posh      Snippets: [ps] OH-MY-POSH
+repos     Snippets: [repos] All Repos
+ch        Snippets: [repos] Chocolatey
+dn        Snippets: [repos] Dotnet
+dt        Snippets: [repos] Dotnet Tool
+np        Snippets: [repos] NPM
+ng        Snippets: [repos] NuGet
+pp        Snippets: [repos] PIP
+pps       Snippets: [repos] PIP-Search
+psg       Snippets: [repos] PSGallery
+scp       Snippets: [repos] Scoop
+wg        Snippets: [repos] WinGet
+profileup Snippets: [snippets] Update Profile from GitHub.
+snipup    Snippets: [snippets] Update Snippets from GitHub.
+
+Get-Content: 
+Line |
+   2 |  Get-Content -Raw C:\Users\kingd\.codex\skills\mcpserver\enforcement\S ΓÇª
+     |  ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+     | Cannot find path 'C:\Users\kingd\.codex\skills\mcpserver\enforcement\SKILL.md' because it does not exist.
+
+ succeeded in 6947ms:
+
+Snippet                        Result
+-------                        ------
+_aliases.ps1                   Alias auto-load complete: 2 applied, 0 skipped.
+_repos.ps1                     
+bing.ps1                       Set $env:BingApiKey to use Bing search.
+chocolatey.ps1                 {Refreshing environment variables from the registry for powershell.exe. Please wait...,.
+clean-folder.ps1               Execute `Clean-Folder -r -f` to remove `bin` and `obj` folders recursively.
+devmode.ps1                    Type `devmode` to enter VS2022 Developer Mode.
+gh_completion.ps1              
+github.ps1                     Use `hub` to go to the GitHub folder.
+module-loader.ps1              Modules already loaded.
+oh-my-posh-macos.ps1           
+oh-my-posh-windows.ps1         Registered alias for OH-MY-POSH
+set-version-PAYTON-LEGION2.ps1 Current Semver is INFO [26-07-03 14:41:54:08] Applicable build agent found: 'LocalBuild.
+set-version.ps1                Current Semver is INFO [26-07-03 14:41:54:08] Applicable build agent found: 'LocalBuild.
+update-snippets.ps1            Call `snipup` or `Update-Snippets` to update from GitHub.
+
+
+CommandType Name                                Version Source
+----------- ----                                ------- ------
+Alias       audio -> Invoke-Audio                       
+Alias       pwg -> ConvertFrom-WingetStdout.ps1         
+
+
+Name      Description
+----      -----------
+als       Snippets: [aliases] Manage Snippets aliases
+clean     Snippets: [dev] Clean-Folder
+hub       Snippets: [dev] Go to GitHub folder [f:\GitHub]
+devmode   Snippets: [dev] Start VS2022 Developer Mode
+posh      Snippets: [ps] OH-MY-POSH
+repos     Snippets: [repos] All Repos
+ch        Snippets: [repos] Chocolatey
+dn        Snippets: [repos] Dotnet
+dt        Snippets: [repos] Dotnet Tool
+np        Snippets: [repos] NPM
+ng        Snippets: [repos] NuGet
+pp        Snippets: [repos] PIP
+pps       Snippets: [repos] PIP-Search
+psg       Snippets: [repos] PSGallery
+scp       Snippets: [repos] Scoop
+wg        Snippets: [repos] WinGet
+profileup Snippets: [snippets] Update Profile from GitHub.
+snipup    Snippets: [snippets] Update Snippets from GitHub.
+
+tests\MouseKeyProxy.Repl.Tests\UnitTest1.cs
+tests\MouseKeyProxy.Repl.Tests\obj\project.nuget.cache
+tests\MouseKeyProxy.Repl.Tests\obj\project.assets.json
+tests\MouseKeyProxy.Repl.Tests\obj\MouseKeyProxy.Repl.Tests.csproj.nuget.g.targets
+tests\MouseKeyProxy.Repl.Tests\obj\MouseKeyProxy.Repl.Tests.csproj.nuget.g.props
+tests\MouseKeyProxy.Repl.Tests\obj\MouseKeyProxy.Repl.Tests.csproj.nuget.dgspec.json
+tests\MouseKeyProxy.Repl.Tests\MouseKeyProxy.Repl.Tests.csproj
+tests\MouseKeyProxy.Agent.Tests\UnitTest1.cs
+tests\MouseKeyProxy.Agent.Tests\obj\project.nuget.cache
+tests\MouseKeyProxy.Agent.Tests\obj\project.assets.json
+tests\MouseKeyProxy.Agent.Tests\obj\MouseKeyProxy.Agent.Tests.csproj.nuget.g.targets
+tests\MouseKeyProxy.Agent.Tests\obj\MouseKeyProxy.Agent.Tests.csproj.nuget.g.props
+tests\MouseKeyProxy.Agent.Tests\obj\MouseKeyProxy.Agent.Tests.csproj.nuget.dgspec.json
+tests\MouseKeyProxy.Agent.Tests\MouseKeyProxy.Agent.Tests.csproj
+codex-first-red-receipt.txt
+Directory.Build.props
+MouseKeyProxy.slnx
+global.json
+docs\KEY-SPECS.md
+docs\DELEGATION-PLAN.md
+src\MouseKeyProxy.Service\Worker.cs
+src\MouseKeyProxy.Agent\Program.cs
+prompts\codex-first-red-tests.md
+prompts\claude-first-impl.md
+src\MouseKeyProxy.Agent\MouseKeyProxy.Agent.csproj
+src\MouseKeyProxy.Service\Program.cs
+src\MouseKeyProxy.Common\MouseKeyProxy.Common.csproj
+src\MouseKeyProxy.Common\Class1.cs
+src\MouseKeyProxy.Network\Class1.cs
+src\MouseKeyProxy.Network\MouseKeyProxy.Network.csproj
+src\MouseKeyProxy.Service\appsettings.json
+src\MouseKeyProxy.Service\appsettings.Development.json
+src\MouseKeyProxy.Service\MouseKeyProxy.Service.csproj
+src\MouseKeyProxy.Repl\Program.cs
+src\MouseKeyProxy.Repl\MouseKeyProxy.Repl.csproj
+src\MouseKeyProxy.Service\Properties\launchSettings.json
+src\MouseKeyProxy.Network\obj\MouseKeyProxy.Network.csproj.nuget.dgspec.json
+src\MouseKeyProxy.Network\obj\MouseKeyProxy.Network.csproj.nuget.g.props
+src\MouseKeyProxy.Service\obj\MouseKeyProxy.Service.csproj.nuget.g.targets
+src\MouseKeyProxy.Service\obj\MouseKeyProxy.Service.csproj.nuget.g.props
+src\MouseKeyProxy.Service\obj\MouseKeyProxy.Service.csproj.nuget.dgspec.json
+src\MouseKeyProxy.Service\obj\project.assets.json
+src\MouseKeyProxy.Service\obj\project.nuget.cache
+src\MouseKeyProxy.Agent\obj\MouseKeyProxy.Agent.csproj.nuget.dgspec.json
+src\MouseKeyProxy.Agent\obj\MouseKeyProxy.Agent.csproj.nuget.g.props
+src\MouseKeyProxy.Network\obj\project.nuget.cache
+src\MouseKeyProxy.Common\obj\MouseKeyProxy.Common.csproj.nuget.g.props
+src\MouseKeyProxy.Network\obj\project.assets.json
+src\MouseKeyProxy.Network\obj\MouseKeyProxy.Network.csproj.nuget.g.targets
+src\MouseKeyProxy.Common\obj\MouseKeyProxy.Common.csproj.nuget.dgspec.json
+src\MouseKeyProxy.Common\obj\project.assets.json
+src\MouseKeyProxy.Common\obj\MouseKeyProxy.Common.csproj.nuget.g.targets
+src\MouseKeyProxy.Common\obj\project.nuget.cache
+src\MouseKeyProxy.Agent\obj\MouseKeyProxy.Agent.csproj.nuget.g.targets
+src\MouseKeyProxy.Agent\obj\project.assets.json
+src\MouseKeyProxy.Agent\obj\project.nuget.cache
+src\MouseKeyProxy.Repl\obj\project.nuget.cache
+src\MouseKeyProxy.Repl\obj\project.assets.json
+src\MouseKeyProxy.Repl\obj\MouseKeyProxy.Repl.csproj.nuget.g.targets
+src\MouseKeyProxy.Repl\obj\MouseKeyProxy.Repl.csproj.nuget.g.props
+src\MouseKeyProxy.Repl\obj\MouseKeyProxy.Repl.csproj.nuget.dgspec.json
+
