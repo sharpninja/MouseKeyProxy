@@ -1,0 +1,163 @@
+syntax = "proto3";
+package mousekeyproxy.v1;
+
+option csharp_namespace = "MouseKeyProxy.Network.V1";
+
+// Complete self-contained contract for the locked topology.
+// All referenced types are defined here. This block is intended to be
+// pasted into a .proto file and compiled with protoc without external dependencies.
+
+service MouseKeyProxy {
+  // Primary cross-machine channel: remote dials host with persistent bidirectional stream
+  rpc OpenSession (stream SessionFrame) returns (stream SessionFrame);
+
+  // Pairing protocol surface (discovery / key negotiation before OpenSession)
+  rpc Pair (PairRequest) returns (PairResponse);
+
+  // Local REPL/tray management RPCs (typically routed over the open stream in implementation)
+  rpc SetMousePosition (SetMousePositionRequest) returns (CommandResult);
+  rpc LocateProcess (LocateProcessRequest) returns (LocateProcessResponse);
+  rpc SetFocusByHwnd (SetFocusByHwndRequest) returns (CommandResult);
+  rpc InjectInput (InjectInputRequest) returns (CommandResult);
+}
+
+message PairRequest {
+  string protocolVersion = 1;
+  string peerId = 2;
+  bytes publicInfo = 3;
+  string pairingCode = 4;
+}
+
+message PairResponse {
+  bool success = 1;
+  bytes peerCert = 2;
+  string error = 3;
+}
+
+message SessionFrame {
+  uint64 seq = 1;
+  oneof frame {
+    InputBatch input = 2;
+    ClipboardPush clipboard = 3;
+    ControlMsg control = 4;
+    Heartbeat heartbeat = 5;
+    Ack ack = 6;
+  }
+}
+
+message InputBatch {
+  uint64 baseSeq = 1;
+  repeated InputEvent events = 2;
+}
+
+message InputEvent {
+  InputKind kind = 1;
+  uint32 vk = 2;
+  uint32 scan = 3;
+  uint32 flags = 4;
+  int32 dx = 5;
+  int32 dy = 6;
+  sint32 wheelDelta = 7;
+  uint32 xbutton = 8;
+  string text = 9;
+  uint64 tsMs = 10;
+}
+
+enum InputKind {
+  INPUT_KIND_UNSPECIFIED = 0;
+  KEY_DOWN = 1; KEY_UP = 2;
+  MOUSE_MOVE = 3; MOUSE_DOWN = 4; MOUSE_UP = 5;
+  MOUSE_WHEEL = 6; MOUSE_HWHEEL = 9; MOUSE_XBUTTON = 7; TEXT_INPUT = 8;
+}
+
+message ClipboardPush {
+  uint64 seq = 1;
+  ClipboardEntry entry = 2;
+}
+
+message ClipboardEntry {
+  string id = 1;
+  uint64 tsMs = 2;
+  string source = 3;
+  repeated ClipboardFormat formats = 4;
+}
+
+message ClipboardFormat {
+  string name = 1;  // UNICODETEXT, HTML, PNG, etc.
+  bytes data = 2;
+}
+
+message ControlMsg {
+  uint64 seq = 1;
+  oneof cmd {
+    Toggle toggle = 2;
+    ModResync mods = 3;
+    VersionHello hello = 4;
+  }
+}
+
+message Toggle { bool active = 1; }
+message ModResync { repeated uint32 ups = 1; }
+message VersionHello {
+  string myVer = 1;
+  string peerVer = 2;
+}
+
+// Version rule: exact major match required on OpenSession; mismatch rejected with VERSION_MISMATCH error naming both versions.
+
+message Heartbeat { uint64 seq = 1; uint64 monoMs = 2; }
+message Ack { uint64 last = 1; }
+
+message CommandResult {
+  bool ok = 1;
+  string err = 2;  // VERSION_MISMATCH | AUTH | etc.
+  string msg = 3;
+  uint64 ackSeq = 4;
+}
+
+// Management request/response messages (full definitions for the locked contract)
+
+message SetMousePositionRequest {
+  string protocolVersion = 1;
+  string peerId = 2;
+  string displayId = 3;   // stable device name or GUID
+  int32 x = 4;
+  int32 y = 5;
+  string correlationId = 6;
+}
+
+message LocateProcessRequest {
+  string protocolVersion = 1;
+  string peerId = 2;
+  string processName = 3;
+  uint32 pid = 4;
+}
+
+message LocateProcessResponse {
+  repeated HwndNode nodes = 1;
+  string errorCode = 2;
+}
+
+message HwndNode {
+  uint64 hwnd = 1;
+  string title = 2;
+  string className = 3;
+  uint32 processId = 4;
+  repeated HwndNode children = 5;
+}
+
+message SetFocusByHwndRequest {
+  string protocolVersion = 1;
+  string peerId = 2;
+  uint64 hwnd = 3;
+  bool bringToFront = 4;
+  string correlationId = 5;
+}
+
+message InjectInputRequest {
+  string protocolVersion = 1;
+  string peerId = 2;
+  repeated string targetRemotes = 3;
+  repeated InputEvent events = 4;
+  string correlationId = 5;
+}

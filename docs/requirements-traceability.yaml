@@ -1,0 +1,57 @@
+type: result
+payload:
+  requestId: req-20260703T014930Z-59da
+  result:
+    success: true
+    content: ''
+    contentType: application/json
+    outputRoot: F:\GitHub\MouseKeyProxy\docs\Project
+    files:
+    - relativePath: Functional-Requirements.md
+      fullPath: F:\GitHub\MouseKeyProxy\docs\Project\Functional-Requirements.md
+      contentType: text/markdown
+      lastModifiedUtc: &o0
+        dateTime: 2026-07-03T01:49:31.6120286
+        utcDateTime: 2026-07-03T01:49:31.6120286Z
+        localDateTime: 2026-07-02T20:49:31.6120286-05:00
+        date: 2026-07-03T00:00:00.0000000
+        day: 3
+        dayOfWeek: Friday
+        dayOfYear: 184
+        hour: 1
+        millisecond: 612
+        microsecond: 28
+        nanosecond: 600
+        minute: 49
+        month: 7
+        offset: 00:00:00
+        totalOffsetMinutes: 0
+        second: 31
+        ticks: 639186401716120286
+        utcTicks: 639186401716120286
+        timeOfDay: 01:49:31.6120286
+        year: 2026
+    - relativePath: Technical-Requirements.md
+      fullPath: F:\GitHub\MouseKeyProxy\docs\Project\Technical-Requirements.md
+      contentType: text/markdown
+      lastModifiedUtc: *o0
+    - relativePath: Testing-Requirements.md
+      fullPath: F:\GitHub\MouseKeyProxy\docs\Project\Testing-Requirements.md
+      contentType: text/markdown
+      lastModifiedUtc: *o0
+    - relativePath: TR-per-FR-Mapping.md
+      fullPath: F:\GitHub\MouseKeyProxy\docs\Project\TR-per-FR-Mapping.md
+      contentType: text/markdown
+      lastModifiedUtc: *o0
+    - relativePath: Requirements-Matrix.md
+      fullPath: F:\GitHub\MouseKeyProxy\docs\Project\Requirements-Matrix.md
+      contentType: text/markdown
+      lastModifiedUtc: *o0
+    format: markdown
+    docType: all
+    generatedAt: 2026-07-03T01:49:31.6120286+00:00
+  deprecated: true
+
+---
+
+

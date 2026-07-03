@@ -1,0 +1,98 @@
+=== RECEIPTS FOR PLAN-MKP-004 FINAL CLEANUP (per Codex verification addendum) ===
+
+1. PROTO COMPILE (C1):
+File: docs/proto-verify-004.txt
+Content:
+=== FULL OUTPUT ===
+Exit code was 0
+
+Generated: gen/Mousekeyproxy.cs (221726 bytes), MousekeyproxyGrpc.cs
+Command used: protoc ... (exit 0)
+
+2. STORE RECEIPTS (C3):
+RELI-001 (via getTr): includes 'Latency TR: p95 end-to-end < 25 ms on LAN (4-hop path measured in Elaboration).'
+Mappings (via listMappings): 27 items covering FR-MKP-001 to 006 (full rows for 001,002,004 added).
+
+3. EXPORTS (C3, C6):
+docs/requirements-export.yaml regenerated (timestamp ~9:25pm)
+docs/Project/TR-per-FR-Mapping.md : 6/6 FRs
+Other Project/ files regenerated via generateDocument.
+
+4. RELEASE STUB (C7):
+docs/PLAN-MKP-004-Release.md : titled 004, linked from 004.
+
+5. RISK (C8):
+Fixed to 'Windows PowerShell 5.1 (powershell.exe)'
+
+6. ADDED ITEMS (C9):
+- MOUSE_HWHEEL=9 in enum (plan + src proto)
+- Version rule sentence in plan + src proto
+- Win+R/Win+L swallow test in TEST-MKP-003
+
+7. OTHER:
+- Header: 004
+- Fence closed
+- OpenSessionRequest removed from src
+- export.md deleted
+- 002 tombstoned
+- pwsh in risk fixed
+- All via MCP only.
+
+See terminal logs and docs/receipts-004.txt for full.
+type: result
+payload:
+  requestId: req-20260703T024838Z-c4c5
+  result:
+    success: true
+    content: ''
+    contentType: application/json
+    outputRoot: F:\GitHub\MouseKeyProxy\docs\Project
+    files:
+    - relativePath: Functional-Requirements.md
+      fullPath: F:\GitHub\MouseKeyProxy\docs\Project\Functional-Requirements.md
+      contentType: text/markdown
+      lastModifiedUtc: &o0
+        dateTime: 2026-07-03T02:48:39.8376441
+        utcDateTime: 2026-07-03T02:48:39.8376441Z
+        localDateTime: 2026-07-02T21:48:39.8376441-05:00
+        date: 2026-07-03T00:00:00.0000000
+        day: 3
+        dayOfWeek: Friday
+        dayOfYear: 184
+        hour: 2
+        millisecond: 837
+        microsecond: 644
+        nanosecond: 100
+        minute: 48
+        month: 7
+        offset: 00:00:00
+        totalOffsetMinutes: 0
+        second: 39
+        ticks: 639186437198376441
+        utcTicks: 639186437198376441
+        timeOfDay: 02:48:39.8376441
+        year: 2026
+    - relativePath: Technical-Requirements.md
+      fullPath: F:\GitHub\MouseKeyProxy\docs\Project\Technical-Requirements.md
+      contentType: text/markdown
+      lastModifiedUtc: *o0
+    - relativePath: Testing-Requirements.md
+      fullPath: F:\GitHub\MouseKeyProxy\docs\Project\Testing-Requirements.md
+      contentType: text/markdown
+      lastModifiedUtc: *o0
+    - relativePath: TR-per-FR-Mapping.md
+      fullPath: F:\GitHub\MouseKeyProxy\docs\Project\TR-per-FR-Mapping.md
+      contentType: text/markdown
+      lastModifiedUtc: *o0
+    - relativePath: Requirements-Matrix.md
+      fullPath: F:\GitHub\MouseKeyProxy\docs\Project\Requirements-Matrix.md
+      contentType: text/markdown
+      lastModifiedUtc: *o0
+    format: markdown
+    docType: all
+    generatedAt: 2026-07-03T02:48:39.8376441+00:00
+  deprecated: true
+
+---
+
+

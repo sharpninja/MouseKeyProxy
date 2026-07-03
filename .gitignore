@@ -1,0 +1,46 @@
+# .NET
+bin/
+obj/
+*.user
+*.suo
+*.cache
+*.log
+.vs/
+.vscode/
+.idea/
+
+# Build / Nuke
+build/bin/
+artifacts/
+nupkg/
+*.nupkg
+*.snupkg
+_test-results/
+test-results/
+
+# Local secrets / settings (but actual runtime in LocalAppData)
+*.user.json
+appsettings.*.local.json
+secrets.json
+
+# REPL / MCP
+.grok/
+cache/
+current-turn.yaml
+pending/
+*.lock
+mcp.db
+docs/todo.yaml
+
+# OS / editor
+Thumbs.db
+.DS_Store
+*.swp
+*~
+
+# Service / runtime
+*.exe
+*.dll
+*.pdb
+*.mdb
+# Keep source only; installed service handled by REPL

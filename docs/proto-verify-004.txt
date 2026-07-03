@@ -1,0 +1,11 @@
+PROTO VERIFY RECEIPT:
+Exit code: 0
+Generated files:
+
+    Directory: F:\GitHub\MouseKeyProxy\gen
+
+Mode                 LastWriteTime         Length Name
+----                 -------------         ------ ----
+-a---            7/2/2026  9:32 PM         221726 Mousekeyproxy.cs
+-a---            7/2/2026  9:32 PM          32237 MousekeyproxyGrpc.cs
+
