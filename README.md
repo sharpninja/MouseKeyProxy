@@ -6,6 +6,8 @@ See full plan: docs/PLAN-MKP-004.md and https://github.com/sharpninja/MouseKeyPr
 
 (Trivial tracked edit after re-anchor for harness CHANGED_FILES visibility)
 
+# Trivial blank-line edit committed for verification gate
+
 ## Quick start (REPL)
 dotnet tool install --global MouseKeyProxy.Repl
 
