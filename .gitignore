@@ -32,6 +32,10 @@ pending/
 mcp.db
 docs/todo.yaml
 
+# Agent configuration (contains MCP keys, workspace instructions, and secrets)
+# Do not track or publish
+AGENTS-README-FIRST.yaml
+
 # OS / editor
 Thumbs.db
 .DS_Store
