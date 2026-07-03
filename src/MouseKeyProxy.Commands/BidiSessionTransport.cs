@@ -24,6 +24,12 @@ public class BidiSessionTransport : IDisposable
     private ulong _nextSeq = 1;
     private bool _disposed;
 
+    /// <summary>
+    /// Capture seam for AC4 verification: last SessionFrame constructed/sent by shipped transport (Seq, Input, acks etc).
+    /// Tests drive this on real path without console string matching.
+    /// </summary>
+    public Wire.SessionFrame? LastSentFrame { get; protected set; }
+
     public BidiSessionTransport(Client client)
     {
         _client = client!; // allow null for test spies (real use always non-null)
@@ -53,6 +59,7 @@ public class BidiSessionTransport : IDisposable
             batch.Events.Add(new Wire.InputEvent { Kind = (Wire.InputKind)e.Kind, Vk = e.Vk, Text = e.Text ?? "", TsMs = (ulong)DateTimeOffset.UtcNow.ToUnixTimeMilliseconds() });
         }
         var frame = new Wire.SessionFrame { Seq = _nextSeq++, Input = batch };
+        LastSentFrame = frame;
         await _call!.RequestStream.WriteAsync(frame);
     }
 

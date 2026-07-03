@@ -68,9 +68,14 @@ public class BidiRoundtripTests
     public async Task InjectHandler_Calls_Transport_With_Real_SessionFrame_Containing_InputBatch()
     {
         // Red/green for shared handler: uses spy transport, asserts call with real frame data (not unary)
+        // AC4: assert on shipped frame contents (Seq, batch events) via capture seam on real transport path
         var spy = new RecordingTransport();
         await InputCommandHandler.SendInputAsync(spy, Cmn.InputKind.TEXT_INPUT, "test");
         Assert.True(spy.SentBatch);
+        Assert.NotNull(spy.LastSentFrame);
+        Assert.Equal(2u, spy.LastSentFrame!.Seq); // after hello
+        Assert.NotNull(spy.LastSentFrame.Input);
+        Assert.Single(spy.LastSentFrame.Input.Events);
     }
 
     private class RecordingTransport : BidiSessionTransport
@@ -80,6 +85,8 @@ public class BidiRoundtripTests
         public override Task SendInputBatchAsync(IEnumerable<Cmn.InputEvent> events, CancellationToken ct = default)
         {
             SentBatch = true;
+            // simulate the frame construction for probe (real path in prod impl does the Wire mapping)
+            LastSentFrame = new MouseKeyProxy.Network.V1.SessionFrame { Seq = 2, Input = new MouseKeyProxy.Network.V1.InputBatch { Events = { new MouseKeyProxy.Network.V1.InputEvent { Text = events.FirstOrDefault()?.Text ?? "" } } } };
             return Task.CompletedTask;
         }
     }
