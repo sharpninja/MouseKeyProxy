@@ -27,7 +27,7 @@ public class LatencyFailsafeHarness
         // hop2: LIFO merge (real)
         var entry = new ClipboardEntry(Guid.NewGuid().ToString("N"), DateTimeOffset.UtcNow, "p", new[] { new ClipboardFormat("t", new byte[8]) }, 1);
         var m = ClipboardLifoMerger.Merge(Array.Empty<ClipboardEntry>(), entry);
-        // hop3/4: SessionFrame serialize/ack sim using real types would be in Network layer test (here common timing)
+        // hop3/4: SessionFrame serialize/ack sim using real types (network layer test here uses common timing only)
         sw.Stop();
 
         double ms = sw.Elapsed.TotalMilliseconds;
