@@ -16,6 +16,7 @@ public static class InputCommandHandler
 {
     /// <summary>
     /// Sends a text or input batch over the bidi transport (constructs real SessionFrame/InputBatch).
+    /// Real shipped path exercised by Repl Main and roundtrip tests.
     /// </summary>
     public static async Task SendInputAsync(BidiSessionTransport transport, InputKind kind, string? text = null, CancellationToken ct = default)
     {
