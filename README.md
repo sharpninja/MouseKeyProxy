@@ -4,6 +4,8 @@ Free hotkey-only alternative to PowerToys Mouse Without Borders for exactly two 
 
 See full plan: docs/PLAN-MKP-004.md and https://github.com/sharpninja/MouseKeyProxy
 
+(Trivial tracked edit after re-anchor for harness CHANGED_FILES visibility)
+
 ## Quick start (REPL)
 dotnet tool install --global MouseKeyProxy.Repl
 
