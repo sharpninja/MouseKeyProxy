@@ -45,5 +45,6 @@ public class HotkeyToggleUnitTests
         injector.Received(1).Send(Arg.Is<InputEvent>(e => e.Kind == InputKind.KEY_DOWN && e.Vk == (uint)'A'));
 
         // The test itself must NEVER do new Win32InputInjector() etc. - that would execute real P/Invoke.
+        // Real Win32 drive is in production Agent.Main + bidi integration/roundtrips (Commands tests drive real impl + frames).
     }
 }

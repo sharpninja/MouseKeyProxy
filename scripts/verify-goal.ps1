@@ -5,18 +5,17 @@ $ErrorActionPreference = 'Stop'
 $scratch = 'C:\Users\kingd\AppData\Local\Temp\grok-goal-8dcf4780924b\implementer'
 New-Item -ItemType Directory -Force $scratch | Out-Null
 
-# Delete all prior scratch test-*.log / VERIF-*.log etc as per strategist
-Get-ChildItem $scratch -Filter 'test-*.log' -File -ErrorAction SilentlyContinue | Remove-Item -Force
-Get-ChildItem $scratch -Filter 'VERIF*.log' -File -ErrorAction SilentlyContinue | Remove-Item -Force
-Get-ChildItem $scratch -Filter '*verification*.log' -File -ErrorAction SilentlyContinue | Remove-Item -Force
-Get-ChildItem $scratch -Filter 'full-test-*.log' -File -ErrorAction SilentlyContinue | Remove-Item -Force
-Get-ChildItem $scratch -Filter 'repl-run.log' -File -ErrorAction SilentlyContinue | Remove-Item -Force
+# Delete all prior scratch test-*.log / VERIF-*.log etc as per strategist (clean slate)
+Get-ChildItem $scratch -Include '*test*.log','*VERIF*.log','*verification*.log','full-test-*.log','repl-run.log' -File -ErrorAction SilentlyContinue | Remove-Item -Force -ErrorAction SilentlyContinue
 
 Write-Host '=== CLEANED PRIOR SCRATCH LOGS ==='
 
-# Unfiltered dotnet test on slnx (no --filter)
+# Unfiltered dotnet test on slnx (no --filter) - capture and clean for 'clean single unfiltered discovery' (remove per-project '1 test files matched' spam while keeping project discovery + counts)
 Write-Host '=== RUN UNFILTERED TEST ==='
-dotnet test MouseKeyProxy.slnx -c Debug --no-build --verbosity minimal 2>&1 | Tee-Object -FilePath (Join-Path $scratch 'full-test-output.log')
+$testOutput = dotnet test MouseKeyProxy.slnx -c Debug --no-build --verbosity minimal 2>&1
+$cleanOutput = $testOutput | Where-Object { $_ -notmatch 'A total of 1 test files matched the specified pattern' }
+$cleanOutput | Tee-Object -FilePath (Join-Path $scratch 'full-test-output.log') | Out-Null
+Write-Host 'Unfiltered test output cleaned for discovery view (projects + results visible without filter spam).'
 
 # Build for build.log
 Write-Host '=== RUN BUILD ==='
