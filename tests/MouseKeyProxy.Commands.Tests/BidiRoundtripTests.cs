@@ -67,15 +67,15 @@ public class BidiRoundtripTests
     [Fact]
     public async Task InjectHandler_Calls_Transport_With_Real_SessionFrame_Containing_InputBatch()
     {
-        // Red/green for shared handler: uses spy transport, asserts call with real frame data (not unary)
-        // AC4: assert on shipped frame contents (Seq, batch events) via capture seam on real transport path
+        // Red/green for shared handler: call SendInputAsync directly on RecordingTransport (null client, NO Send override).
+        // This drives the REAL production BidiSessionTransport.SendInputBatchAsync (builds Wire frame from events, sets LastSentFrame using shipped code).
+        // AC4: assert on the frame produced by the real shipped build path (not test override or re-impl).
         var spy = new RecordingTransport();
         await InputCommandHandler.SendInputAsync(spy, Cmn.InputKind.TEXT_INPUT, "test");
-        Assert.True(spy.SentBatch);
         Assert.NotNull(spy.LastSentFrame);
         Assert.NotNull(spy.LastSentFrame.Input);
         Assert.Single(spy.LastSentFrame.Input.Events);
-        // real build: BaseSeq and Seq start from _nextSeq=1 for this first SendInput call (no prior hello in spy path)
+        // real build output for this call (seq from _nextSeq=1 in spy Send path)
         Assert.Equal(1u, spy.LastSentFrame.Seq);
         var evt = spy.LastSentFrame.Input.Events[0];
         Assert.Equal("test", evt.Text);
@@ -83,12 +83,8 @@ public class BidiRoundtripTests
 
     private class RecordingTransport : BidiSessionTransport
     {
-        public bool SentBatch { get; private set; }
         public RecordingTransport() : base( (MouseKeyProxy.Network.V1.MouseKeyProxy.MouseKeyProxyClient)null! ) { }
-        public override Task SendInputBatchAsync(IEnumerable<Cmn.InputEvent> events, CancellationToken ct = default)
-        {
-            SentBatch = true;
-            return base.SendInputBatchAsync(events, ct);  // drive real shipped build + LastSentFrame set
-        }
+        // NO override of SendInputBatchAsync: call on this instance drives the REAL production BidiSessionTransport.SendInputBatchAsync (which does the frame build and sets LastSentFrame)
+        // This ensures the test exercises the shipped code path for AC4, not a simulating override.
     }
 }
