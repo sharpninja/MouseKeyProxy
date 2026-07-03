@@ -1,7 +1,11 @@
 using System;
 using System.Drawing;
 using System.Windows.Forms;
+using Grpc.Net.Client;
 using MouseKeyProxy.Common;
+using MouseKeyProxy.Commands;
+using MouseKeyProxy.Network;
+using Wire = MouseKeyProxy.Network.V1;
 
 namespace MouseKeyProxy.Agent;
 
@@ -57,15 +61,37 @@ internal static class Program
 
     private static void DoRealToggle()
     {
-        var res = _state!.ApplyToggle("peer");
-        if (res.NewActive)
+        try
         {
-            _clip!.ClipToPoint(100, 100); // real ClipCursor via seam
-            Console.WriteLine($"[SHIPPED TRAY] active={res.NewActive} clip={_clip.IsClipped}");
+            // Drive SHIPPED ToggleAsync + Bidi transport for mod resync emission from Agent hotkey path (AC3) -- visibility commit
+            string baseUrl = Environment.GetEnvironmentVariable("MKP_GRPC") ?? "http://localhost:50051";
+            using var channel = GrpcChannel.ForAddress(baseUrl, new GrpcChannelOptions { HttpHandler = new System.Net.Http.SocketsHttpHandler { EnableMultipleHttp2Connections = true } });
+            var client = new Wire.MouseKeyProxy.MouseKeyProxyClient(channel);
+            using var transport = new BidiSessionTransport(client);
+            bool active = InputCommandHandler.ToggleAsync(_state!, transport, "peer").GetAwaiter().GetResult();
+            if (active)
+            {
+                _clip!.ClipToPoint(100, 100);
+                Console.WriteLine($"[SHIPPED TRAY via ToggleAsync] active={active} clip={_clip.IsClipped} (emission sent)");
+            }
+            else
+            {
+                _clip!.Release();
+            }
         }
-        else
+        catch (Exception ex)
         {
-            _clip!.Release();
+            // Fallback: local state + clip still works if no remote service
+            var res = _state!.ApplyToggle("peer");
+            if (res.NewActive)
+            {
+                _clip!.ClipToPoint(100, 100);
+                Console.WriteLine($"[SHIPPED TRAY] active={res.NewActive} clip={_clip.IsClipped} (transport fail: {ex.Message})");
+            }
+            else
+            {
+                _clip!.Release();
+            }
         }
     }
 

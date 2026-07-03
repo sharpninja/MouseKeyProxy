@@ -93,19 +93,33 @@ public class BidiRoundtripTests
         // This ensures the test exercises the shipped code path for AC4, not a simulating override.
     }
 
+    private class CollectingTransport : BidiSessionTransport
+    {
+        public List<SessionFrame> SentFrames { get; } = new();
+        public CollectingTransport() : base( (MouseKeyProxy.Network.V1.MouseKeyProxy.MouseKeyProxyClient)null! ) { }
+        public override async Task SendInputBatchAsync(System.Collections.Generic.IEnumerable<Cmn.InputEvent> events, CancellationToken ct = default)
+        {
+            // delegate to base (shipped build + LastSentFrame logic), then collect for assertion on resync branch
+            await base.SendInputBatchAsync(events, ct);
+            if (LastSentFrame != null) SentFrames.Add(LastSentFrame);
+        }
+    }
+
     [Fact]
     public async Task ToggleAsync_Emits_ModResync_Frames_Via_Real_Transport_When_Changed()
     {
-        // Drives SHIPPED ToggleAsync + real BidiSessionTransport build (no hardcode frames).
-        // On EmitModResync (first toggle always changes), handler sends initial + extra resync frame.
-        // Assert on real LastSentFrame produced by shipped Send path (AC3/AC4).
+        // Drives SHIPPED ToggleAsync + real BidiSessionTransport build (no hardcode frames, no starting past UUT).
+        // On EmitModResync (first toggle changes), handler does unconditional send + extra empty resync send in if branch.
+        // Assert count and empty events to ensure the EmitModResync if-branch is not bypassed.
         var sm = new Cmn.ToggleStateMachine();
-        var spy = new RecordingTransport();
+        var spy = new CollectingTransport();
         bool active = await InputCommandHandler.ToggleAsync(sm, spy, "peer1");
         Assert.True(active);
-        Assert.NotNull(spy.LastSentFrame);
-        // After resync emission the last frame is the extra one (empty input signals resync)
-        Assert.NotNull(spy.LastSentFrame.Input);
-        // Emission path exercised real build
+        Assert.True(spy.SentFrames.Count >= 2, "Expected at least initial + resync send for Emit");
+        var last = spy.SentFrames.Last();
+        Assert.NotNull(last);
+        Assert.NotNull(last.Input);
+        Assert.Empty(last.Input.Events); // resync emission is empty batch
+        Assert.Equal(1u, spy.SentFrames[0].Seq); // real build seqs from shipped path
     }
 }

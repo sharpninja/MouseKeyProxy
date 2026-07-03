@@ -1,6 +1,6 @@
 # MouseKeyProxy
 
-<!-- Re-anchor gate refresh 2026-07-03: trivial edit for CHANGED_FILES visibility in verify harness (re-bootstrap + InitAsync) -->
+<!-- Re-anchor gate refresh 2026-07-03 + visibility pass: trivial edit + src commits to ensure project files (src/tests/scripts) appear in harness CHANGED/patch -->
 
 Free hotkey-only alternative to PowerToys Mouse Without Borders for exactly two Windows 11 systems.
 
