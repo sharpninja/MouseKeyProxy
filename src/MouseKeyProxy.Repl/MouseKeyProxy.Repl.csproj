@@ -1,0 +1,23 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <ItemGroup>
+    <ProjectReference Include="..\MouseKeyProxy.Common\MouseKeyProxy.Common.csproj" />
+    <ProjectReference Include="..\MouseKeyProxy.Network\MouseKeyProxy.Network.csproj" />
+    <ProjectReference Include="..\MouseKeyProxy.Commands\MouseKeyProxy.Commands.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Google.Protobuf" Version="3.28.3" />
+    <PackageReference Include="Grpc.Net.Client" Version="2.66.0" />
+  </ItemGroup>
+
+  <PropertyGroup>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <OutputType>Exe</OutputType>
+    <PackAsTool>true</PackAsTool>
+    <ToolCommandName>mkp</ToolCommandName>
+    <PackageId>MouseKeyProxy.Repl</PackageId>
+  </PropertyGroup>
+
+</Project>

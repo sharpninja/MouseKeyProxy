@@ -3,6 +3,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using Grpc.Core;
 using Grpc.Core.Testing;
+using Microsoft.Extensions.Logging;
 using MouseKeyProxy.Network;
 using MouseKeyProxy.Network.V1;
 using MouseKeyProxy.Service;
@@ -20,8 +21,9 @@ public class BidiRoundtripTests
     [Fact]
     public async Task InMemory_Duplex_Roundtrip_Against_Real_OpenSession_Asserts_AckSeq()
     {
-        // Arrange: real service impl
-        var impl = new MouseKeyProxyImpl();
+        // Arrange: real service impl (ILogger required after FR-MKP-007)
+        var logger = Substitute.For<ILogger<MouseKeyProxyImpl>>();
+        var impl = new MouseKeyProxyImpl(logger);
 
         // in-memory request stream with one input batch frame (sim client send)
         var sentFrame = new SessionFrame

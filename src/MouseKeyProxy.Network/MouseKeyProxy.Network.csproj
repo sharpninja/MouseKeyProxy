@@ -1,0 +1,25 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Google.Protobuf" Version="3.28.3" />
+    <PackageReference Include="Grpc.Net.Client" Version="2.66.0" />
+    <PackageReference Include="Grpc.Tools" Version="2.66.0" PrivateAssets="All" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- Use pre-generated from prior locked protoc (see docs/proto-verify-004.txt); Proto generate disabled to avoid dup with pre-gen in build -->
+    <Compile Include="..\..\gen\Mousekeyproxy.cs" />
+    <Compile Include="..\..\gen\MousekeyproxyGrpc.cs" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\MouseKeyProxy.Common\MouseKeyProxy.Common.csproj" />
+  </ItemGroup>
+
+</Project>
