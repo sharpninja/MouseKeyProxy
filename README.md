@@ -1,5 +1,7 @@
 # MouseKeyProxy
 
+<!-- Re-anchor gate refresh 2026-07-03: trivial edit for CHANGED_FILES visibility in verify harness (re-bootstrap + InitAsync) -->
+
 Free hotkey-only alternative to PowerToys Mouse Without Borders for exactly two Windows 11 systems.
 
 See full plan: docs/PLAN-MKP-004.md and https://github.com/sharpninja/MouseKeyProxy
