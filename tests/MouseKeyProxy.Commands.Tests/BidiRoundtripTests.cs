@@ -11,6 +11,7 @@ using MouseKeyProxy.Service;
 using NSubstitute;
 using Xunit;
 using Cmn = MouseKeyProxy.Common;
+using MouseKeyProxy.Common;
 
 namespace MouseKeyProxy.Commands.Tests;
 
@@ -22,9 +23,11 @@ public class BidiRoundtripTests
     [Fact]
     public async Task InMemory_Duplex_Roundtrip_Against_Real_OpenSession_Asserts_AckSeq()
     {
-        // Arrange: real service impl (ILogger required after FR-MKP-007)
+        // Arrange: real service impl with dispatcher + spy injector to drive real receive->inject dispatch (shipped path for AC4)
         var logger = Substitute.For<ILogger<MouseKeyProxyImpl>>();
-        var impl = new MouseKeyProxyImpl(logger);
+        var injector = Substitute.For<MouseKeyProxy.Common.IInputInjector>();
+        var dispatcher = new MouseKeyProxy.Common.SessionFrameDispatcher(injector, new MouseKeyProxy.Common.ToggleStateMachine());
+        var impl = new MouseKeyProxyImpl(logger, dispatcher);
 
         // in-memory request stream with one input batch frame (sim client send)
         var sentFrame = new SessionFrame
@@ -46,6 +49,9 @@ public class BidiRoundtripTests
         // Assert: ack seq matches sent frame (real roundtrip)
         Assert.NotEmpty(responseStream.Responses);
         Assert.Equal(7u, responseStream.Responses[0].Ack.Last);
+
+        // Drive real dispatch: received frame was passed to injector.Send (real path, not mock of UUT)
+        injector.Received().Send(Arg.Any<InputEvent>());
     }
 
     // Simple test helpers (copied pattern from Service tests for red/green)
