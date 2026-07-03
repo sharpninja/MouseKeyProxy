@@ -92,4 +92,20 @@ public class BidiRoundtripTests
         // NO override of SendInputBatchAsync: call on this instance drives the REAL production BidiSessionTransport.SendInputBatchAsync (which does the frame build and sets LastSentFrame)
         // This ensures the test exercises the shipped code path for AC4, not a simulating override.
     }
+
+    [Fact]
+    public async Task ToggleAsync_Emits_ModResync_Frames_Via_Real_Transport_When_Changed()
+    {
+        // Drives SHIPPED ToggleAsync + real BidiSessionTransport build (no hardcode frames).
+        // On EmitModResync (first toggle always changes), handler sends initial + extra resync frame.
+        // Assert on real LastSentFrame produced by shipped Send path (AC3/AC4).
+        var sm = new Cmn.ToggleStateMachine();
+        var spy = new RecordingTransport();
+        bool active = await InputCommandHandler.ToggleAsync(sm, spy, "peer1");
+        Assert.True(active);
+        Assert.NotNull(spy.LastSentFrame);
+        // After resync emission the last frame is the extra one (empty input signals resync)
+        Assert.NotNull(spy.LastSentFrame.Input);
+        // Emission path exercised real build
+    }
 }

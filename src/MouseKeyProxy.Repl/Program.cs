@@ -79,10 +79,17 @@ Explicit 'mkp service install' does NOT happen on 'dotnet tool install'.
                 }
                 catch (Exception ex) { Console.WriteLine($"[REAL Pair attempted] {ex.Message}"); return 1; }
             case "toggle":
-                // real toggle state + bidi path available via transport for network sync
-                var res = _toggle.ApplyToggle("peer-via-repl");
-                Console.WriteLine($"[REAL] toggle active={res.NewActive} peer={_toggle.ActivePeerId}");
-                return 0;
+                // real toggle via SHIPPED handler + transport for mod resync emission (AC3)
+                try
+                {
+                    using var channel = GrpcChannel.ForAddress(baseUrl, new GrpcChannelOptions { HttpHandler = new System.Net.Http.SocketsHttpHandler { EnableMultipleHttp2Connections = true } });
+                    var client = new Wire.MouseKeyProxy.MouseKeyProxyClient(channel);
+                    using var transport = new MouseKeyProxy.Commands.BidiSessionTransport(client);
+                    bool active = MouseKeyProxy.Commands.InputCommandHandler.ToggleAsync(_toggle, transport, "peer-via-repl").GetAwaiter().GetResult();
+                    Console.WriteLine($"[REAL via ToggleAsync] toggle active={active} (emission sent on change via shipped handler)");
+                    return 0;
+                }
+                catch (Exception ex) { Console.WriteLine($"[REAL toggle] {ex.Message}"); return 1; }
             case "clipboard":
                 var dataDir = Environment.ExpandEnvironmentVariables(TempDataRoot);
                 Directory.CreateDirectory(dataDir);
@@ -125,6 +132,7 @@ Explicit 'mkp service install' does NOT happen on 'dotnet tool install'.
                             Console.WriteLine($"[REAL bidi via transport] inject-text sent as SessionFrame/InputBatch SUCCESS");
                         } catch (Exception ex) {
                             Console.WriteLine($"[REAL bidi via transport] inject-text FAILED: {ex.Message}");
+                            return 1;
                         }
                     }
                     else if (cmd == "set-mouse")

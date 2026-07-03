@@ -102,13 +102,18 @@ public class MouseKeyProxyImpl : MouseKeyProxy.Network.V1.MouseKeyProxy.MouseKey
         return Task.FromResult(new global::MouseKeyProxy.Network.V1.CommandResult { Ok = true, Msg = "ok" });
     }
 
-    public override Task<global::MouseKeyProxy.Network.V1.CommandResult> InjectInput(global::MouseKeyProxy.Network.V1.InjectInputRequest request, ServerCallContext context)
+    public override async Task<global::MouseKeyProxy.Network.V1.CommandResult> InjectInput(global::MouseKeyProxy.Network.V1.InjectInputRequest request, ServerCallContext context)
     {
-        _logger.LogInformation("InjectInput events={C}", request.Events?.Count ?? 0);
-        if (_dispatcher != null && request.Events != null)
+        _logger.LogInformation("InjectInput events={C} (real dispatch path for AC5)", request.Events?.Count ?? 0);
+        if (_dispatcher != null && request.Events != null && request.Events.Count > 0)
         {
-            // dispatch would map and call
+            var evts = new System.Collections.Generic.List<MouseKeyProxy.Common.InputEvent>();
+            foreach (var we in request.Events)
+            {
+                evts.Add(new MouseKeyProxy.Common.InputEvent((MouseKeyProxy.Common.InputKind)we.Kind, Vk: we.Vk, Text: we.Text));
+            }
+            await _dispatcher.HandleInputBatchAsync(evts);
         }
-        return Task.FromResult(new global::MouseKeyProxy.Network.V1.CommandResult { Ok = true, Msg = "ok" });
+        return new global::MouseKeyProxy.Network.V1.CommandResult { Ok = true, Msg = "ok" };
     }
 }

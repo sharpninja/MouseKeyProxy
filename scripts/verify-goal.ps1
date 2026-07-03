@@ -34,6 +34,7 @@ dotnet run --project src/MouseKeyProxy.Repl/MouseKeyProxy.Repl.csproj -- service
 dotnet run --project src/MouseKeyProxy.Repl/MouseKeyProxy.Repl.csproj -- pair --help 2>&1 | Out-File -FilePath $replLog -Append
 dotnet run --project src/MouseKeyProxy.Repl/MouseKeyProxy.Repl.csproj -- clipboard list 2>&1 | Out-File -FilePath $replLog -Append
 dotnet run --project src/MouseKeyProxy.Repl/MouseKeyProxy.Repl.csproj -- inject-text 'verif-frame' 2>&1 | Out-File -FilePath $replLog -Append
+dotnet run --project src/MouseKeyProxy.Repl/MouseKeyProxy.Repl.csproj -- toggle 2>&1 | Out-File -FilePath $replLog -Append
 
 Write-Host '=== VERIFICATION SCRIPT COMPLETE ==='
 Write-Host "Logs: build.log, full-test-output.log, repl-run.log in $scratch (only these + nupkg)"
