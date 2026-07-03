@@ -54,7 +54,7 @@ Explicit 'mkp service install' does NOT happen on 'dotnet tool install'.
                     // Per plan: use powershell.exe (5.1) elevated for install actions including EventLog source
                     // (required so the AddEventLog provider in the service can write under "MouseKeyProxy")
                     Console.WriteLine("[SHIPPED] service install: elevating powershell.exe (5.1) to create EventLog source + sc + fw rules");
-                    // Example of what the elevated script would do:
+                    // Example of what the elevated script does:
                     // powershell.exe -Command "if (-not [System.Diagnostics.EventLog]::SourceExists('MouseKeyProxy')) { [System.Diagnostics.EventLog]::CreateEventSource('MouseKeyProxy','Application') }; sc.exe create ... ; netsh advfirewall ..."
                 }
                 else
