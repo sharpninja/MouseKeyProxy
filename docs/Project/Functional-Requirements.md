@@ -30,3 +30,19 @@ Scope: layer-1+
 REPL manages pairing (UDP broadcast and/or mDNS LAN discovery (no UPnP IGD/NAT port mapping) + key negotiation/persist), settings, explicit service lifecycle (install/uninstall reverse fw using Windows PowerShell 5.1 `powershell.exe`), clipboard ops, toggle. REPL is the primary management UX. Explicit `mkp service install` (not automatic on tool install). Tray (WinForms) actions use shared command implementation library (no per-click spawn). .NET 10 + director workspace. ACs as in plan.
 Scope: layer-1+
 
+## FR-MKP-007 Full logging via ILogger to Windows Event Viewer
+
+All service components (gRPC service, pairing, lifecycle, watchdog, connection management) and key agent operations must log exclusively through Microsoft.Extensions.Logging.ILogger<T> (or ILoggerFactory). The service host must be configured to write logs to the Windows Event Log (Event Viewer) using the EventLog provider under source "MouseKeyProxy" / log "Application".
+
+Acceptance Criteria:
+- Service startup, shutdown, gRPC session open/close, Pair success/failure, input batch processing (at Information or Debug), errors, and failsafe triggers are logged with appropriate LogLevel (Information, Warning, Error, Critical).
+- Logs are visible in Event Viewer > Windows Logs > Application with Source = "MouseKeyProxy".
+- Structured logging properties (e.g. PeerId, Seq, ErrorCode) are preserved in EventData.
+- No Console.WriteLine or direct EventLog.WriteEntry in production service code paths (use ILogger).
+- During `mkp service install` (elevated), the EventLog source is created if missing.
+- Log level can be controlled via configuration (appsettings.json or command line).
+- REPL and tray use ILogger for their operations where relevant (console provider + EventLog where appropriate for agent actions).
+- Unit/component tests verify logging calls using NSubstitute for ILogger without side effects on the real Event Log.
+
+Scope: layer-1+ (service primary, agent/tray secondary)
+
