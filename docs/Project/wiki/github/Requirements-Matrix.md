@@ -1,9 +1,9 @@
-# Requirements Matrix (MouseKeyProxy)
+# Requirements Matrix (MCP Server)
 
-Source: consolidated Product requirements plus MouseKeyProxy-Fresh sunset requirements and July 4, 2026 project direction. Product (`F:\GitHub\MouseKeyProxy`) is the active source of truth.
+Traceability policy: see `Requirements-Traceability-Policy.md`.
 
-| Requirement | Type | Status | Primary Source | Traceability |
-| --- | --- | --- | --- | --- |
+| Requirement | Status | Source Files |
+| --- | --- | --- |
 | FR-HOTKEY-001 | Functional | Tracked | Functional-Requirements.md | TR-HOTKEY-CONTRACT-001; TEST-HOTKEY-001 |
 | FR-OWNERSHIP-001 | Functional | Tracked | Functional-Requirements.md | TR-OWNERSHIP-CONTRACT-001; TEST-OWNERSHIP-001 |
 | FR-MKP-001 | Functional | Tracked | Functional-Requirements.md | TR-MKP-INPUT-001, TR-MKP-RELI-001, TR-MKP-REPL-001; TEST-MKP-001, TEST-MKP-008, TEST-MKP-012 |
