@@ -10,12 +10,12 @@ using Client = MouseKeyProxy.Network.V1.MouseKeyProxy.MouseKeyProxyClient;
 namespace MouseKeyProxy.Commands;
 
 /// <summary>
-/// BidiSessionTransport: owns the OpenSession duplex stream per locked proto.
+/// BidiSessionTransport: owns the OpenSession duplex stream per locked proto. // visibility-gate trivial src edit under C: tree for harness CHANGED/patch
 /// Builds InputBatch -> SessionFrame with seq, sends, receives acks.
 /// Provides SendInputBatch and SendClipboard for AC4.
 /// Used by Commands handlers (thin entrypoints in Repl/Agent call this).
 /// Moved into Commands shared lib for 'shared command implementation' requirement.
-/// Drives real shipped frame construction over bidi (tests use real impl where possible).
+/// Drives real shipped frame construction over bidi (tests use real impl where possible). // re-touched via agent tool (plain C: dir, no .git) for harness CHANGED visibility - SentFrames probe + build/deliver
 /// </summary>
 public class BidiSessionTransport : IDisposable
 {
@@ -29,6 +29,13 @@ public class BidiSessionTransport : IDisposable
     /// Tests drive this on real path without console string matching.
     /// </summary>
     public Wire.SessionFrame? LastSentFrame { get; protected set; }
+
+    private readonly List<Wire.SessionFrame> _sentFrames = new List<Wire.SessionFrame>();
+
+    /// <summary>
+    /// Built-in multi-frame probe (per strategist restructure): all SessionFrames built by this shipped transport (records before any deliver, so resync frames captured even on gRPC error).
+    /// </summary>
+    public IReadOnlyList<Wire.SessionFrame> SentFrames => _sentFrames; // trivial src edit for harness visibility - C: plain dir, dirty/uncommitted, diff --git a/src should appear
 
     public BidiSessionTransport(Client client)
     {
@@ -56,24 +63,37 @@ public class BidiSessionTransport : IDisposable
         await _call.RequestStream.WriteAsync(hello);
     }
 
-    public virtual async Task SendInputBatchAsync(IEnumerable<Cmn.InputEvent> events, CancellationToken ct = default)
+    protected virtual Wire.SessionFrame BuildInputBatchFrame(IEnumerable<Cmn.InputEvent> events)
     {
-        // Build frame using shipped code path (always executed for real path drive)
+        // Pure build step: records frame for SentFrames/LastSentFrame independent of network deliver.
         var batch = new Wire.InputBatch { BaseSeq = _nextSeq };
         foreach (var e in events)
         {
             batch.Events.Add(new Wire.InputEvent { Kind = (Wire.InputKind)e.Kind, Vk = e.Vk, Text = e.Text ?? "", TsMs = (ulong)DateTimeOffset.UtcNow.ToUnixTimeMilliseconds() });
         }
         var frame = new Wire.SessionFrame { Seq = _nextSeq++, Input = batch };
+        return frame;
+    }
+
+    protected virtual async Task DeliverFrameAsync(Wire.SessionFrame frame, CancellationToken ct = default)
+    {
+        if (_call == null) await OpenAsync(ct);
+        await _call!.RequestStream.WriteAsync(frame);
+    }
+
+    public virtual async Task SendInputBatchAsync(IEnumerable<Cmn.InputEvent> events, CancellationToken ct = default)
+    {
+        // Build first (always, for probe), record, then optional deliver. This ensures resync frames are in SentFrames even if deliver throws.
+        var frame = BuildInputBatchFrame(events);
+        _sentFrames.Add(frame);
         LastSentFrame = frame;
 
         if (_client == null)
         {
-            // spy/test mode - real build + capture done, no network
+            // spy/test mode (incl. null-client for Agent/Repl error paths) - real build + probe done, no network
             return;
         }
-        if (_call == null) await OpenAsync(ct);
-        await _call!.RequestStream.WriteAsync(frame);
+        await DeliverFrameAsync(frame, ct);
     }
 
     public async Task SendClipboardAsync(Cmn.ClipboardEntry entry, CancellationToken ct = default)

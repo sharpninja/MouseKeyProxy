@@ -1,0 +1,24 @@
+MouseKeyProxy delegation phase 8 (Transition)
+Date: 2026-07-04T07:20:00Z
+Delegate: Grok implementer
+Gate: Transition scripts + lab E2E + soak runner (PLAN-MKP-006)
+
+Deliverables:
+- scripts/run-transition-e2e.ps1 (batched gsudo elevated smoke)
+- scripts/run-soak.ps1 (24h soak gate with incident counters)
+- scripts/publish-release.ps1 (v0.5.0 pack, nuget push, git tag)
+- tests: TEST-MKP-013 ReleaseContract, TEST-MKP-014 TwoMachineE2E script contract
+- tests: TransitionE2ETests (lab-gated remote peer)
+- Directory.Build.props Version/PackageVersion 0.5.0
+
+Execution (PAYTON-LEGION2):
+- run-transition-e2e.ps1 exit 0, SMOKE: PARTIAL (MKP_REMOTE_HOST unset; service Running, gRPC:50051 refused)
+- publish-release.ps1: see docs/receipts-release-v0.5.0.txt
+- soak: scripts/run-soak.ps1 RUNNING (24h) receipt docs/receipts-soak-20260704T021859Z.txt
+
+Remaining for full Transition AC:
+- Set MKP_REMOTE_HOST to second Win11 peer and re-run run-transition-e2e.ps1 for REMOTE WinRM smoke
+- Complete 24h soak receipt with zero incidents
+- NuGet push: PASS (nuget.org, MouseKeyProxy.Repl 0.5.0)
+
+Status: IN_PROGRESS (infrastructure PASS; lab peer + soak completion pending)

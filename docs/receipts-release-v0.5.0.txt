@@ -1,0 +1,5 @@
+=== MouseKeyProxy release v0.5.0 ===
+Date: 2026-07-04T02:19:15.8511629-05:00
+Scratch: C:\Users\kingd\AppData\Local\Temp\mkp-release-0.5.0
+Pack: C:\Users\kingd\AppData\Local\Temp\mkp-release-0.5.0\MouseKeyProxy.Repl.0.5.0.nupkg
+NuGet push: PASS (nuget.org)

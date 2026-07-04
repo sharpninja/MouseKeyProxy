@@ -9,6 +9,8 @@
   <ItemGroup>
     <PackageReference Include="Google.Protobuf" Version="3.28.3" />
     <PackageReference Include="Grpc.Net.Client" Version="2.66.0" />
+    <PackageReference Include="System.Diagnostics.EventLog" Version="9.0.0" />
+    <PackageReference Include="System.ServiceProcess.ServiceController" Version="9.0.0" />
   </ItemGroup>
 
   <PropertyGroup>
@@ -18,6 +20,18 @@
     <PackAsTool>true</PackAsTool>
     <ToolCommandName>mkp</ToolCommandName>
     <PackageId>MouseKeyProxy.Repl</PackageId>
+    <TargetsForTfmSpecificContentInPackage>$(TargetsForTfmSpecificContentInPackage);PublishPayloadsForPackage</TargetsForTfmSpecificContentInPackage>
   </PropertyGroup>
+
+  <Target Name="PublishPayloadsForPackage">
+    <RemoveDir Directories="$(OutputPath)payloads" />
+    <Exec Command="dotnet publish ../MouseKeyProxy.Service/MouseKeyProxy.Service.csproj -c $(Configuration) -o $(OutputPath)payloads/service -r win-x64 --self-contained true -p:PublishSingleFile=true" />
+    <Exec Command="dotnet publish ../MouseKeyProxy.Agent/MouseKeyProxy.Agent.csproj -c $(Configuration) -o $(OutputPath)payloads/agent -r win-x64 --self-contained true -p:PublishSingleFile=true" />
+    <MakeDir Directories="$(OutputPath)payloads\agent" Condition="!Exists('$(OutputPath)payloads\agent')" />
+    <Copy SourceFiles="$(MSBuildThisFileDirectory)..\..\assets\logo.png" DestinationFolder="$(OutputPath)payloads\agent" SkipUnchangedFiles="true" Condition="Exists('$(MSBuildThisFileDirectory)..\..\assets\logo.png')" />
+    <ItemGroup>
+      <TfmSpecificPackageFile Include="$(OutputPath)payloads\**\*" PackagePath="tools/$(TargetFramework)/any/payloads/%(RecursiveDir)%(Filename)%(Extension)" />
+    </ItemGroup>
+  </Target>
 
 </Project>

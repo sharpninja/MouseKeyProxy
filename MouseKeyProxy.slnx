@@ -1,0 +1,19 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/MouseKeyProxy.Agent/MouseKeyProxy.Agent.csproj" />
+    <Project Path="src/MouseKeyProxy.Commands/MouseKeyProxy.Commands.csproj" />
+    <Project Path="src/MouseKeyProxy.Common/MouseKeyProxy.Common.csproj" />
+    <Project Path="src/MouseKeyProxy.Network/MouseKeyProxy.Network.csproj" />
+    <Project Path="src/MouseKeyProxy.Repl/MouseKeyProxy.Repl.csproj" />
+    <Project Path="src/MouseKeyProxy.Service/MouseKeyProxy.Service.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/MouseKeyProxy.Agent.Tests/MouseKeyProxy.Agent.Tests.csproj" />
+    <Project Path="tests/MouseKeyProxy.Commands.Tests/MouseKeyProxy.Commands.Tests.csproj" />
+    <Project Path="tests/MouseKeyProxy.Common.Tests/MouseKeyProxy.Common.Tests.csproj" />
+    <Project Path="tests/MouseKeyProxy.Repl.Tests/MouseKeyProxy.Repl.Tests.csproj" />
+    <Project Path="tests/MouseKeyProxy.Service.Tests/MouseKeyProxy.Service.Tests.csproj" />
+    <Project Path="tests/MouseKeyProxy.Compliance.Tests/MouseKeyProxy.Compliance.Tests.csproj" />
+    <Project Path="tests/MouseKeyProxy.Integration/MouseKeyProxy.Integration.csproj" />
+  </Folder>
+</Solution>

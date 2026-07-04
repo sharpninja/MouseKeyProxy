@@ -48,3 +48,7 @@ Thumbs.db
 *.pdb
 *.mdb
 # Keep source only; installed service handled by REPL
+
+# Test and harness scratch
+TestResults/
+output/

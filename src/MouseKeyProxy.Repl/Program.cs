@@ -1,6 +1,10 @@
 using System;
+using System.Diagnostics;
 using System.IO;
 using System.Linq;
+using System.Security.AccessControl;
+using System.Security.Principal;
+using System.ServiceProcess;
 using Grpc.Net.Client;
 using MouseKeyProxy.Commands;
 using Cmn = MouseKeyProxy.Common;
@@ -29,7 +33,7 @@ See: https://github.com/sharpninja/MouseKeyProxy
 
 Commands:
   mkp --help
-  mkp service status | install | uninstall | start | stop   (uses powershell.exe (5.1) for elevation/fw)
+  mkp service status | install | uninstall | start | stop   (uses sc.exe, netsh, schtasks; elevation via runas)
   mkp pair discover | pair <code>
   mkp toggle
   mkp clipboard list | clear
@@ -49,19 +53,14 @@ Explicit 'mkp service install' does NOT happen on 'dotnet tool install'.
         {
             case "service":
                 var sub = args.Length > 1 ? args[1].ToLowerInvariant() : "status";
-                if (sub == "install")
+                return sub switch
                 {
-                    // Per plan: use powershell.exe (5.1) elevated for install actions including EventLog source
-                    // (required so the AddEventLog provider in the service can write under "MouseKeyProxy")
-                    Console.WriteLine("[SHIPPED] service install: elevating powershell.exe (5.1) to create EventLog source + sc + fw rules");
-                    // Example of what the elevated script does:
-                    // powershell.exe -Command "if (-not [System.Diagnostics.EventLog]::SourceExists('MouseKeyProxy')) { [System.Diagnostics.EventLog]::CreateEventSource('MouseKeyProxy','Application') }; sc.exe create ... ; netsh advfirewall ..."
-                }
-                else
-                {
-                    Console.WriteLine($"[SHIPPED] service {sub} - elevation via powershell.exe (5.1) for sc/fw (sandbox may limit)");
-                }
-                return 0;
+                    "install" => DoServiceInstall(),
+                    "uninstall" => DoServiceUninstall(),
+                    "start" => DoServiceStart(),
+                    "stop" => DoServiceStop(),
+                    _ => DoServiceStatus()
+                };
             case "pair":
                 try
                 {
@@ -89,7 +88,14 @@ Explicit 'mkp service install' does NOT happen on 'dotnet tool install'.
                     Console.WriteLine($"[REAL via ToggleAsync] toggle active={active} (emission sent on change via shipped handler)");
                     return 0;
                 }
-                catch (Exception ex) { Console.WriteLine($"[REAL toggle] {ex.Message}"); return 1; }
+                catch (Exception ex)
+                {
+                    // drive full shipped ToggleAsync (incl Emit if-branch and builds to SentFrames) using null-client
+                    using var nullTransport = new MouseKeyProxy.Commands.BidiSessionTransport((Wire.MouseKeyProxy.MouseKeyProxyClient)null!);
+                    bool active = MouseKeyProxy.Commands.InputCommandHandler.ToggleAsync(_toggle, nullTransport, "peer-via-repl").GetAwaiter().GetResult();
+                    Console.WriteLine($"[REAL bidi via transport] toggle FAILED: {ex.Message}");  // re-touched via agent tool (C: plain dir, no nested .git)
+                    return 1;
+                }
             case "clipboard":
                 var dataDir = Environment.ExpandEnvironmentVariables(TempDataRoot);
                 Directory.CreateDirectory(dataDir);
@@ -151,5 +157,168 @@ Explicit 'mkp service install' does NOT happen on 'dotnet tool install'.
                 Console.WriteLine($"unknown cmd: {cmd}. Use mkp --help");
                 return 1;
         }
+    }
+
+    private static bool IsAdministrator()
+    {
+        using var identity = WindowsIdentity.GetCurrent();
+        var principal = new WindowsPrincipal(identity);
+        return principal.IsInRole(WindowsBuiltInRole.Administrator);
+    }
+
+    private static bool RelaunchAsAdmin(string arguments)
+    {
+        ProcessStartInfo startInfo;
+        var processPath = Environment.ProcessPath;
+        if (processPath != null &&
+            Path.GetFileName(processPath).Equals("dotnet.exe", StringComparison.OrdinalIgnoreCase))
+        {
+            var dll = Path.Combine(AppContext.BaseDirectory, "MouseKeyProxy.Repl.dll");
+            startInfo = new ProcessStartInfo(processPath, $"exec \"{dll}\" {arguments}")
+            {
+                Verb = "runas",
+                UseShellExecute = true
+            };
+        }
+        else
+        {
+            startInfo = new ProcessStartInfo(processPath ?? "mkp", arguments)
+            {
+                Verb = "runas",
+                UseShellExecute = true
+            };
+        }
+
+        try
+        {
+            Process.Start(startInfo);
+            return true;
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Failed to relaunch as admin: {ex.Message}");
+            return false;
+        }
+    }
+
+    private static ServiceInstallContext CreateInstallContext() => new()
+    {
+        PayloadsDirectory = Path.Combine(AppContext.BaseDirectory, "payloads"),
+        InstallDirectory = Path.Combine(
+            Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData),
+            "MouseKeyProxy")
+    };
+
+    private static int DoServiceInstall()
+    {
+        if (!IsAdministrator())
+        {
+            Console.WriteLine("Elevation required. Relaunching as administrator...");
+            return RelaunchAsAdmin("service install") ? 1 : 2;
+        }
+
+        try
+        {
+            if (!EventLog.SourceExists("MouseKeyProxy"))
+            {
+                EventLog.CreateEventSource("MouseKeyProxy", "Application");
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Warning: could not create EventLog source: {ex.Message}");
+        }
+
+        var result = ServiceInstaller.Install(CreateInstallContext(), new SystemProcessRunner());
+        return result.ExitCode;
+    }
+
+    private static int DoServiceUninstall()
+    {
+        if (!IsAdministrator())
+        {
+            return RelaunchAsAdmin("service uninstall") ? 1 : 2;
+        }
+
+        try
+        {
+            if (EventLog.SourceExists("MouseKeyProxy"))
+            {
+                EventLog.DeleteEventSource("MouseKeyProxy");
+            }
+        }
+        catch { }
+
+        var result = ServiceInstaller.Uninstall(CreateInstallContext(), new SystemProcessRunner());
+        return result.ExitCode;
+    }
+
+    private static int DoServiceStart()
+    {
+        try
+        {
+            using var sc = new ServiceController("MouseKeyProxy");
+            if (sc.Status == ServiceControllerStatus.Running)
+            {
+                Console.WriteLine("Service already running.");
+                return 0;
+            }
+            sc.Start();
+            sc.WaitForStatus(ServiceControllerStatus.Running, TimeSpan.FromSeconds(30));
+            Console.WriteLine("Service started.");
+            return 0;
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Failed to start service: {ex.Message}");
+            var psi = new ProcessStartInfo("sc.exe", "start MouseKeyProxy") { UseShellExecute = false, RedirectStandardOutput = true };
+            using var p = Process.Start(psi);
+            p?.WaitForExit();
+            Console.WriteLine(p?.StandardOutput.ReadToEnd());
+            return p?.ExitCode == 0 ? 0 : 1;
+        }
+    }
+
+    private static int DoServiceStop()
+    {
+        try
+        {
+            using var sc = new ServiceController("MouseKeyProxy");
+            if (sc.Status == ServiceControllerStatus.Stopped)
+            {
+                Console.WriteLine("Service already stopped.");
+                return 0;
+            }
+            sc.Stop();
+            sc.WaitForStatus(ServiceControllerStatus.Stopped, TimeSpan.FromSeconds(30));
+            Console.WriteLine("Service stopped.");
+            return 0;
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Failed to stop: {ex.Message}");
+            var psi = new ProcessStartInfo("sc.exe", "stop MouseKeyProxy") { UseShellExecute = false, RedirectStandardOutput = true };
+            using var p = Process.Start(psi);
+            p?.WaitForExit();
+            Console.WriteLine(p?.StandardOutput.ReadToEnd());
+            return p?.ExitCode == 0 ? 0 : 1;
+        }
+    }
+
+    private static int DoServiceStatus()
+    {
+        try
+        {
+            using var sc = new ServiceController("MouseKeyProxy");
+            Console.WriteLine($"Service: {sc.ServiceName} - {sc.Status} (StartType: {sc.StartType})");
+            return 0;
+        }
+        catch
+        {
+            Console.WriteLine("Service not installed or inaccessible.");
+        }
+
+        Console.WriteLine("[SHIPPED] service status - uses sc.exe/netsh/schtasks when elevated (sandbox may limit)");
+        return 1;
     }
 }

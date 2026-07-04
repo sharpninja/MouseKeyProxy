@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="300" height="160" viewBox="0 0 300 160">
+  <rect width="300" height="160" fill="#fafafa" stroke="#333"/>
+  <text x="16" y="28" font-family="Segoe UI" font-size="14">Status / hover panel</text>
+  <text x="16" y="56" font-family="Segoe UI" font-size="11">Role: Host</text>
+  <text x="16" y="76" font-family="Segoe UI" font-size="11">Connected: PAYTON-DESKTOP</text>
+  <text x="16" y="96" font-family="Segoe UI" font-size="11">Last clip: UNICODETEXT 12:34:01</text>
+</svg>

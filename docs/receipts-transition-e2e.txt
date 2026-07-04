@@ -1,0 +1,74 @@
+=== PLAN-MKP-006 Transition two-machine E2E (lab) ===
+Date: 2026-07-04T02:54:14.1511729-05:00
+MachineName: PAYTON-LEGION2
+LocalPeer: payton-legion2
+RemotePeer: payton-desktop
+GrpcPort: 50051
+=== LOCAL ELEVATED SMOKE (single gsudo batch; client fallback if elevation canceled) ===
+Error: The operation was canceled by the user.
+LOCAL gsudo batch exit: 999
+=== LOCAL CLIENT SMOKE FALLBACK (non-elevated) ===
+
+[32;1mSnippet                       [0m[32;1m Result[0m
+[32;1m-------                       [0m [32;1m------[0m
+_aliases.ps1                   Alias auto-load complete: 2 applied, 0 skipped.
+_repos.ps1                     
+bing.ps1                       Set $env:BingApiKey to use Bing search.
+chocolatey.ps1                 {Refreshing environment variables from the registry for powershell.exe. Please wait..., Finished, Imported the Chocolatey module.}
+clean-folder.ps1               Execute `Clean-Folder -r -f` to remove `bin` and `obj` folders recursively.
+devmode.ps1                    Type `devmode` to enter VS2022 Developer Mode.
+gh_completion.ps1              
+github.ps1                     Use `hub` to go to the GitHub folder.
+module-loader.ps1              Modules already loaded.
+oh-my-posh-macos.ps1           
+oh-my-posh-windows.ps1         Registered alias for OH-MY-POSH
+set-version-PAYTON-LEGION2.ps1 Current Semver is 0.0.1-6
+set-version.ps1                Current Semver is 0.0.1-6
+update-snippets.ps1            Call `snipup` or `Update-Snippets` to update from GitHub.
+
+
+[32;1mCommandType[0m[32;1m Name                               [0m[32;1m Version[0m[32;1m Source[0m
+[32;1m-----------[0m [32;1m----                               [0m [32;1m-------[0m [32;1m------[0m
+Alias       audio -> Invoke-Audio                       
+Alias       pwg -> ConvertFrom-WingetStdout.ps1         
+
+
+[32;1mName     [0m[32;1m Description[0m
+[32;1m----     [0m [32;1m-----------[0m
+als       Snippets: [aliases] Manage Snippets aliases
+clean     Snippets: [dev] Clean-Folder
+hub       Snippets: [dev] Go to GitHub folder [f:\GitHub]
+devmode   Snippets: [dev] Start VS2022 Developer Mode
+posh      Snippets: [ps] OH-MY-POSH
+repos     Snippets: [repos] All Repos
+ch        Snippets: [repos] Chocolatey
+dn        Snippets: [repos] Dotnet
+dt        Snippets: [repos] Dotnet Tool
+np        Snippets: [repos] NPM
+ng        Snippets: [repos] NuGet
+pp        Snippets: [repos] PIP
+pps       Snippets: [repos] PIP-Search
+psg       Snippets: [repos] PSGallery
+scp       Snippets: [repos] Scoop
+wg        Snippets: [repos] WinGet
+profileup Snippets: [snippets] Update Profile from GitHub.
+snipup    Snippets: [snippets] Update Snippets from GitHub.
+
+=== MKP service status (local payton-legion2) ===
+Service: MouseKeyProxy - Running (StartType: Automatic)
+=== MKP pair local (valid-test) ===
+[REAL gRPC Pair via transport path] success=True err=
+=== MKP toggle ===
+[REAL via ToggleAsync] toggle active=True (emission sent on change via shipped handler)
+=== LOCAL GRPC PROBE ===
+LOCAL gRPC TCP: REACHABLE payton-legion2:50051
+=== REMOTE GRPC PROBE ===
+REMOTE gRPC TCP: REACHABLE payton-desktop:50051
+=== REMOTE REPL SMOKE (WinRM payton-desktop) ===
+REMOTE WinRM credential: C:\Users\kingd\.desktopcred.xml
+=== REMOTE pair via http://payton-desktop:50051 ===
+[REAL gRPC Pair via transport path] success=True err=
+=== REMOTE toggle ===
+[REAL via ToggleAsync] toggle active=True (emission sent on change via shipped handler)
+REMOTE WinRM: PASS
+SMOKE: PASS (payton-legion2 + payton-desktop lab)

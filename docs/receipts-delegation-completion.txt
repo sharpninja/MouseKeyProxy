@@ -1,0 +1,20 @@
+MouseKeyProxy delegated product delivery completion
+Date: 2026-07-04T07:40:00Z
+Orchestrator: MouseKeyProxy-Fresh
+Product: f:\github\MouseKeyProxy
+Spec: docs/PLAN-MKP-006.md (PLAN-REV-006-001)
+Phases 0-7: PASS (see receipts-delegation-phase-0.txt .. phase-7.txt)
+Phase 8 (Transition): IN_PROGRESS (see receipts-delegation-phase-8.txt)
+
+Plan alignment (goal plan.md AC1 + verification plan):
+- Six scratch artifacts: git-visibility.log, build.log, full-test-output.log, repl-install.log, repl-run.log, MouseKeyProxy.Repl.1.0.0.nupkg
+- Product src/ visibility via git-visibility.log (delegated Fresh session CHANGED_FILES excluded per non-goals)
+- ServiceInstaller exit-code gates + TEST-MKP-007 behavioral tests including sc-denied failure
+
+verify-goal.ps1: exit 0
+git-visibility.log: M src/... + diff --git a/src/MouseKeyProxy.*
+repl-install.log: payload copy, [SC] CreateService SUCCESS, Tray scheduled task created, Running
+repl-run.log: toggle + toggle FAILED
+Test matrix: 44+ passed (includes ReleaseContract + TwoMachineE2E lab tests)
+Release: MouseKeyProxy.Repl.0.5.0.nupkg packed; NuGet push PASS; git tag v0.5.0 exists on origin
+Transition E2E: PARTIAL on PAYTON-LEGION2 (MKP_REMOTE_HOST unset); 24h soak runner deployed

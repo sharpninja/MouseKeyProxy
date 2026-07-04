@@ -1,0 +1,6 @@
+Phase 3: Construction Slice 1 hotkey/input
+Date: 2026-07-03T18:34:00Z
+Delegate: Grok implementer (consolidated)
+Tests: TEST-MKP-001..003 via Agent.Tests + Common.Tests filters
+Agent.Tests Passed 2/2; Common.Tests InputMatrix/Toggle Passed
+Result: PASS

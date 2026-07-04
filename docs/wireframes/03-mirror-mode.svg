@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="320" height="200" viewBox="0 0 320 200">
+  <rect width="320" height="200" fill="#f0f0f0" stroke="#333"/>
+  <text x="16" y="28" font-family="Segoe UI" font-size="14">Mirror Mode</text>
+  <text x="16" y="56" font-family="Segoe UI" font-size="11">Active indicator</text>
+  <rect x="16" y="68" width="12" height="12" fill="#2ecc71"/>
+  <text x="36" y="78" font-family="Segoe UI" font-size="11">Remote A [x]</text>
+  <text x="36" y="98" font-family="Segoe UI" font-size="11">Remote B [ ]</text>
+  <rect x="200" y="150" width="80" height="28" fill="#e74c3c" stroke="#333"/>
+  <text x="224" y="168" font-family="Segoe UI" font-size="11" fill="#fff">Stop</text>
+</svg>

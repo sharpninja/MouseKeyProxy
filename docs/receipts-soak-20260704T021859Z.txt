@@ -1,0 +1,27 @@
+=== PLAN-MKP-006 Transition 24h soak gate ===
+StartUtc: 2026-07-04T07:18:59.9534629Z
+EndUtc: 2026-07-05T07:18:59.9454668Z
+Hours: 24
+LocalHost: PAYTON-LEGION2
+RemoteHost: (not set)
+[2026-07-04T07:18:59.9616264Z] iter=1 service=Running grpc=FAIL
+[2026-07-04T07:20:04.0647116Z] iter=2 service=Running grpc=FAIL
+[2026-07-04T07:21:08.1454147Z] iter=3 service=Running grpc=FAIL
+[2026-07-04T07:22:12.1845674Z] iter=4 service=Running grpc=FAIL
+[2026-07-04T07:23:16.2686625Z] iter=5 service=Running grpc=FAIL
+[2026-07-04T07:24:20.3478364Z] iter=6 service=Running grpc=FAIL
+[2026-07-04T07:25:24.3956105Z] iter=7 service=Running grpc=FAIL
+[2026-07-04T07:26:28.4408804Z] iter=8 service=Running grpc=FAIL
+[2026-07-04T07:27:32.5187324Z] iter=9 service=Running grpc=FAIL
+[2026-07-04T07:28:36.6129857Z] iter=10 service=Running grpc=FAIL
+[2026-07-04T07:29:40.6742449Z] iter=11 service=Running grpc=FAIL
+[2026-07-04T07:30:44.7257668Z] iter=12 service=Running grpc=FAIL
+[2026-07-04T07:31:48.8076564Z] iter=13 service=Running grpc=FAIL
+[2026-07-04T07:32:52.8837776Z] iter=14 service=Running grpc=FAIL
+[2026-07-04T07:33:56.9515324Z] iter=15 service=Running grpc=FAIL
+[2026-07-04T07:35:00.9935566Z] iter=16 service=Running grpc=FAIL
+[2026-07-04T07:36:05.0728137Z] iter=17 service=Running grpc=OK
+[2026-07-04T07:37:05.0856622Z] iter=18 service=Running grpc=OK
+[2026-07-04T07:38:05.1013171Z] iter=19 service=Running grpc=OK
+[2026-07-04T07:39:05.1084605Z] iter=20 service=Running grpc=OK
+[2026-07-04T07:40:05.1224101Z] iter=21 service=Running grpc=OK
