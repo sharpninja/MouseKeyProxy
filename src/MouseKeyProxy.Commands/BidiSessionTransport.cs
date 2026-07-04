@@ -69,7 +69,19 @@ public class BidiSessionTransport : IDisposable
         var batch = new Wire.InputBatch { BaseSeq = _nextSeq };
         foreach (var e in events)
         {
-            batch.Events.Add(new Wire.InputEvent { Kind = (Wire.InputKind)e.Kind, Vk = e.Vk, Text = e.Text ?? "", TsMs = (ulong)DateTimeOffset.UtcNow.ToUnixTimeMilliseconds() });
+            batch.Events.Add(new Wire.InputEvent
+            {
+                Kind = (Wire.InputKind)e.Kind,
+                Vk = e.Vk,
+                Scan = e.Scan,
+                Flags = e.Flags,
+                Dx = e.Dx,
+                Dy = e.Dy,
+                WheelDelta = e.WheelDelta,
+                Xbutton = e.XButton,
+                Text = e.Text ?? "",
+                TsMs = e.TsMs == 0 ? (ulong)DateTimeOffset.UtcNow.ToUnixTimeMilliseconds() : e.TsMs
+            });
         }
         var frame = new Wire.SessionFrame { Seq = _nextSeq++, Input = batch };
         return frame;

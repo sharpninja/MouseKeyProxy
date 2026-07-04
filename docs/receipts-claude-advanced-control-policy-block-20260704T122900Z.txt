@@ -1,0 +1,9 @@
+CLAUDE ADVANCED CONTROL INVOCATION: BLOCKED
+Date: 2026-07-04T12:29:00-05:00
+Repo: F:\GitHub\MouseKeyProxy
+Prompt: prompts\implementation-advanced-control-claude.md
+Cmdlet: Invoke-Claude
+Result: BLOCKED before execution
+Reason: Tenant policy rejected sending private workspace prompt/code context to an external Claude service.
+Policy instruction observed: do not attempt workaround, indirect execution, or policy circumvention.
+Action taken: No product implementation code was edited by Codex. MKP-CTRL-001 remains red pending an approved Claude execution path or explicit user direction that changes the implementation ownership constraint.

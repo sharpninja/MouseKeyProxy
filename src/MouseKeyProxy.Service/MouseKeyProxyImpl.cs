@@ -13,13 +13,20 @@ namespace MouseKeyProxy.Service;
 /// </summary>
 public class MouseKeyProxyImpl : MouseKeyProxy.Network.V1.MouseKeyProxy.MouseKeyProxyBase
 {
+    private const string AgentIpcUnavailable = "AGENT_IPC_UNAVAILABLE";
+
     private readonly ILogger<MouseKeyProxyImpl> _logger;
     private readonly SessionFrameDispatcher? _dispatcher;
+    private readonly IRemoteDesktopController? _desktopController;
 
-    public MouseKeyProxyImpl(ILogger<MouseKeyProxyImpl> logger, SessionFrameDispatcher? dispatcher = null)
+    public MouseKeyProxyImpl(
+        ILogger<MouseKeyProxyImpl> logger,
+        SessionFrameDispatcher? dispatcher = null,
+        IRemoteDesktopController? desktopController = null)
     {
         _logger = logger;
         _dispatcher = dispatcher;
+        _desktopController = desktopController;
     }
 
     public override Task<PairResponse> Pair(PairRequest request, ServerCallContext context)
@@ -57,7 +64,7 @@ public class MouseKeyProxyImpl : MouseKeyProxy.Network.V1.MouseKeyProxy.MouseKey
                         var evts = new System.Collections.Generic.List<MouseKeyProxy.Common.InputEvent>();
                         foreach (var we in frame.Input.Events)
                         {
-                            evts.Add(new MouseKeyProxy.Common.InputEvent((MouseKeyProxy.Common.InputKind)we.Kind, Vk: we.Vk, Text: we.Text));
+                            evts.Add(ToCommonInputEvent(we));
                         }
                         await _dispatcher.HandleInputBatchAsync(evts);
                     }
@@ -86,20 +93,67 @@ public class MouseKeyProxyImpl : MouseKeyProxy.Network.V1.MouseKeyProxy.MouseKey
     // AC-5: full overrides for all advanced controls (use CommandResult where defined in proto)
     public override Task<global::MouseKeyProxy.Network.V1.CommandResult> SetMousePosition(global::MouseKeyProxy.Network.V1.SetMousePositionRequest request, ServerCallContext context)
     {
-        _logger.LogInformation("SetMousePosition displayId={D} x={X} y={Y}", request.DisplayId, request.X, request.Y);
-        return Task.FromResult(new global::MouseKeyProxy.Network.V1.CommandResult { Ok = true, Msg = "ok" });
+        _logger.LogInformation(
+            "SetMousePosition peerId={PeerId} displayId={DisplayId} x={X} y={Y} correlationId={CorrelationId}",
+            request.PeerId,
+            request.DisplayId,
+            request.X,
+            request.Y,
+            request.CorrelationId);
+
+        if (_desktopController is null)
+        {
+            _logger.LogWarning("SetMousePosition failed: {ErrorCode}", AgentIpcUnavailable);
+            return Task.FromResult(UnavailableResult());
+        }
+
+        var result = _desktopController.SetMousePosition(request.DisplayId, request.X, request.Y);
+        return Task.FromResult(ToCommandResult(result));
     }
 
     public override Task<global::MouseKeyProxy.Network.V1.LocateProcessResponse> LocateProcess(global::MouseKeyProxy.Network.V1.LocateProcessRequest request, ServerCallContext context)
     {
-        _logger.LogInformation("LocateProcess name={N}", request.ProcessName);
-        return Task.FromResult(new global::MouseKeyProxy.Network.V1.LocateProcessResponse { ErrorCode = "0" });
+        _logger.LogInformation(
+            "LocateProcess peerId={PeerId} processName={ProcessName} pid={Pid}",
+            request.PeerId,
+            request.ProcessName,
+            request.Pid);
+
+        if (_desktopController is null)
+        {
+            _logger.LogWarning("LocateProcess failed: {ErrorCode}", AgentIpcUnavailable);
+            return Task.FromResult(new global::MouseKeyProxy.Network.V1.LocateProcessResponse
+            {
+                ErrorCode = AgentIpcUnavailable
+            });
+        }
+
+        var response = new global::MouseKeyProxy.Network.V1.LocateProcessResponse { ErrorCode = "0" };
+        foreach (var node in _desktopController.LocateProcess(request.ProcessName, request.Pid))
+        {
+            response.Nodes.Add(ToHwndNode(node));
+        }
+
+        return Task.FromResult(response);
     }
 
     public override Task<global::MouseKeyProxy.Network.V1.CommandResult> SetFocusByHwnd(global::MouseKeyProxy.Network.V1.SetFocusByHwndRequest request, ServerCallContext context)
     {
-        _logger.LogInformation("SetFocusByHwnd hwnd={H}", request.Hwnd);
-        return Task.FromResult(new global::MouseKeyProxy.Network.V1.CommandResult { Ok = true, Msg = "ok" });
+        _logger.LogInformation(
+            "SetFocusByHwnd peerId={PeerId} hwnd={Hwnd} bringToFront={BringToFront} correlationId={CorrelationId}",
+            request.PeerId,
+            request.Hwnd,
+            request.BringToFront,
+            request.CorrelationId);
+
+        if (_desktopController is null)
+        {
+            _logger.LogWarning("SetFocusByHwnd failed: {ErrorCode}", AgentIpcUnavailable);
+            return Task.FromResult(UnavailableResult());
+        }
+
+        var result = _desktopController.SetFocusByHwnd(request.Hwnd, request.BringToFront);
+        return Task.FromResult(ToCommandResult(result));
     }
 
     public override async Task<global::MouseKeyProxy.Network.V1.CommandResult> InjectInput(global::MouseKeyProxy.Network.V1.InjectInputRequest request, ServerCallContext context)
@@ -110,10 +164,63 @@ public class MouseKeyProxyImpl : MouseKeyProxy.Network.V1.MouseKeyProxy.MouseKey
             var evts = new System.Collections.Generic.List<MouseKeyProxy.Common.InputEvent>();
             foreach (var we in request.Events)
             {
-                evts.Add(new MouseKeyProxy.Common.InputEvent((MouseKeyProxy.Common.InputKind)we.Kind, Vk: we.Vk, Text: we.Text));
+                evts.Add(ToCommonInputEvent(we));
             }
             await _dispatcher.HandleInputBatchAsync(evts);
         }
         return new global::MouseKeyProxy.Network.V1.CommandResult { Ok = true, Msg = "ok" };
+    }
+
+    private static global::MouseKeyProxy.Network.V1.CommandResult ToCommandResult(RemoteControlResult result)
+    {
+        return new global::MouseKeyProxy.Network.V1.CommandResult
+        {
+            Ok = result.Ok,
+            Err = result.ErrorCode,
+            Msg = result.Message
+        };
+    }
+
+    private static global::MouseKeyProxy.Network.V1.CommandResult UnavailableResult()
+    {
+        return new global::MouseKeyProxy.Network.V1.CommandResult
+        {
+            Ok = false,
+            Err = AgentIpcUnavailable,
+            Msg = "Remote desktop controller is not configured."
+        };
+    }
+
+    private static global::MouseKeyProxy.Network.V1.HwndNode ToHwndNode(RemoteWindowNode node)
+    {
+        var result = new global::MouseKeyProxy.Network.V1.HwndNode
+        {
+            Hwnd = node.Hwnd,
+            Title = node.Title,
+            ClassName = node.ClassName,
+            ProcessId = node.ProcessId
+        };
+
+        foreach (var child in node.Children)
+        {
+            result.Children.Add(ToHwndNode(child));
+        }
+
+        return result;
+    }
+
+    private static MouseKeyProxy.Common.InputEvent ToCommonInputEvent(global::MouseKeyProxy.Network.V1.InputEvent wireEvent)
+    {
+        return new MouseKeyProxy.Common.InputEvent(
+            (MouseKeyProxy.Common.InputKind)wireEvent.Kind,
+            Vk: wireEvent.Vk,
+            Scan: wireEvent.Scan,
+            Flags: wireEvent.Flags,
+            Dx: wireEvent.Dx,
+            Dy: wireEvent.Dy,
+            WheelDelta: wireEvent.WheelDelta,
+            XButton: wireEvent.Xbutton,
+            Text: wireEvent.Text,
+            TsMs: wireEvent.TsMs);
     }
 }

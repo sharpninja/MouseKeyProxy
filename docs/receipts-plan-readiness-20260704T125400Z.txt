@@ -1,0 +1,51 @@
+=== MouseKeyProxy Plan Readiness ===
+Date: 2026-07-04T12:54:01.0007687-05:00
+Repo: F:\GitHub\MouseKeyProxy
+Machine: PAYTON-LEGION2
+
+=== GATE: Moq ban compliance ===
+  MouseKeyProxy.Compliance.Tests -> F:\GitHub\MouseKeyProxy\tests\MouseKeyProxy.Compliance.Tests\bin\Debug\net10.0\MouseKeyProxy.Compliance.Tests.dll
+Test run for F:\GitHub\MouseKeyProxy\tests\MouseKeyProxy.Compliance.Tests\bin\Debug\net10.0\MouseKeyProxy.Compliance.Tests.dll (.NETCoreApp,Version=v10.0)
+A total of 1 test files matched the specified pattern.
+
+Passed!  - Failed:     0, Passed:     1, Skipped:     0, Total:     1, Duration: 76 ms - MouseKeyProxy.Compliance.Tests.dll (net10.0)
+GATE RESULT: PASS Moq ban compliance
+
+=== GATE: UI and hacker mouse branding compliance ===
+  MouseKeyProxy.Compliance.Tests -> F:\GitHub\MouseKeyProxy\tests\MouseKeyProxy.Compliance.Tests\bin\Debug\net10.0\MouseKeyProxy.Compliance.Tests.dll
+Test run for F:\GitHub\MouseKeyProxy\tests\MouseKeyProxy.Compliance.Tests\bin\Debug\net10.0\MouseKeyProxy.Compliance.Tests.dll (.NETCoreApp,Version=v10.0)
+A total of 1 test files matched the specified pattern.
+
+Passed!  - Failed:     0, Passed:     2, Skipped:     0, Total:     2, Duration: 26 ms - MouseKeyProxy.Compliance.Tests.dll (net10.0)
+GATE RESULT: PASS UI and hacker mouse branding compliance
+
+=== GATE: Advanced gRPC control service seam ===
+F:\GitHub\MouseKeyProxy\src\MouseKeyProxy.Service\MouseKeyProxy.Service.csproj : warning NU1510: PackageReference Microsoft.Extensions.Logging.EventLog will not be pruned. Consider removing this package from your dependencies, as it is likely unnecessary.
+  MouseKeyProxy.Common -> F:\GitHub\MouseKeyProxy\src\MouseKeyProxy.Common\bin\Debug\net10.0\MouseKeyProxy.Common.dll
+  MouseKeyProxy.Network -> F:\GitHub\MouseKeyProxy\src\MouseKeyProxy.Network\bin\Debug\net10.0\MouseKeyProxy.Network.dll
+  MouseKeyProxy.Commands -> F:\GitHub\MouseKeyProxy\src\MouseKeyProxy.Commands\bin\Debug\net10.0\MouseKeyProxy.Commands.dll
+  MouseKeyProxy.Service -> F:\GitHub\MouseKeyProxy\src\MouseKeyProxy.Service\bin\Debug\net10.0\MouseKeyProxy.Service.dll
+  MouseKeyProxy.Repl -> F:\GitHub\MouseKeyProxy\src\MouseKeyProxy.Repl\bin\Debug\net10.0\MouseKeyProxy.Repl.dll
+  MouseKeyProxy.Service.Tests -> F:\GitHub\MouseKeyProxy\tests\MouseKeyProxy.Service.Tests\bin\Debug\net10.0\MouseKeyProxy.Service.Tests.dll
+Test run for F:\GitHub\MouseKeyProxy\tests\MouseKeyProxy.Service.Tests\bin\Debug\net10.0\MouseKeyProxy.Service.Tests.dll (.NETCoreApp,Version=v10.0)
+A total of 1 test files matched the specified pattern.
+
+Passed!  - Failed:     0, Passed:     3, Skipped:     0, Total:     3, Duration: 144 ms - MouseKeyProxy.Service.Tests.dll (net10.0)
+GATE RESULT: PASS Advanced gRPC control service seam
+
+=== GATE: Paired-control proof receipt ===
+[31;1mFail-Proof: [0mF:\GitHub\MouseKeyProxy\scripts\assert-paired-control-proof.ps1:58[0m
+[31;1m[0m[36;1mLine |[0m
+[31;1m[0m[36;1m[36;1m  58 | [0m         [36;1mFail-Proof "missing required receipt evidence pattern: $patte[0m …[0m
+[31;1m[0m[36;1m[36;1m[0m[36;1m[0m[36;1m     | [31;1m         ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~[0m
+[31;1m[0m[36;1m[36;1m[0m[36;1m[0m[36;1m[31;1m[31;1m[36;1m     | [31;1mPAIRED CONTROL PROOF: FAIL - missing required receipt evidence pattern:[0m
+[31;1m[0m[36;1m[36;1m[0m[36;1m[0m[36;1m[31;1m[31;1m[36;1m[31;1m[36;1m     | [31;1mPAIRING:\s*PASS.*payton-legion2.*payton-desktop|PAIRING:\s*PASS.*payton-desktop.*payton-legion2[0m
+GATE RESULT: FAIL Paired-control proof receipt exit=1
+
+=== GATE: Git diff whitespace check ===
+GATE RESULT: PASS Git diff whitespace check
+
+=== SUMMARY ===
+PLAN READINESS: FAIL red_gates=1
+Remaining completion gates must be green before the plan can be considered complete.
+Receipt: F:\GitHub\MouseKeyProxy\docs\receipts-plan-readiness-20260704T125400Z.txt

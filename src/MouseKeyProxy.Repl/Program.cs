@@ -40,6 +40,7 @@ Commands:
   mkp set-mouse --display X --x 100 --y 200
   mkp inject-text ""hello""
   mkp locate-process notepad
+  mkp focus-hwnd 123456
 
 Explicit 'mkp service install' does NOT happen on 'dotnet tool install'.
 ");
@@ -118,9 +119,10 @@ Explicit 'mkp service install' does NOT happen on 'dotnet tool install'.
                     Console.WriteLine($"[REAL LIFO+DPAPI] top='{topText}' count={_clipboardHistory.Count} persisted to {clipFile}");
                 }
                 return 0;
-            case "set-mouse":
             case "inject-text":
+            case "set-mouse":
             case "locate-process":
+            case "focus-hwnd":
                 try
                 {
                     using var channel = GrpcChannel.ForAddress(baseUrl, new GrpcChannelOptions
@@ -132,31 +134,91 @@ Explicit 'mkp service install' does NOT happen on 'dotnet tool install'.
                     if (cmd == "inject-text")
                     {
                         var text = args.Length > 1 ? args[1] : "hello";
-                        // real: use shared handler + transport (builds/sends SessionFrame/InputBatch over bidi)
-                        try {
-                            InputCommandHandler.SendInputAsync(transport, Cmn.InputKind.TEXT_INPUT, text).GetAwaiter().GetResult();
-                            Console.WriteLine($"[REAL bidi via transport] inject-text sent as SessionFrame/InputBatch SUCCESS");
-                        } catch (Exception ex) {
-                            Console.WriteLine($"[REAL bidi via transport] inject-text FAILED: {ex.Message}");
-                            return 1;
-                        }
+                        var response = client.InjectInput(new Wire.InjectInputRequest
+                        {
+                            ProtocolVersion = "v1",
+                            PeerId = "repl-peer",
+                            CorrelationId = Guid.NewGuid().ToString("n"),
+                            Events = { new Wire.InputEvent { Kind = Wire.InputKind.TextInput, Text = text, TsMs = (ulong)DateTimeOffset.UtcNow.ToUnixTimeMilliseconds() } }
+                        });
+                        Console.WriteLine($"[REAL gRPC InjectInput] ok={response.Ok} err={response.Err} msg={response.Msg}");
+                        return response.Ok ? 0 : 1;
                     }
                     else if (cmd == "set-mouse")
                     {
-                        // management control frame via bidi transport
-                        Console.WriteLine("[REAL] set-mouse control frame via bidi transport (frame path ready)");
+                        var displayId = GetOption(args, "--display", "primary");
+                        var x = GetIntOption(args, "--x", 100);
+                        var y = GetIntOption(args, "--y", 100);
+                        var response = client.SetMousePosition(new Wire.SetMousePositionRequest
+                        {
+                            ProtocolVersion = "v1",
+                            PeerId = "repl-peer",
+                            DisplayId = displayId,
+                            X = x,
+                            Y = y,
+                            CorrelationId = Guid.NewGuid().ToString("n")
+                        });
+                        Console.WriteLine($"[REAL gRPC SetMousePosition] ok={response.Ok} err={response.Err} msg={response.Msg}");
+                        return response.Ok ? 0 : 1;
+                    }
+                    else if (cmd == "focus-hwnd")
+                    {
+                        var hwnd = args.Length > 1 ? ParseHwnd(args[1]) : 0UL;
+                        var response = client.SetFocusByHwnd(new Wire.SetFocusByHwndRequest
+                        {
+                            ProtocolVersion = "v1",
+                            PeerId = "repl-peer",
+                            Hwnd = hwnd,
+                            BringToFront = true,
+                            CorrelationId = Guid.NewGuid().ToString("n")
+                        });
+                        Console.WriteLine($"[REAL gRPC SetFocusByHwnd] ok={response.Ok} err={response.Err} msg={response.Msg}");
+                        return response.Ok ? 0 : 1;
                     }
                     else
                     {
-                        Console.WriteLine("[REAL] locate-process (unary mgmt)");
+                        var processName = args.Length > 1 ? args[1] : "";
+                        var response = client.LocateProcess(new Wire.LocateProcessRequest
+                        {
+                            ProtocolVersion = "v1",
+                            PeerId = "repl-peer",
+                            ProcessName = processName,
+                            Pid = (uint)GetIntOption(args, "--pid", 0)
+                        });
+                        Console.WriteLine($"[REAL gRPC LocateProcess] errorCode={response.ErrorCode} count={response.Nodes.Count}");
+                        foreach (var node in response.Nodes)
+                        {
+                            Console.WriteLine($"HWND=0x{node.Hwnd:x} PID={node.ProcessId} CLASS={node.ClassName} TITLE={node.Title}");
+                        }
+                        return response.ErrorCode == "0" ? 0 : 1;
                     }
-                    return 0;
                 }
                 catch (Exception ex) { Console.WriteLine($"[REAL network op] {ex.Message}"); return 1; }
             default:
                 Console.WriteLine($"unknown cmd: {cmd}. Use mkp --help");
                 return 1;
         }
+    }
+
+    private static string GetOption(string[] args, string name, string defaultValue)
+    {
+        var index = Array.FindIndex(args, a => string.Equals(a, name, StringComparison.OrdinalIgnoreCase));
+        return index >= 0 && index + 1 < args.Length ? args[index + 1] : defaultValue;
+    }
+
+    private static int GetIntOption(string[] args, string name, int defaultValue)
+    {
+        return int.TryParse(GetOption(args, name, defaultValue.ToString()), out var value) ? value : defaultValue;
+    }
+
+    private static ulong ParseHwnd(string value)
+    {
+        if (value.StartsWith("0x", StringComparison.OrdinalIgnoreCase))
+        {
+            return Convert.ToUInt64(value[2..], 16);
+        }
+
+        return ulong.TryParse(value, out var hwnd) ? hwnd : 0UL;
     }
 
     private static bool IsAdministrator()

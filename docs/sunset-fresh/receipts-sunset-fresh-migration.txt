@@ -1,0 +1,25 @@
+MouseKeyProxy-Fresh sunset migration receipt
+Prepared: 2026-07-04
+
+Source workspace: F:\GitHub\MouseKeyProxy-Fresh
+Product workspace: F:\GitHub\MouseKeyProxy
+
+Actions completed:
+- Copied Fresh delegation docs, import receipt, requirements zip, wiki exports, transition prompt, agent invocation module, version/gitignore metadata, and transition lab logs into Product.
+- Renamed migrated `.log` artifacts to `.log.txt` so they are trackable despite the Product `*.log` ignore rule.
+- Updated Product `scripts\Invoke-Agents.psm1` for Product defaults, dry-run support, parameter summary output, complete call signature echo, stdout/stderr streaming through Tee-Object, log capture, and nonzero exit failure behavior.
+- Consolidated Product and Fresh requirements into Product active docs and Product GitHub/Azure wiki mirrors.
+- Mirrored consolidated requirement docs back into Fresh GitHub/Azure wiki folders for sunset traceability.
+- Added FR-MKP-011, TR-MKP-TESTDOUBLE-001, and TEST-MKP-022 to record that Moq is banned and NSubstitute is the approved test-double framework.
+- Created a Product compliance test that fails if active package/source files introduce Moq usage.
+- Added ignore rules for generated `AGENTS-README-FIRST.yaml.deleted-*` and `todo-bootstrap.marker` files in both workspaces.
+
+Skipped intentionally:
+- Did not migrate generated local bootstrap marker/deleted files as project artifacts.
+- Did not delete or rename MouseKeyProxy-Fresh.
+- Did not claim full Product project completion; paired-control implementation and proof remain required.
+
+Validation receipts:
+- `dotnet test tests\MouseKeyProxy.Compliance.Tests\MouseKeyProxy.Compliance.Tests.csproj --no-restore -v minimal --filter FullyQualifiedName~TestDoubleComplianceTests` passed with 1 passed, 0 failed, 0 skipped.
+- Active Product/Fresh package/source scan found no Moq usage.
+- `git diff --check` was clean after trimming trailing blank lines.

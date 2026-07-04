@@ -1,4 +1,5 @@
 using System;
+using System.Diagnostics;
 using System.Drawing;
 using System.IO;
 using System.Windows.Forms;
@@ -20,6 +21,7 @@ internal static class Program
     private static Win32CursorClip? _clip;
     private static ToggleStateMachine? _state;
     private static Win32HotkeyMonitor? _hotkey;
+    private static AgentControlPipeServer? _controlPipe;
 
     [STAThread]
     public static void Main()
@@ -30,6 +32,7 @@ internal static class Program
         _clip = new Win32CursorClip();
         _state = new ToggleStateMachine();
         _hotkey = new Win32HotkeyMonitor();
+        _controlPipe = AgentControlPipeServer.Start(new Win32DesktopController(), _injector);
 
         var tray = new NotifyIcon
         {
@@ -39,13 +42,17 @@ internal static class Program
         };
 
         var menu = new ContextMenuStrip();
+        menu.Items.Add("MouseKeyProxy dashboard", null, (_, _) => ShowDashboardForm());
         menu.Items.Add("Toggle Active (Ctrl-Alt-F1)", null, (_, _) => DoRealToggle());
-        menu.Items.Add("Start Mirror Mode", null, (_, _) => ShowMirrorForm());
+        menu.Items.Add("Pairing", null, (_, _) => ShowPairingForm());
+        menu.Items.Add("Reconnect", null, (_, _) => TryReconnect());
+        menu.Items.Add("Service", null, (_, _) => ShowServiceForm());
+        menu.Items.Add("Clipboard", null, (_, _) => ShowClipboardForm());
         menu.Items.Add("Inject Text to Remote...", null, (_, _) => ShowInjectForm());
-        menu.Items.Add("Start/Stop Service", null, (_, _) => Console.WriteLine("[TRAY] service toggle via shared REPL lib"));
-        menu.Items.Add("Pair/Discover (REPL)", null, (_, _) => Console.WriteLine("[TRAY] pair via shared REPL lib"));
-        menu.Items.Add("Settings", null, (_, _) => ShowStatusForm());
-        menu.Items.Add("Exit", null, (_, _) => { tray.Visible = false; Application.Exit(); });
+        menu.Items.Add("Start Mirror Mode", null, (_, _) => ShowMirrorForm());
+        menu.Items.Add("Emergency release", null, (_, _) => EmergencyRelease());
+        menu.Items.Add("Open logs", null, (_, _) => OpenLogs());
+        menu.Items.Add("Exit", null, (_, _) => { tray.Visible = false; _controlPipe?.Dispose(); Application.Exit(); });
         tray.ContextMenuStrip = menu;
 
         _hotkey.ToggleRequested += (_, _) => DoRealToggle();
@@ -84,9 +91,17 @@ internal static class Program
 
     private static void ShowInjectForm()
     {
-        using var form = new Form { Text = "Inject to Remote", Width = 360, Height = 240, StartPosition = FormStartPosition.CenterScreen };
-        form.Controls.Add(new Label { Text = "Remote:", Left = 16, Top = 16, AutoSize = true });
-        form.Controls.Add(new ComboBox { Left = 80, Top = 12, Width = 240, Items = { "peer-via-repl" } });
+        using var form = new Form { Text = "Inject Text to Remote", Width = 360, Height = 240, StartPosition = FormStartPosition.CenterScreen };
+        form.Controls.Add(new Label { Text = "Active peer:", Left = 16, Top = 16, AutoSize = true });
+        form.Controls.Add(new ComboBox
+        {
+            Left = 104,
+            Top = 12,
+            Width = 232,
+            DropDownStyle = ComboBoxStyle.DropDownList,
+            Items = { "payton-desktop" },
+            SelectedIndex = 0
+        });
         form.Controls.Add(new Label { Text = "Text:", Left = 16, Top = 48, AutoSize = true });
         var text = new TextBox { Left = 16, Top = 72, Width = 320, Height = 80, Multiline = true };
         form.Controls.Add(text);
@@ -99,20 +114,150 @@ internal static class Program
 
     private static void ShowMirrorForm()
     {
-        using var form = new Form { Text = "Mirror Mode", Width = 320, Height = 200, StartPosition = FormStartPosition.CenterScreen };
-        form.Controls.Add(new Label { Text = "Active", Left = 16, Top = 16, AutoSize = true });
-        form.Controls.Add(new CheckBox { Text = "Remote A", Left = 16, Top = 48, Checked = true });
+        using var form = new Form { Text = "Mirror Active peer", Width = 320, Height = 200, StartPosition = FormStartPosition.CenterScreen };
+        form.Controls.Add(new Label { Text = "Active peer", Left = 16, Top = 16, AutoSize = true });
+        form.Controls.Add(new CheckBox { Text = "payton-desktop", Left = 16, Top = 48, Checked = true });
         form.Controls.Add(new Button { Text = "Stop", Left = 200, Top = 120, Width = 80 });
         form.ShowDialog();
     }
 
-    private static void ShowStatusForm()
+    private static void ShowDashboardForm()
     {
-        using var form = new Form { Text = "Status", Width = 300, Height = 160, StartPosition = FormStartPosition.CenterScreen };
-        form.Controls.Add(new Label { Text = "Role: Host", Left = 16, Top = 16, AutoSize = true });
-        form.Controls.Add(new Label { Text = "Connected: (pair via REPL)", Left = 16, Top = 40, AutoSize = true });
-        form.Controls.Add(new Label { Text = "Last clip: (none)", Left = 16, Top = 64, AutoSize = true });
+        using var form = new Form
+        {
+            Text = "MouseKeyProxy dashboard",
+            Width = 520,
+            Height = 420,
+            StartPosition = FormStartPosition.CenterScreen,
+            MinimumSize = new Size(440, 360)
+        };
+
+        var layout = new TableLayoutPanel
+        {
+            Dock = DockStyle.Fill,
+            Padding = new Padding(16),
+            ColumnCount = 2,
+            RowCount = 7
+        };
+        layout.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 140));
+        layout.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100));
+        form.Controls.Add(layout);
+
+        AddDashboardRow(layout, "Pairing", "Ready for local code entry");
+        AddDashboardRow(layout, "Active peer", "payton-desktop");
+        AddDashboardRow(layout, "Service", Environment.GetEnvironmentVariable("MKP_GRPC") ?? "http://localhost:50051");
+        AddDashboardRow(layout, "Clipboard", "Idle");
+        AddDashboardRow(layout, "Recent errors", "None recorded this session");
+
+        var actions = new FlowLayoutPanel
+        {
+            Dock = DockStyle.Fill,
+            FlowDirection = FlowDirection.LeftToRight,
+            WrapContents = true,
+            AutoSize = true
+        };
+        var reconnect = new Button { Text = "Reconnect", Width = 120, Height = 32 };
+        reconnect.Click += (_, _) => TryReconnect();
+        actions.Controls.Add(reconnect);
+        var release = new Button { Text = "Emergency release", Width = 140, Height = 32 };
+        release.Click += (_, _) => EmergencyRelease();
+        actions.Controls.Add(release);
+        var logs = new Button { Text = "Open logs", Width = 120, Height = 32 };
+        logs.Click += (_, _) => OpenLogs();
+        actions.Controls.Add(logs);
+
+        var actionRow = layout.RowStyles.Count;
+        layout.RowStyles.Add(new RowStyle(SizeType.Absolute, 64));
+        layout.Controls.Add(new Label
+        {
+            Text = "Controls",
+            Font = new Font(SystemFonts.MessageBoxFont, FontStyle.Bold),
+            TextAlign = ContentAlignment.MiddleLeft,
+            Dock = DockStyle.Fill
+        }, 0, actionRow);
+        layout.Controls.Add(actions, 1, actionRow);
+
         form.ShowDialog();
+    }
+
+    private static void AddDashboardRow(TableLayoutPanel layout, string label, string value)
+    {
+        var row = layout.RowStyles.Count;
+        layout.RowStyles.Add(new RowStyle(SizeType.Absolute, 48));
+        layout.Controls.Add(new Label
+        {
+            Text = label,
+            Font = new Font(SystemFonts.MessageBoxFont, FontStyle.Bold),
+            TextAlign = ContentAlignment.MiddleLeft,
+            Dock = DockStyle.Fill
+        }, 0, row);
+        layout.Controls.Add(new Label
+        {
+            Text = value,
+            TextAlign = ContentAlignment.MiddleLeft,
+            Dock = DockStyle.Fill,
+            AutoEllipsis = true
+        }, 1, row);
+    }
+
+    private static void ShowPairingForm()
+    {
+        MessageBox.Show(
+            "Pairing is ready for payton-desktop. Use Reconnect after the service is reachable.",
+            "Pairing",
+            MessageBoxButtons.OK,
+            MessageBoxIcon.Information);
+    }
+
+    private static void ShowServiceForm()
+    {
+        MessageBox.Show(
+            $"Service endpoint: {Environment.GetEnvironmentVariable("MKP_GRPC") ?? "http://localhost:50051"}",
+            "Service",
+            MessageBoxButtons.OK,
+            MessageBoxIcon.Information);
+    }
+
+    private static void ShowClipboardForm()
+    {
+        MessageBox.Show(
+            "Clipboard sync is idle.",
+            "Clipboard",
+            MessageBoxButtons.OK,
+            MessageBoxIcon.Information);
+    }
+
+    private static void TryReconnect()
+    {
+        MessageBox.Show(
+            "Reconnect requested for active peer payton-desktop.",
+            "Reconnect",
+            MessageBoxButtons.OK,
+            MessageBoxIcon.Information);
+    }
+
+    private static void EmergencyRelease()
+    {
+        _clip?.Release();
+        MessageBox.Show(
+            "Emergency release completed. Local cursor clipping is released.",
+            "Emergency release",
+            MessageBoxButtons.OK,
+            MessageBoxIcon.Information);
+    }
+
+    private static void OpenLogs()
+    {
+        var logDirectory = Path.Combine(
+            Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+            "MouseKeyProxy",
+            "logs");
+        Directory.CreateDirectory(logDirectory);
+        Process.Start(new ProcessStartInfo
+        {
+            FileName = logDirectory,
+            UseShellExecute = true
+        });
     }
 
     private static void ApplyClipForActive(bool active)

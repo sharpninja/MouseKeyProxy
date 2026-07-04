@@ -52,3 +52,9 @@ Thumbs.db
 # Test and harness scratch
 TestResults/
 output/
+
+.mcpServer/
+
+# Local MCP bootstrap/deleted marker debris
+AGENTS-README-FIRST.yaml.deleted-*
+todo-bootstrap.marker

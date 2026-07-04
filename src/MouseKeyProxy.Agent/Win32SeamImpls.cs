@@ -1,4 +1,7 @@
 using System;
+using System.Collections.Generic;
+using System.Diagnostics;
+using System.Linq;
 using System.Runtime.InteropServices;
 using MouseKeyProxy.Common;
 
@@ -24,6 +27,8 @@ public class Win32InputInjector : IInputInjector
     const uint INPUT_KEYBOARD = 1;
     const uint INPUT_MOUSE = 0;
     const uint MOUSEEVENTF_MOVE = 0x0001;
+    const uint KEYEVENTF_KEYUP = 0x0002;
+    const uint KEYEVENTF_UNICODE = 0x0004;
 
     [DllImport("user32.dll", SetLastError = true)]
     static extern uint SendInput(uint nInputs, INPUT[] pInputs, int cbSize);
@@ -33,9 +38,26 @@ public class Win32InputInjector : IInputInjector
         if (!InputSupportMatrix.IsSupported(evt.Kind, evt.Vk))
             throw new InvalidOperationException("Unsupported input per matrix: " + InputSupportMatrix.GetFailureReason(evt.Kind, evt.Vk));
 
-        if (evt.Kind == InputKind.KEY_DOWN || evt.Kind == InputKind.KEY_UP)
+        if (evt.Kind == InputKind.TEXT_INPUT)
         {
-            var inp = new INPUT { type = INPUT_KEYBOARD, u = new InputUnion { ki = new KEYBDINPUT { wVk = (ushort)evt.Vk, dwFlags = (uint)(evt.Kind == InputKind.KEY_UP ? 2 : 0) } } };
+            foreach (var ch in evt.Text ?? string.Empty)
+            {
+                var down = new INPUT
+                {
+                    type = INPUT_KEYBOARD,
+                    u = new InputUnion { ki = new KEYBDINPUT { wScan = ch, dwFlags = KEYEVENTF_UNICODE } }
+                };
+                var up = new INPUT
+                {
+                    type = INPUT_KEYBOARD,
+                    u = new InputUnion { ki = new KEYBDINPUT { wScan = ch, dwFlags = KEYEVENTF_UNICODE | KEYEVENTF_KEYUP } }
+                };
+                SendInput(2, new[] { down, up }, Marshal.SizeOf(typeof(INPUT)));
+            }
+        }
+        else if (evt.Kind == InputKind.KEY_DOWN || evt.Kind == InputKind.KEY_UP)
+        {
+            var inp = new INPUT { type = INPUT_KEYBOARD, u = new InputUnion { ki = new KEYBDINPUT { wVk = (ushort)evt.Vk, dwFlags = (uint)(evt.Kind == InputKind.KEY_UP ? KEYEVENTF_KEYUP : 0) } } };
             SendInput(1, new[] { inp }, Marshal.SizeOf(typeof(INPUT)));
         }
         else if (evt.Kind == InputKind.MOUSE_MOVE)
@@ -51,6 +73,140 @@ public class Win32InputInjector : IInputInjector
         error = null;
         try { foreach (var e in events) Send(e); return true; }
         catch (Exception ex) { error = ex.Message; return false; }
+    }
+}
+
+public class Win32DesktopController : IRemoteDesktopController
+{
+    private const int SW_RESTORE = 9;
+
+    private delegate bool EnumWindowsProc(IntPtr hWnd, IntPtr lParam);
+
+    [DllImport("user32.dll", SetLastError = true)]
+    private static extern bool SetCursorPos(int x, int y);
+
+    [DllImport("user32.dll")]
+    private static extern bool EnumWindows(EnumWindowsProc lpEnumFunc, IntPtr lParam);
+
+    [DllImport("user32.dll")]
+    private static extern bool EnumChildWindows(IntPtr hWndParent, EnumWindowsProc lpEnumFunc, IntPtr lParam);
+
+    [DllImport("user32.dll", SetLastError = true)]
+    private static extern int GetWindowText(IntPtr hWnd, System.Text.StringBuilder lpString, int nMaxCount);
+
+    [DllImport("user32.dll", SetLastError = true)]
+    private static extern int GetClassName(IntPtr hWnd, System.Text.StringBuilder lpClassName, int nMaxCount);
+
+    [DllImport("user32.dll")]
+    private static extern uint GetWindowThreadProcessId(IntPtr hWnd, out uint lpdwProcessId);
+
+    [DllImport("user32.dll")]
+    private static extern bool SetForegroundWindow(IntPtr hWnd);
+
+    [DllImport("user32.dll")]
+    private static extern bool ShowWindow(IntPtr hWnd, int nCmdShow);
+
+    public RemoteControlResult SetMousePosition(string displayId, int x, int y)
+    {
+        if (SetCursorPos(x, y))
+        {
+            return RemoteControlResult.Success($"cursor moved display={displayId} x={x} y={y}");
+        }
+
+        return RemoteControlResult.Failure("SET_CURSOR_POS_FAILED", $"SetCursorPos failed win32={Marshal.GetLastWin32Error()}");
+    }
+
+    public IReadOnlyList<RemoteWindowNode> LocateProcess(string processName, uint pid)
+    {
+        var nodes = new List<RemoteWindowNode>();
+        EnumWindows((hWnd, _) =>
+        {
+            GetWindowThreadProcessId(hWnd, out var windowPid);
+            if (MatchesProcess(windowPid, processName, pid))
+            {
+                nodes.Add(ToNode(hWnd, windowPid));
+            }
+
+            return true;
+        }, IntPtr.Zero);
+
+        return nodes;
+    }
+
+    public RemoteControlResult SetFocusByHwnd(ulong hwnd, bool bringToFront)
+    {
+        var handle = new IntPtr(unchecked((long)hwnd));
+        if (bringToFront)
+        {
+            ShowWindow(handle, SW_RESTORE);
+        }
+
+        return SetForegroundWindow(handle)
+            ? RemoteControlResult.Success($"focused hwnd=0x{hwnd:x}")
+            : RemoteControlResult.Failure("SET_FOREGROUND_FAILED", $"SetForegroundWindow failed hwnd=0x{hwnd:x}");
+    }
+
+    private static RemoteWindowNode ToNode(IntPtr hWnd, uint processId)
+    {
+        var children = new List<RemoteWindowNode>();
+        EnumChildWindows(hWnd, (child, _) =>
+        {
+            GetWindowThreadProcessId(child, out var childPid);
+            children.Add(new RemoteWindowNode(
+                (ulong)child.ToInt64(),
+                GetText(child),
+                GetClass(child),
+                childPid,
+                Array.Empty<RemoteWindowNode>()));
+            return true;
+        }, IntPtr.Zero);
+
+        return new RemoteWindowNode(
+            (ulong)hWnd.ToInt64(),
+            GetText(hWnd),
+            GetClass(hWnd),
+            processId,
+            children);
+    }
+
+    private static bool MatchesProcess(uint windowPid, string processName, uint pid)
+    {
+        if (pid != 0 && windowPid != pid)
+        {
+            return false;
+        }
+
+        if (string.IsNullOrWhiteSpace(processName))
+        {
+            return pid == 0 || windowPid == pid;
+        }
+
+        try
+        {
+            using var process = Process.GetProcessById((int)windowPid);
+            var expected = processName.EndsWith(".exe", StringComparison.OrdinalIgnoreCase)
+                ? processName[..^4]
+                : processName;
+            return string.Equals(process.ProcessName, expected, StringComparison.OrdinalIgnoreCase);
+        }
+        catch
+        {
+            return false;
+        }
+    }
+
+    private static string GetText(IntPtr hWnd)
+    {
+        var builder = new System.Text.StringBuilder(512);
+        GetWindowText(hWnd, builder, builder.Capacity);
+        return builder.ToString();
+    }
+
+    private static string GetClass(IntPtr hWnd)
+    {
+        var builder = new System.Text.StringBuilder(256);
+        GetClassName(hWnd, builder, builder.Capacity);
+        return builder.ToString();
     }
 }
 

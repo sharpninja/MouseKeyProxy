@@ -1,0 +1,66 @@
+=== MouseKeyProxy Plan Readiness ===
+Date: 2026-07-04T12:32:53.6678225-05:00
+Repo: F:\GitHub\MouseKeyProxy
+Machine: PAYTON-LEGION2
+
+=== GATE: Moq ban compliance ===
+  MouseKeyProxy.Compliance.Tests -> F:\GitHub\MouseKeyProxy\tests\MouseKeyProxy.Compliance.Tests\bin\Debug\net10.0\MouseKeyProxy.Compliance.Tests.dll
+Test run for F:\GitHub\MouseKeyProxy\tests\MouseKeyProxy.Compliance.Tests\bin\Debug\net10.0\MouseKeyProxy.Compliance.Tests.dll (.NETCoreApp,Version=v10.0)
+A total of 1 test files matched the specified pattern.
+
+Passed!  - Failed:     0, Passed:     1, Skipped:     0, Total:     1, Duration: 85 ms - MouseKeyProxy.Compliance.Tests.dll (net10.0)
+GATE RESULT: PASS Moq ban compliance
+
+=== GATE: UI and hacker mouse branding compliance ===
+  MouseKeyProxy.Compliance.Tests -> F:\GitHub\MouseKeyProxy\tests\MouseKeyProxy.Compliance.Tests\bin\Debug\net10.0\MouseKeyProxy.Compliance.Tests.dll
+Test run for F:\GitHub\MouseKeyProxy\tests\MouseKeyProxy.Compliance.Tests\bin\Debug\net10.0\MouseKeyProxy.Compliance.Tests.dll (.NETCoreApp,Version=v10.0)
+A total of 1 test files matched the specified pattern.
+[xUnit.net 00:00:00.63]     MouseKeyProxy.Compliance.Tests.AgentUiBrandingComplianceTests.TEST_MKP_016_Primary_Logo_Is_Inspectable_Hacker_Mouse_Brand_Asset [FAIL]
+[xUnit.net 00:00:00.64]     MouseKeyProxy.Compliance.Tests.AgentUiBrandingComplianceTests.TEST_MKP_015_Agent_UI_Is_Dashboard_Not_Placeholder_Menu [FAIL]
+  Failed MouseKeyProxy.Compliance.Tests.AgentUiBrandingComplianceTests.TEST_MKP_016_Primary_Logo_Is_Inspectable_Hacker_Mouse_Brand_Asset [15 ms]
+  Error Message:
+   assets/logo.png is only 32x32; the hacker mouse workstation brand asset must be at least 512x512.
+  Stack Trace:
+     at MouseKeyProxy.Compliance.Tests.AgentUiBrandingComplianceTests.TEST_MKP_016_Primary_Logo_Is_Inspectable_Hacker_Mouse_Brand_Asset() in F:\GitHub\MouseKeyProxy\tests\MouseKeyProxy.Compliance.Tests\AgentUiBrandingComplianceTests.cs:line 18
+   at System.Reflection.MethodBaseInvoker.InterpretedInvoke_Method(Object obj, IntPtr* args)
+   at System.Reflection.MethodBaseInvoker.InvokeWithNoArgs(Object obj, BindingFlags invokeAttr)
+  Failed MouseKeyProxy.Compliance.Tests.AgentUiBrandingComplianceTests.TEST_MKP_015_Agent_UI_Is_Dashboard_Not_Placeholder_Menu [3 ms]
+  Error Message:
+   Assert.DoesNotContain() Failure: Sub-string found
+                                     ↓ (pos 3377)
+String: ···" Width = 240, Items = { "peer-via-repl" } });\n    "···
+Found:  "peer-via-repl"
+  Stack Trace:
+     at MouseKeyProxy.Compliance.Tests.AgentUiBrandingComplianceTests.TEST_MKP_015_Agent_UI_Is_Dashboard_Not_Placeholder_Menu() in F:\GitHub\MouseKeyProxy\tests\MouseKeyProxy.Compliance.Tests\AgentUiBrandingComplianceTests.cs:line 49
+   at System.Reflection.MethodBaseInvoker.InterpretedInvoke_Method(Object obj, IntPtr* args)
+   at System.Reflection.MethodBaseInvoker.InvokeWithNoArgs(Object obj, BindingFlags invokeAttr)
+
+Failed!  - Failed:     2, Passed:     0, Skipped:     0, Total:     2, Duration: 46 ms - MouseKeyProxy.Compliance.Tests.dll (net10.0)
+GATE RESULT: FAIL UI and hacker mouse branding compliance exit=1
+
+=== GATE: Advanced gRPC control service seam ===
+F:\GitHub\MouseKeyProxy\src\MouseKeyProxy.Service\MouseKeyProxy.Service.csproj : warning NU1510: PackageReference Microsoft.Extensions.Logging.EventLog will not be pruned. Consider removing this package from your dependencies, as it is likely unnecessary.
+  MouseKeyProxy.Common -> F:\GitHub\MouseKeyProxy\src\MouseKeyProxy.Common\bin\Debug\net10.0\MouseKeyProxy.Common.dll
+  MouseKeyProxy.Network -> F:\GitHub\MouseKeyProxy\src\MouseKeyProxy.Network\bin\Debug\net10.0\MouseKeyProxy.Network.dll
+  MouseKeyProxy.Commands -> F:\GitHub\MouseKeyProxy\src\MouseKeyProxy.Commands\bin\Debug\net10.0\MouseKeyProxy.Commands.dll
+  MouseKeyProxy.Service -> F:\GitHub\MouseKeyProxy\src\MouseKeyProxy.Service\bin\Debug\net10.0\MouseKeyProxy.Service.dll
+  MouseKeyProxy.Repl -> F:\GitHub\MouseKeyProxy\src\MouseKeyProxy.Repl\bin\Debug\net10.0\MouseKeyProxy.Repl.dll
+F:\GitHub\MouseKeyProxy\tests\MouseKeyProxy.Service.Tests\AdvancedControlServiceTests.cs(88,49): error CS0246: The type or namespace name 'IRemoteDesktopController' could not be found (are you missing a using directive or an assembly reference?) [F:\GitHub\MouseKeyProxy\tests\MouseKeyProxy.Service.Tests\MouseKeyProxy.Service.Tests.csproj]
+GATE RESULT: FAIL Advanced gRPC control service seam exit=1
+
+=== GATE: Paired-control proof receipt ===
+[31;1mFail-Proof: [0mF:\GitHub\MouseKeyProxy\scripts\assert-paired-control-proof.ps1:58[0m
+[31;1m[0m[36;1mLine |[0m
+[31;1m[0m[36;1m[36;1m  58 | [0m         [36;1mFail-Proof "missing required receipt evidence pattern: $patte[0m …[0m
+[31;1m[0m[36;1m[36;1m[0m[36;1m[0m[36;1m     | [31;1m         ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~[0m
+[31;1m[0m[36;1m[36;1m[0m[36;1m[0m[36;1m[31;1m[31;1m[36;1m     | [31;1mPAIRED CONTROL PROOF: FAIL - missing required receipt evidence pattern:[0m
+[31;1m[0m[36;1m[36;1m[0m[36;1m[0m[36;1m[31;1m[31;1m[36;1m[31;1m[36;1m     | [31;1mPAIRING:\s*PASS.*payton-legion2.*payton-desktop|PAIRING:\s*PASS.*payton-desktop.*payton-legion2[0m
+GATE RESULT: FAIL Paired-control proof receipt exit=1
+
+=== GATE: Git diff whitespace check ===
+GATE RESULT: PASS Git diff whitespace check
+
+=== SUMMARY ===
+PLAN READINESS: FAIL red_gates=3
+Remaining implementation gates must be green before the plan can be considered complete.
+Receipt: F:\GitHub\MouseKeyProxy\docs\receipts-plan-readiness-20260704T123253Z.txt

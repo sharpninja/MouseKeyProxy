@@ -1,5 +1,5 @@
 === PLAN-MKP-006 Transition two-machine E2E (lab) ===
-Date: 2026-07-04T02:54:14.1511729-05:00
+Date: 2026-07-04T14:09:21.9659706-05:00
 MachineName: PAYTON-LEGION2
 LocalPeer: payton-legion2
 RemotePeer: payton-desktop
@@ -65,10 +65,39 @@ LOCAL gRPC TCP: REACHABLE payton-legion2:50051
 === REMOTE GRPC PROBE ===
 REMOTE gRPC TCP: REACHABLE payton-desktop:50051
 === REMOTE REPL SMOKE (WinRM payton-desktop) ===
-REMOTE WinRM credential: C:\Users\kingd\.desktopcred.xml
+REMOTE WinRM credential: C:\Users\kingd\.creds\paytondesktop.cred.xml
 === REMOTE pair via http://payton-desktop:50051 ===
 [REAL gRPC Pair via transport path] success=True err=
 === REMOTE toggle ===
 [REAL via ToggleAsync] toggle active=True (emission sent on change via shipped handler)
 REMOTE WinRM: PASS
-SMOKE: PASS (payton-legion2 + payton-desktop lab)
+PAIRING: PASS local=payton-legion2 remote=payton-desktop
+=== LEGION2 TO DESKTOP CONTROL PROOF ===
+=== REMOTE INTERACTIVE NOTEPAD PREP (WinRM payton-desktop) ===
+SUCCESS: The scheduled task "MouseKeyProxyProofNotepad" has successfully been created.
+SUCCESS: Attempted to run the scheduled task "MouseKeyProxyProofNotepad".
+[REAL gRPC SetMousePosition] ok=True err=0 msg=cursor moved display=primary x=321 y=234
+CURSOR_CONTROL: PASS from=payton-legion2 to=payton-desktop x=321 y=234 via=set-mouse
+[REAL gRPC LocateProcess] errorCode=0 count=17
+HWND=0xf0662 PID=3984 CLASS=Notepad TITLE=Untitled - Notepad
+HWND=0x508e8 PID=3984 CLASS=Notepad TITLE=Untitled - Notepad
+HWND=0x2406a2 PID=3984 CLASS=Notepad TITLE=*key.txt - Notepad
+HWND=0x6903c0 PID=3984 CLASS=GDI+ Hook Window Class TITLE=GDI+ Window (Notepad.exe)
+HWND=0x79e05b6 PID=3984 CLASS=MSCTFIME UI TITLE=MSCTFIME UI
+HWND=0x17091a PID=3984 CLASS=IME TITLE=Default IME
+HWND=0x100812 PID=3984 CLASS=IME TITLE=Default IME
+HWND=0x1303cc PID=3984 CLASS=MSCTFIME UI TITLE=MSCTFIME UI
+HWND=0x408e0 PID=3984 CLASS=MSCTFIME UI TITLE=MSCTFIME UI
+HWND=0x408de PID=3984 CLASS=IME TITLE=Default IME
+HWND=0x408e6 PID=3984 CLASS=IME TITLE=Default IME
+HWND=0x1807a4 PID=3984 CLASS=MSCTFIME UI TITLE=MSCTFIME UI
+HWND=0xd0404 PID=3984 CLASS=MSCTFIME UI TITLE=MSCTFIME UI
+HWND=0x3103d8 PID=3984 CLASS=IME TITLE=Default IME
+HWND=0x340358 PID=3984 CLASS=IME TITLE=Default IME
+HWND=0x2d03d6 PID=3984 CLASS=MSCTFIME UI TITLE=MSCTFIME UI
+HWND=0x5b006e PID=3984 CLASS=IME TITLE=Default IME
+[REAL gRPC SetFocusByHwnd] ok=True err=0 msg=focused hwnd=0xf0662
+[REAL gRPC InjectInput] ok=True err= msg=ok
+SENTINEL_INPUT: PASS from=payton-legion2 to=payton-desktop text=MKP-CONTROL-PROOF via=inject-text
+=== PAIRED CONTROL PROOF GATE ===
+SMOKE: PASS (payton-legion2 + payton-desktop lab with paired-control proof)

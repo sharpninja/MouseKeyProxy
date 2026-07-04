@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 
 namespace MouseKeyProxy.Common;
 
@@ -57,3 +58,24 @@ public interface ICursorClip
     void Release();
     bool IsClipped { get; }
 }
+
+public interface IRemoteDesktopController
+{
+    RemoteControlResult SetMousePosition(string displayId, int x, int y);
+    IReadOnlyList<RemoteWindowNode> LocateProcess(string processName, uint pid);
+    RemoteControlResult SetFocusByHwnd(ulong hwnd, bool bringToFront);
+}
+
+public readonly record struct RemoteControlResult(bool Ok, string ErrorCode, string Message)
+{
+    public static RemoteControlResult Success(string message = "ok") => new(true, "0", message);
+
+    public static RemoteControlResult Failure(string errorCode, string message) => new(false, errorCode, message);
+}
+
+public sealed record RemoteWindowNode(
+    ulong Hwnd,
+    string Title,
+    string ClassName,
+    uint ProcessId,
+    IReadOnlyList<RemoteWindowNode> Children);

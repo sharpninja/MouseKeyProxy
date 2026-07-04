@@ -1,0 +1,49 @@
+# Build output
+bin/
+obj/
+artifacts/
+.nuke/
+
+# NuGet
+*.nupkg
+*.snupkg
+packages/
+project.lock.json
+project.assets.json
+
+# Visual Studio
+.vs/
+*.user
+*.suo
+*.rsuser
+*.userosscache
+*.sln.docstates
+TestResults/
+coverage/
+coverage.xml
+coverage.cobertura.xml
+
+# Rider
+.idea/
+*.sln.iml
+
+# VS Code
+.vscode/
+
+# OS files
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+.DS_Store
+
+# MCP workspace marker and local cache
+AGENTS-README-FIRST.yaml
+.mcpServer/
+mcp.db
+cache/
+
+# Local agent/runtime artifacts
+terminals/
+agent-tools/
+mcps/
+docs/todo.yaml

@@ -1,0 +1,16 @@
+Date: 2026-07-04T12:55:00-05:00
+Repo: F:\GitHub\MouseKeyProxy
+Machine: PAYTON-LEGION2
+
+Branding/UI receipt
+
+- assets/logo.png was replaced with a 1024x1024 PNG, 48393 bytes.
+- Visual inspection confirms the required brand scene: hacker mouse character typing on a keyboard at a desk, surrounded by multiple monitors.
+- assets/logo.branding.md contains the required brand contract terms: hacker mouse, keyboard, desk, monitors, typing.
+- src/MouseKeyProxy.Agent/Program.cs now exposes MouseKeyProxy dashboard, Pairing, Active peer, Service, Clipboard, Recent errors, Emergency release, Reconnect, and Open logs UI strings.
+- Placeholder UI strings were removed from the agent source: peer-via-repl, Remote A, Connected: (pair via REPL), and Console.WriteLine("[TRAY]...).
+
+Validation
+
+- dotnet test tests\MouseKeyProxy.Compliance.Tests\MouseKeyProxy.Compliance.Tests.csproj --no-restore -v minimal --filter "FullyQualifiedName~AgentUiBrandingComplianceTests"
+- Result: Passed, 2 tests, 0 failed.

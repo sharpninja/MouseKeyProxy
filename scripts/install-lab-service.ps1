@@ -38,12 +38,19 @@ Write-Output '=== status ==='
 & '$mkpLiteral' service status 2>&1
 "@ | Set-Content -Path $elevScript -Encoding utf8
 
-if (-not (Get-Command gsudo -ErrorAction SilentlyContinue)) {
-    throw 'gsudo required for lab service install'
-}
-
 Write-Host '=== ELEVATED INSTALL (single gsudo batch) ==='
-gsudo --wait pwsh -ExecutionPolicy Bypass -File $elevScript
+$identity = [Security.Principal.WindowsIdentity]::GetCurrent()
+$principal = [Security.Principal.WindowsPrincipal]::new($identity)
+if ($principal.IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)) {
+    pwsh -ExecutionPolicy Bypass -File $elevScript
+}
+else {
+    if (-not (Get-Command gsudo -ErrorAction SilentlyContinue)) {
+        throw 'gsudo required for lab service install when not already elevated'
+    }
+
+    gsudo --wait pwsh -ExecutionPolicy Bypass -File $elevScript
+}
 if ($LASTEXITCODE -ne 0) { throw "elevated install failed exit $LASTEXITCODE" }
 
 Remove-Item -Path $elevScript -Force -ErrorAction SilentlyContinue

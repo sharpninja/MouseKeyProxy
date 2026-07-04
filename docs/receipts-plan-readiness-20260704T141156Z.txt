@@ -1,0 +1,53 @@
+=== MouseKeyProxy Plan Readiness ===
+Date: 2026-07-04T14:11:56.8365505-05:00
+Repo: F:\GitHub\MouseKeyProxy
+Machine: PAYTON-LEGION2
+
+=== GATE: Moq ban compliance ===
+  MouseKeyProxy.Compliance.Tests -> F:\GitHub\MouseKeyProxy\tests\MouseKeyProxy.Compliance.Tests\bin\Debug\net10.0\MouseKeyProxy.Compliance.Tests.dll
+Test run for F:\GitHub\MouseKeyProxy\tests\MouseKeyProxy.Compliance.Tests\bin\Debug\net10.0\MouseKeyProxy.Compliance.Tests.dll (.NETCoreApp,Version=v10.0)
+A total of 1 test files matched the specified pattern.
+
+Passed!  - Failed:     0, Passed:     1, Skipped:     0, Total:     1, Duration: 321 ms - MouseKeyProxy.Compliance.Tests.dll (net10.0)
+GATE RESULT: PASS Moq ban compliance
+
+=== GATE: UI and hacker mouse branding compliance ===
+  MouseKeyProxy.Compliance.Tests -> F:\GitHub\MouseKeyProxy\tests\MouseKeyProxy.Compliance.Tests\bin\Debug\net10.0\MouseKeyProxy.Compliance.Tests.dll
+Test run for F:\GitHub\MouseKeyProxy\tests\MouseKeyProxy.Compliance.Tests\bin\Debug\net10.0\MouseKeyProxy.Compliance.Tests.dll (.NETCoreApp,Version=v10.0)
+A total of 1 test files matched the specified pattern.
+
+Passed!  - Failed:     0, Passed:     2, Skipped:     0, Total:     2, Duration: 30 ms - MouseKeyProxy.Compliance.Tests.dll (net10.0)
+GATE RESULT: PASS UI and hacker mouse branding compliance
+
+=== GATE: Advanced gRPC control service seam ===
+F:\GitHub\MouseKeyProxy\src\MouseKeyProxy.Service\MouseKeyProxy.Service.csproj : warning NU1510: PackageReference Microsoft.Extensions.Logging.EventLog will not be pruned. Consider removing this package from your dependencies, as it is likely unnecessary.
+F:\GitHub\MouseKeyProxy\src\MouseKeyProxy.Common\ClipboardLifoMerger.cs(63,75): warning CA1416: This call site is reachable on all platforms. 'DataProtectionScope.CurrentUser' is only supported on: 'windows'. (https://learn.microsoft.com/dotnet/fundamentals/code-analysis/quality-rules/ca1416) [F:\GitHub\MouseKeyProxy\src\MouseKeyProxy.Common\MouseKeyProxy.Common.csproj]
+F:\GitHub\MouseKeyProxy\src\MouseKeyProxy.Common\ClipboardLifoMerger.cs(68,91): warning CA1416: This call site is reachable on all platforms. 'DataProtectionScope.CurrentUser' is only supported on: 'windows'. (https://learn.microsoft.com/dotnet/fundamentals/code-analysis/quality-rules/ca1416) [F:\GitHub\MouseKeyProxy\src\MouseKeyProxy.Common\MouseKeyProxy.Common.csproj]
+F:\GitHub\MouseKeyProxy\src\MouseKeyProxy.Common\ClipboardLifoMerger.cs(63,16): warning CA1416: This call site is reachable on all platforms. 'ProtectedData.Protect(byte[], byte[]?, DataProtectionScope)' is only supported on: 'windows'. (https://learn.microsoft.com/dotnet/fundamentals/code-analysis/quality-rules/ca1416) [F:\GitHub\MouseKeyProxy\src\MouseKeyProxy.Common\MouseKeyProxy.Common.csproj]
+F:\GitHub\MouseKeyProxy\src\MouseKeyProxy.Common\ClipboardLifoMerger.cs(68,21): warning CA1416: This call site is reachable on all platforms. 'ProtectedData.Unprotect(byte[], byte[]?, DataProtectionScope)' is only supported on: 'windows'. (https://learn.microsoft.com/dotnet/fundamentals/code-analysis/quality-rules/ca1416) [F:\GitHub\MouseKeyProxy\src\MouseKeyProxy.Common\MouseKeyProxy.Common.csproj]
+  MouseKeyProxy.Common -> F:\GitHub\MouseKeyProxy\src\MouseKeyProxy.Common\bin\Debug\net10.0\MouseKeyProxy.Common.dll
+  MouseKeyProxy.Network -> F:\GitHub\MouseKeyProxy\src\MouseKeyProxy.Network\bin\Debug\net10.0\MouseKeyProxy.Network.dll
+  MouseKeyProxy.Commands -> F:\GitHub\MouseKeyProxy\src\MouseKeyProxy.Commands\bin\Debug\net10.0\MouseKeyProxy.Commands.dll
+F:\GitHub\MouseKeyProxy\src\MouseKeyProxy.Service\Program.cs(38,9): warning CA1416: This call site is reachable on all platforms. 'EventLoggerFactoryExtensions.AddEventLog(ILoggingBuilder, Action<EventLogSettings>)' is only supported on: 'windows'. (https://learn.microsoft.com/dotnet/fundamentals/code-analysis/quality-rules/ca1416) [F:\GitHub\MouseKeyProxy\src\MouseKeyProxy.Service\MouseKeyProxy.Service.csproj]
+F:\GitHub\MouseKeyProxy\src\MouseKeyProxy.Service\Program.cs(41,13): warning CA1416: This call site is reachable on all platforms. 'EventLogSettings.LogName' is only supported on: 'windows'. (https://learn.microsoft.com/dotnet/fundamentals/code-analysis/quality-rules/ca1416) [F:\GitHub\MouseKeyProxy\src\MouseKeyProxy.Service\MouseKeyProxy.Service.csproj]
+F:\GitHub\MouseKeyProxy\src\MouseKeyProxy.Service\Program.cs(40,13): warning CA1416: This call site is reachable on all platforms. 'EventLogSettings.SourceName' is only supported on: 'windows'. (https://learn.microsoft.com/dotnet/fundamentals/code-analysis/quality-rules/ca1416) [F:\GitHub\MouseKeyProxy\src\MouseKeyProxy.Service\MouseKeyProxy.Service.csproj]
+  MouseKeyProxy.Service -> F:\GitHub\MouseKeyProxy\src\MouseKeyProxy.Service\bin\Debug\net10.0\MouseKeyProxy.Service.dll
+  MouseKeyProxy.Repl -> F:\GitHub\MouseKeyProxy\src\MouseKeyProxy.Repl\bin\Debug\net10.0\MouseKeyProxy.Repl.dll
+  MouseKeyProxy.Service.Tests -> F:\GitHub\MouseKeyProxy\tests\MouseKeyProxy.Service.Tests\bin\Debug\net10.0\MouseKeyProxy.Service.Tests.dll
+Test run for F:\GitHub\MouseKeyProxy\tests\MouseKeyProxy.Service.Tests\bin\Debug\net10.0\MouseKeyProxy.Service.Tests.dll (.NETCoreApp,Version=v10.0)
+A total of 1 test files matched the specified pattern.
+
+Passed!  - Failed:     0, Passed:     3, Skipped:     0, Total:     3, Duration: 446 ms - MouseKeyProxy.Service.Tests.dll (net10.0)
+GATE RESULT: PASS Advanced gRPC control service seam
+
+=== GATE: Paired-control proof receipt ===
+PAIRED CONTROL PROOF: PASS (payton-legion2 -> payton-desktop)
+GATE RESULT: PASS Paired-control proof receipt
+GATE EXPECTATION: unexpected pass; this gate was expected to remain red until its external proof is supplied
+
+=== GATE: Git diff whitespace check ===
+GATE RESULT: PASS Git diff whitespace check
+
+=== SUMMARY ===
+PLAN READINESS: PASS
+Receipt: F:\GitHub\MouseKeyProxy\docs\receipts-plan-readiness-20260704T141156Z.txt

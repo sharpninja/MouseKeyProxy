@@ -3,7 +3,8 @@ param(
     [string]$LocalHost = '',
     [string]$RemoteHost = '',
     [string]$RemoteCredentialPath = $(if ($env:MKP_REMOTE_CREDENTIAL_PATH) { $env:MKP_REMOTE_CREDENTIAL_PATH } else { '' }),
-    [int]$GrpcPort = $(if ($env:MKP_GRPC_PORT) { [int]$env:MKP_GRPC_PORT } else { 50051 })
+    [int]$GrpcPort = $(if ($env:MKP_GRPC_PORT) { [int]$env:MKP_GRPC_PORT } else { 50051 }),
+    [string]$ControlSentinel = $(if ($env:MKP_CONTROL_SENTINEL) { $env:MKP_CONTROL_SENTINEL } else { 'MKP-CONTROL-PROOF' })
 )
 
 $ErrorActionPreference = 'Stop'
@@ -49,19 +50,17 @@ Write-ReceiptLine "LocalPeer: $LocalHost"
 Write-ReceiptLine "RemotePeer: $RemoteHost"
 Write-ReceiptLine "GrpcPort: $GrpcPort"
 
-$mkpExe = $null
 $toolDir = Join-Path $env:TEMP 'mkp-e2e-tool'
-if (Test-Path (Join-Path $toolDir 'mkp.exe')) {
-    $mkpExe = Join-Path $toolDir 'mkp.exe'
-}
-else {
-    $scratch = Join-Path $env:TEMP 'mkp-e2e-pack'
-    New-Item -ItemType Directory -Force -Path $scratch | Out-Null
-    dotnet pack src/MouseKeyProxy.Repl/MouseKeyProxy.Repl.csproj -c Release -o $scratch /p:PackageVersion=0.5.0 2>&1 | Out-Null
-    New-Item -ItemType Directory -Force -Path $toolDir | Out-Null
-    dotnet tool install MouseKeyProxy.Repl --tool-path $toolDir --add-source $scratch 2>&1 | Out-Null
-    $mkpExe = Join-Path $toolDir 'mkp.exe'
-}
+$scratch = Join-Path $env:TEMP 'mkp-e2e-pack'
+if (Test-Path $scratch) { Remove-Item -Path $scratch -Recurse -Force }
+if (Test-Path $toolDir) { Remove-Item -Path $toolDir -Recurse -Force }
+New-Item -ItemType Directory -Force -Path $scratch | Out-Null
+New-Item -ItemType Directory -Force -Path $toolDir | Out-Null
+dotnet pack src/MouseKeyProxy.Repl/MouseKeyProxy.Repl.csproj -c Release -o $scratch /p:PackageVersion=0.5.0 2>&1 | Out-Null
+if ($LASTEXITCODE -ne 0) { throw "dotnet pack failed exit $LASTEXITCODE" }
+dotnet tool install MouseKeyProxy.Repl --tool-path $toolDir --add-source $scratch --version 0.5.0 2>&1 | Out-Null
+if ($LASTEXITCODE -ne 0) { throw "dotnet tool install failed exit $LASTEXITCODE" }
+$mkpExe = Join-Path $toolDir 'mkp.exe'
 
 if (-not (Test-Path $mkpExe)) {
     throw "mkp.exe not found at $mkpExe"
@@ -194,5 +193,81 @@ if (-not $remoteOk) {
     exit 1
 }
 
-Write-ReceiptLine 'SMOKE: PASS (payton-legion2 + payton-desktop lab)'
+Write-ReceiptLine "PAIRING: PASS local=$LocalHost remote=$RemoteHost"
+Write-ReceiptLine "=== LEGION2 TO DESKTOP CONTROL PROOF ==="
+$env:MKP_GRPC = "http://${RemoteHost}:$GrpcPort"
+
+try {
+    Write-ReceiptLine "=== REMOTE INTERACTIVE NOTEPAD PREP (WinRM $RemoteHost) ==="
+    $proofTask = 'MouseKeyProxyProofNotepad'
+    $taskTime = (Get-Date).AddMinutes(2).ToString('HH:mm')
+    $notepadParams = @{
+        ComputerName = $RemoteHost
+        ArgumentList = @($proofTask, $taskTime)
+        ErrorAction = 'Stop'
+        ScriptBlock = {
+            param($TaskName, $TaskTime)
+            schtasks.exe /Delete /TN $TaskName /F 2>&1 | Out-Null
+            schtasks.exe /Create /TN $TaskName /TR 'notepad.exe' /SC ONCE /ST $TaskTime /IT /F 2>&1
+            if ($LASTEXITCODE -ne 0) { throw "notepad proof task create failed exit $LASTEXITCODE" }
+            schtasks.exe /Run /TN $TaskName 2>&1
+            if ($LASTEXITCODE -ne 0) { throw "notepad proof task run failed exit $LASTEXITCODE" }
+        }
+    }
+    if (-not [string]::IsNullOrWhiteSpace($RemoteCredentialPath)) {
+        $notepadParams.Credential = Import-Clixml -LiteralPath $RemoteCredentialPath
+    }
+    Invoke-Command @notepadParams 2>&1 | ForEach-Object { Write-ReceiptLine $_ }
+}
+catch {
+    Write-ReceiptLine "REMOTE NOTEPAD PREP: WARN ($($_.Exception.Message))"
+}
+
+Start-Sleep -Seconds 2
+$cursorX = 321
+$cursorY = 234
+& $mkpExe set-mouse --display primary --x $cursorX --y $cursorY 2>&1 | ForEach-Object { Write-ReceiptLine $_ }
+if ($LASTEXITCODE -ne 0) {
+    Write-ReceiptLine "CURSOR_CONTROL: FAIL from=$LocalHost to=$RemoteHost x=$cursorX y=$cursorY exit=$LASTEXITCODE"
+    Write-ReceiptLine 'SMOKE: FAIL (cursor control command failed)'
+    exit 1
+}
+Write-ReceiptLine "CURSOR_CONTROL: PASS from=$LocalHost to=$RemoteHost x=$cursorX y=$cursorY via=set-mouse"
+
+$locateOutput = & $mkpExe locate-process notepad 2>&1
+$locateOutput | ForEach-Object { Write-ReceiptLine $_ }
+$hwnd = $null
+foreach ($line in $locateOutput) {
+    if ([string]$line -match 'HWND=(0x[0-9a-fA-F]+)') {
+        $hwnd = $Matches[1]
+        break
+    }
+}
+if ($hwnd) {
+    & $mkpExe focus-hwnd $hwnd 2>&1 | ForEach-Object { Write-ReceiptLine $_ }
+    if ($LASTEXITCODE -ne 0) {
+        Write-ReceiptLine "FOCUS: WARN hwnd=$hwnd exit=$LASTEXITCODE"
+    }
+}
+else {
+    Write-ReceiptLine 'FOCUS: WARN no notepad hwnd found; injecting into current foreground target'
+}
+
+& $mkpExe inject-text $ControlSentinel 2>&1 | ForEach-Object { Write-ReceiptLine $_ }
+if ($LASTEXITCODE -ne 0) {
+    Write-ReceiptLine "SENTINEL_INPUT: FAIL from=$LocalHost to=$RemoteHost text=$ControlSentinel exit=$LASTEXITCODE"
+    Write-ReceiptLine 'SMOKE: FAIL (sentinel input command failed)'
+    exit 1
+}
+Write-ReceiptLine "SENTINEL_INPUT: PASS from=$LocalHost to=$RemoteHost text=$ControlSentinel via=inject-text"
+
+Write-ReceiptLine '=== PAIRED CONTROL PROOF GATE ==='
+$proofScript = Join-Path $PSScriptRoot 'assert-paired-control-proof.ps1'
+& $proofScript -ReceiptPath $ReceiptPath -LocalHost $LocalHost -RemoteHost $RemoteHost -Sentinel $ControlSentinel 2>&1 | ForEach-Object { Write-ReceiptLine $_ }
+if ($LASTEXITCODE -ne 0) {
+    Write-ReceiptLine 'SMOKE: FAIL (paired-control proof missing)'
+    exit 1
+}
+
+Write-ReceiptLine 'SMOKE: PASS (payton-legion2 + payton-desktop lab with paired-control proof)'
 exit 0

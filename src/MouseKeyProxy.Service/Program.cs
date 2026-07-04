@@ -42,7 +42,11 @@ internal static class Program
         });
         builder.Logging.AddConsole();
 
-        builder.Services.AddSingleton<SessionFrameDispatcher>(_ => new SessionFrameDispatcher(null, new ToggleStateMachine()));
+        builder.Services.AddSingleton<AgentControlPipeClient>();
+        builder.Services.AddSingleton<IInputInjector, AgentPipeInputInjector>();
+        builder.Services.AddSingleton<IRemoteDesktopController, AgentPipeRemoteDesktopController>();
+        builder.Services.AddSingleton<SessionFrameDispatcher>(sp =>
+            new SessionFrameDispatcher(sp.GetRequiredService<IInputInjector>(), new ToggleStateMachine()));
 
         builder.Services.AddGrpc();
 

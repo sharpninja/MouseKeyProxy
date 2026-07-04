@@ -3,6 +3,8 @@ param(
 )
 
 $ErrorActionPreference = 'Stop'
+$repoRoot = Split-Path -Parent $PSScriptRoot
+Set-Location $repoRoot
 
 if ([string]::IsNullOrWhiteSpace($Scratch)) {
     $Scratch = 'C:\Users\kingd\AppData\Local\Temp\grok-goal-517f749f32af\implementer'
@@ -110,7 +112,18 @@ dotnet run --project src/MouseKeyProxy.Repl/MouseKeyProxy.Repl.csproj -c Release
 dotnet run --project src/MouseKeyProxy.Repl/MouseKeyProxy.Repl.csproj -c Release --no-build -- inject-text 'verif-frame' 2>&1 | Out-File -FilePath $replLog -Append -Encoding utf8
 dotnet run --project src/MouseKeyProxy.Repl/MouseKeyProxy.Repl.csproj -c Release --no-build -- toggle 2>&1 | Out-File -FilePath $replLog -Append -Encoding utf8
 
-$canonical = @('git-visibility.log', 'build.log', 'full-test-output.log', 'repl-install.log', 'repl-run.log')
+Write-Host '=== PAIRED CONTROL PROOF (paired-control-proof.log) ==='
+$proofLog = Join-Path $Scratch 'paired-control-proof.log'
+$transitionReceipt = Join-Path $repoRoot 'docs\receipts-transition-e2e.txt'
+$proofScript = Join-Path $repoRoot 'scripts\assert-paired-control-proof.ps1'
+& $proofScript -ReceiptPath $transitionReceipt -LocalHost 'payton-legion2' -RemoteHost 'payton-desktop' -RequireSmokePass *> $proofLog
+$proofExit = $LASTEXITCODE
+Get-Content -LiteralPath $proofLog | ForEach-Object { Write-Host $_ }
+if ($proofExit -ne 0) {
+    throw "paired-control proof failed; see $proofLog"
+}
+
+$canonical = @('git-visibility.log', 'build.log', 'full-test-output.log', 'repl-install.log', 'repl-run.log', 'paired-control-proof.log')
 Get-ChildItem -Path $Scratch -File | ForEach-Object {
     if ($canonical -notcontains $_.Name -and $_.Extension -ne '.nupkg') {
         Remove-Item -Path $_.FullName -Force
