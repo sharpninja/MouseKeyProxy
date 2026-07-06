@@ -27,6 +27,16 @@ public class Win32InputInjector : IInputInjector
     const uint INPUT_KEYBOARD = 1;
     const uint INPUT_MOUSE = 0;
     const uint MOUSEEVENTF_MOVE = 0x0001;
+    const uint MOUSEEVENTF_LEFTDOWN = 0x0002;
+    const uint MOUSEEVENTF_LEFTUP = 0x0004;
+    const uint MOUSEEVENTF_RIGHTDOWN = 0x0008;
+    const uint MOUSEEVENTF_RIGHTUP = 0x0010;
+    const uint MOUSEEVENTF_MIDDLEDOWN = 0x0020;
+    const uint MOUSEEVENTF_MIDDLEUP = 0x0040;
+    const uint MOUSEEVENTF_XDOWN = 0x0080;
+    const uint MOUSEEVENTF_XUP = 0x0100;
+    const uint MOUSEEVENTF_WHEEL = 0x0800;
+    const uint MOUSEEVENTF_HWHEEL = 0x01000;
     const uint KEYEVENTF_KEYUP = 0x0002;
     const uint KEYEVENTF_UNICODE = 0x0004;
 
@@ -65,7 +75,20 @@ public class Win32InputInjector : IInputInjector
             var inp = new INPUT { type = INPUT_MOUSE, u = new InputUnion { mi = new MOUSEINPUT { dx = evt.Dx, dy = evt.Dy, dwFlags = MOUSEEVENTF_MOVE } } };
             SendInput(1, new[] { inp }, Marshal.SizeOf(typeof(INPUT)));
         }
-        // mouse buttons/wheel etc can be extended
+        else if (evt.Kind == InputKind.MOUSE_DOWN || evt.Kind == InputKind.MOUSE_UP || evt.Kind == InputKind.MOUSE_XBUTTON)
+        {
+            var flags = evt.Flags != 0
+                ? evt.Flags
+                : evt.Kind == InputKind.MOUSE_DOWN ? MOUSEEVENTF_LEFTDOWN : MOUSEEVENTF_LEFTUP;
+            var inp = new INPUT { type = INPUT_MOUSE, u = new InputUnion { mi = new MOUSEINPUT { mouseData = evt.XButton, dwFlags = flags } } };
+            SendInput(1, new[] { inp }, Marshal.SizeOf(typeof(INPUT)));
+        }
+        else if (evt.Kind == InputKind.MOUSE_WHEEL || evt.Kind == InputKind.MOUSE_HWHEEL)
+        {
+            var flags = evt.Kind == InputKind.MOUSE_WHEEL ? MOUSEEVENTF_WHEEL : MOUSEEVENTF_HWHEEL;
+            var inp = new INPUT { type = INPUT_MOUSE, u = new InputUnion { mi = new MOUSEINPUT { mouseData = unchecked((uint)evt.WheelDelta), dwFlags = flags } } };
+            SendInput(1, new[] { inp }, Marshal.SizeOf(typeof(INPUT)));
+        }
     }
 
     public bool TryInjectBatch(System.Collections.Generic.IEnumerable<InputEvent> events, out string? error)
@@ -242,7 +265,7 @@ public class Win32HotkeyMonitor : IHotkeyMonitor
 {
     public event EventHandler<ToggleEventArgs>? ToggleRequested;
 
-    [DllImport("user32.dll")] static extern bool RegisterHotKey(IntPtr hWnd, int id, uint fsModifiers, uint vk);
+    [DllImport("user32.dll", SetLastError = true)] static extern bool RegisterHotKey(IntPtr hWnd, int id, uint fsModifiers, uint vk);
     [DllImport("user32.dll")] static extern bool UnregisterHotKey(IntPtr hWnd, int id);
 
     private IntPtr _hwnd;
@@ -262,7 +285,10 @@ public class Win32HotkeyMonitor : IHotkeyMonitor
     public void RegisterForWindow(IntPtr hwnd, uint modifiers, uint vk)
     {
         _hwnd = hwnd;
-        RegisterHotKey(hwnd, _id, modifiers, vk);
+        if (!RegisterHotKey(hwnd, _id, modifiers, vk))
+        {
+            throw new InvalidOperationException($"RegisterHotKey failed for modifiers=0x{modifiers:x} vk=0x{vk:x} win32={Marshal.GetLastWin32Error()}");
+        }
     }
 
     // Called from real WM_HOTKEY handler or test to drive shipped state

@@ -39,7 +39,10 @@ internal static class Program
         {
             options.SourceName = "MouseKeyProxy";
             options.LogName = "Application";
+            options.Filter = (_, level) => level >= LogLevel.Information;
         });
+        builder.Logging.AddFilter<Microsoft.Extensions.Logging.EventLog.EventLogLoggerProvider>(
+            level => level >= LogLevel.Information);
         builder.Logging.AddConsole();
 
         builder.Services.AddSingleton<AgentControlPipeClient>();

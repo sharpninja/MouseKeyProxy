@@ -20,7 +20,7 @@ public class ReplBidiConstructionTests
         // AC3: handler calls transport. AC4 frame proof centralized to Commands (real build).
         // No override here: direct call to shipped Bidi.Send on spy (null client) runs production build, sets LastSentFrame.
         var spy = new RecordingTransport();
-        await InputCommandHandler.SendInputAsync(spy, InputKind.TEXT_INPUT, "frame-test");
+        await InputCommandHandler.SendInputAsync(spy, InputKind.TEXT_INPUT, "frame-test", TestContext.Current.CancellationToken);
         Assert.NotNull(spy.LastSentFrame);
     }
 

@@ -22,6 +22,7 @@ internal static class Program
     private static ToggleStateMachine? _state;
     private static Win32HotkeyMonitor? _hotkey;
     private static AgentControlPipeServer? _controlPipe;
+    private static RemoteInputForwarder? _forwarder;
 
     [STAThread]
     public static void Main()
@@ -33,6 +34,7 @@ internal static class Program
         _state = new ToggleStateMachine();
         _hotkey = new Win32HotkeyMonitor();
         _controlPipe = AgentControlPipeServer.Start(new Win32DesktopController(), _injector);
+        _forwarder = new RemoteInputForwarder();
 
         var tray = new NotifyIcon
         {
@@ -43,7 +45,7 @@ internal static class Program
 
         var menu = new ContextMenuStrip();
         menu.Items.Add("MouseKeyProxy dashboard", null, (_, _) => ShowDashboardForm());
-        menu.Items.Add("Toggle Active (Ctrl-Alt-F1)", null, (_, _) => DoRealToggle());
+        menu.Items.Add("Toggle Active - Desktop Control (Ctrl-Alt-F1)", null, (_, _) => DoRealToggle());
         menu.Items.Add("Pairing", null, (_, _) => ShowPairingForm());
         menu.Items.Add("Reconnect", null, (_, _) => TryReconnect());
         menu.Items.Add("Service", null, (_, _) => ShowServiceForm());
@@ -52,13 +54,17 @@ internal static class Program
         menu.Items.Add("Start Mirror Mode", null, (_, _) => ShowMirrorForm());
         menu.Items.Add("Emergency release", null, (_, _) => EmergencyRelease());
         menu.Items.Add("Open logs", null, (_, _) => OpenLogs());
-        menu.Items.Add("Exit", null, (_, _) => { tray.Visible = false; _controlPipe?.Dispose(); Application.Exit(); });
+        menu.Items.Add("Exit", null, (_, _) => { tray.Visible = false; _forwarder?.Dispose(); _controlPipe?.Dispose(); Application.Exit(); });
         tray.ContextMenuStrip = menu;
 
         _hotkey.ToggleRequested += (_, _) => DoRealToggle();
         _hotkey.StartMonitoring();
 
-        var hiddenForm = new Form { Visible = false, ShowInTaskbar = false };
+        var hiddenForm = new HotkeyMessageForm(() => _hotkey.RaiseToggle("Ctrl-Alt-F1", false))
+        {
+            Visible = false,
+            ShowInTaskbar = false
+        };
         hiddenForm.Load += (_, _) => _hotkey.RegisterForWindow(hiddenForm.Handle, 0x0003, (uint)Keys.F1);
         hiddenForm.Show();
 
@@ -171,7 +177,7 @@ internal static class Program
         layout.Controls.Add(new Label
         {
             Text = "Controls",
-            Font = new Font(SystemFonts.MessageBoxFont, FontStyle.Bold),
+            Font = CreateBoldMessageFont(),
             TextAlign = ContentAlignment.MiddleLeft,
             Dock = DockStyle.Fill
         }, 0, actionRow);
@@ -187,7 +193,7 @@ internal static class Program
         layout.Controls.Add(new Label
         {
             Text = label,
-            Font = new Font(SystemFonts.MessageBoxFont, FontStyle.Bold),
+            Font = CreateBoldMessageFont(),
             TextAlign = ContentAlignment.MiddleLeft,
             Dock = DockStyle.Fill
         }, 0, row);
@@ -198,6 +204,11 @@ internal static class Program
             Dock = DockStyle.Fill,
             AutoEllipsis = true
         }, 1, row);
+    }
+
+    private static Font CreateBoldMessageFont()
+    {
+        return new Font(SystemFonts.MessageBoxFont ?? Control.DefaultFont, FontStyle.Bold);
     }
 
     private static void ShowPairingForm()
@@ -274,24 +285,72 @@ internal static class Program
 
     private static void DoRealToggle()
     {
-        string baseUrl = Environment.GetEnvironmentVariable("MKP_GRPC") ?? "http://localhost:50051";
         try
         {
-            using var channel = GrpcChannel.ForAddress(baseUrl, new GrpcChannelOptions
+            var remoteUrl = ResolveRemoteGrpcUrl();
+            var activePeer = remoteUrl;
+            bool active = InputCommandHandler.ToggleAsync(_state!, null, activePeer).GetAwaiter().GetResult();
+            if (active)
             {
-                HttpHandler = new System.Net.Http.SocketsHttpHandler { EnableMultipleHttp2Connections = true }
-            });
-            var client = new Wire.MouseKeyProxy.MouseKeyProxyClient(channel);
-            using var transport = new BidiSessionTransport(client);
-            bool active = InputCommandHandler.ToggleAsync(_state!, transport, "peer").GetAwaiter().GetResult();
-            ApplyClipForActive(active);
+                _clip?.Release();
+                _forwarder!.Start(remoteUrl);
+            }
+            else
+            {
+                _forwarder?.Stop();
+                _clip?.Release();
+            }
         }
         catch (Exception ex)
         {
             using var nullTransport = new BidiSessionTransport((Wire.MouseKeyProxy.MouseKeyProxyClient)null!);
             bool active = InputCommandHandler.ToggleAsync(_state!, nullTransport, "peer").GetAwaiter().GetResult();
-            ApplyClipForActive(active);
+            if (!active)
+            {
+                _forwarder?.Stop();
+                _clip?.Release();
+            }
             Console.WriteLine($"toggle FAILED: {ex.Message}");
+        }
+    }
+
+    private static string ResolveRemoteGrpcUrl()
+    {
+        var configured = Environment.GetEnvironmentVariable("MKP_REMOTE_GRPC");
+        if (!string.IsNullOrWhiteSpace(configured))
+        {
+            return configured;
+        }
+
+        try
+        {
+            var (_, remotePeer) = LabTopology.ResolvePeers();
+            return LabTopology.GrpcUrl(remotePeer);
+        }
+        catch
+        {
+            return "http://payton-desktop:50051";
+        }
+    }
+
+    private sealed class HotkeyMessageForm : Form
+    {
+        private const int WM_HOTKEY = 0x0312;
+        private readonly Action _onHotkey;
+
+        public HotkeyMessageForm(Action onHotkey)
+        {
+            _onHotkey = onHotkey ?? throw new ArgumentNullException(nameof(onHotkey));
+        }
+
+        protected override void WndProc(ref Message m)
+        {
+            if (m.Msg == WM_HOTKEY)
+            {
+                _onHotkey();
+            }
+
+            base.WndProc(ref m);
         }
     }
 
