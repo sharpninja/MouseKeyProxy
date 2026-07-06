@@ -25,7 +25,7 @@ public class HotkeyRegistrationRegressionTests
         var sourcePath = Path.Combine(RepoRoot, "src", "MouseKeyProxy.Agent", "Program.cs");
         var source = File.ReadAllText(sourcePath);
         var dashboardStart = source.IndexOf("private static Form CreateDashboardForm", StringComparison.Ordinal);
-        var dashboardEnd = source.IndexOf("private static void AddDashboardRow", StringComparison.Ordinal);
+        var dashboardEnd = source.IndexOf("private static Label AddDashboardRow", StringComparison.Ordinal);
         Assert.True(dashboardStart >= 0 && dashboardEnd > dashboardStart, "CreateDashboardForm helper was not found.");
         var dashboardHelper = source[dashboardStart..dashboardEnd];
         var buttonHelperStart = source.IndexOf("private static Button CreateDashboardButton", StringComparison.Ordinal);
@@ -56,6 +56,48 @@ public class HotkeyRegistrationRegressionTests
         Assert.Contains("Arguments = \"/c:Application\"", openLogsHelper, StringComparison.Ordinal);
         Assert.DoesNotContain("Environment.SpecialFolder.LocalApplicationData", openLogsHelper, StringComparison.Ordinal);
         Assert.DoesNotContain("Directory.CreateDirectory", openLogsHelper, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    [Trait("Category", "RemoteState")]
+    public void Agent_Disables_Remote_Dependent_Actions_Until_Paired_And_Connected()
+    {
+        var sourcePath = Path.Combine(RepoRoot, "src", "MouseKeyProxy.Agent", "Program.cs");
+        var source = File.ReadAllText(sourcePath);
+        var mainMenuStart = source.IndexOf("var menu = new ContextMenuStrip", StringComparison.Ordinal);
+        var mainMenuEnd = source.IndexOf("_tray.ContextMenuStrip = menu", StringComparison.Ordinal);
+        Assert.True(mainMenuStart >= 0 && mainMenuEnd > mainMenuStart, "Main tray menu block was not found.");
+        var mainMenu = source[mainMenuStart..mainMenuEnd];
+        var toggleStart = source.IndexOf("private static void DoRealToggle", StringComparison.Ordinal);
+        var toggleEnd = source.IndexOf("private static string ResolveRemoteGrpcUrl", StringComparison.Ordinal);
+        Assert.True(toggleStart >= 0 && toggleEnd > toggleStart, "DoRealToggle helper was not found.");
+        var toggleHelper = source[toggleStart..toggleEnd];
+        var injectStart = source.IndexOf("private static void DoRealInject", StringComparison.Ordinal);
+        Assert.True(injectStart >= 0, "DoRealInject helper was not found.");
+        var injectHelper = source[injectStart..];
+
+        Assert.Contains("RemoteConnectionState.NotPaired", source, StringComparison.Ordinal);
+        Assert.Contains("RemoteConnectionState.NotConnected", source, StringComparison.Ordinal);
+        Assert.Contains("Not paired", source, StringComparison.Ordinal);
+        Assert.Contains("Not connected to a remote", source, StringComparison.Ordinal);
+        Assert.Contains("AddConnectedRemoteMenuAction(menu, \"Toggle Active - Desktop Control (Ctrl-Alt-F1)\"", mainMenu, StringComparison.Ordinal);
+        Assert.Contains("AddConnectedRemoteMenuAction(menu, \"Clipboard\"", mainMenu, StringComparison.Ordinal);
+        Assert.Contains("AddConnectedRemoteMenuAction(menu, \"Inject Text to Remote...\"", mainMenu, StringComparison.Ordinal);
+        Assert.Contains("AddConnectedRemoteMenuAction(menu, \"Start Mirror Mode\"", mainMenu, StringComparison.Ordinal);
+        Assert.Contains("AddPairedRemoteMenuAction(menu, \"Reconnect\"", mainMenu, StringComparison.Ordinal);
+        Assert.Contains("_primaryRemoteButton = CreateDashboardButton(\"Pair\")", source, StringComparison.Ordinal);
+        Assert.Contains("UpdatePrimaryRemoteButton", source, StringComparison.Ordinal);
+        Assert.Contains("_primaryRemoteButton.Text = \"Pair\"", source, StringComparison.Ordinal);
+        Assert.Contains("_primaryRemoteButton.Text = \"Reconnect\"", source, StringComparison.Ordinal);
+        Assert.Contains("ShowPairingForm();", source, StringComparison.Ordinal);
+        Assert.Contains("binding.EnabledText} ({reason})", source, StringComparison.Ordinal);
+        Assert.Contains("EnsureConnectedRemoteAction(\"Toggle Active - Desktop Control\")", toggleHelper, StringComparison.Ordinal);
+        Assert.Contains("EnsureConnectedRemoteAction(\"Inject Text to Remote\")", injectHelper, StringComparison.Ordinal);
+        Assert.Contains("EnsureConnectedRemoteAction(\"Clipboard\")", source, StringComparison.Ordinal);
+        Assert.Contains("EnsureConnectedRemoteAction(\"Start Mirror Mode\")", source, StringComparison.Ordinal);
+        Assert.Contains("EnsurePairedRemoteAction(\"Reconnect\")", source, StringComparison.Ordinal);
+        Assert.DoesNotContain("nullTransport", toggleHelper, StringComparison.Ordinal);
+        Assert.DoesNotContain("[LOCAL fallback inject]", injectHelper, StringComparison.Ordinal);
     }
 
     [Fact]
