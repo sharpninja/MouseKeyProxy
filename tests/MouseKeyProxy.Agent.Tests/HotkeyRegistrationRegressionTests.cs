@@ -36,11 +36,20 @@ public class HotkeyRegistrationRegressionTests
         var openLogsEnd = source.IndexOf("private static void ExitApplication", StringComparison.Ordinal);
         Assert.True(openLogsStart >= 0 && openLogsEnd > openLogsStart, "OpenLogs helper was not found.");
         var openLogsHelper = source[openLogsStart..openLogsEnd];
+        var remoteEndpointStart = source.IndexOf("private static string RemoteEndpointStatusText", StringComparison.Ordinal);
+        var remoteEndpointEnd = source.IndexOf("private static bool EnsurePairedRemoteAction", StringComparison.Ordinal);
+        Assert.True(remoteEndpointStart >= 0 && remoteEndpointEnd > remoteEndpointStart, "RemoteEndpointStatusText helper was not found.");
+        var remoteEndpointHelper = source[remoteEndpointStart..remoteEndpointEnd];
 
         Assert.Contains("MinimumSize = new Size(811, 433)", dashboardHelper, StringComparison.Ordinal);
         Assert.Contains("Icon = LoadTrayIcon()", dashboardHelper, StringComparison.Ordinal);
         Assert.Contains("AutoSizeMode = AutoSizeMode.GrowAndShrink", dashboardHelper, StringComparison.Ordinal);
         Assert.Contains("WrapContents = false", dashboardHelper, StringComparison.Ordinal);
+        Assert.Contains("Remote endpoint", dashboardHelper, StringComparison.Ordinal);
+        Assert.Contains("RemoteEndpointStatusText", dashboardHelper, StringComparison.Ordinal);
+        Assert.DoesNotContain("AddDashboardRow(layout, \"Service\"", dashboardHelper, StringComparison.Ordinal);
+        Assert.Contains("RemoteConnectionState.NotPaired", remoteEndpointHelper, StringComparison.Ordinal);
+        Assert.Contains("return \"None\"", remoteEndpointHelper, StringComparison.Ordinal);
         Assert.Contains("CreateDashboardButton", source, StringComparison.Ordinal);
         Assert.Contains("AutoSize = true", buttonHelper, StringComparison.Ordinal);
         Assert.Contains("AutoSizeMode = AutoSizeMode.GrowAndShrink", buttonHelper, StringComparison.Ordinal);

@@ -38,7 +38,7 @@ internal static class Program
     private static string? _lastRemoteError;
     private static Label? _pairingStatusValue;
     private static Label? _activePeerValue;
-    private static Label? _serviceStatusValue;
+    private static Label? _remoteEndpointValue;
     private static Button? _primaryRemoteButton;
 
     [STAThread]
@@ -208,7 +208,7 @@ internal static class Program
 
         _pairingStatusValue = AddDashboardRow(layout, "Pairing", RemotePairingStatusText());
         _activePeerValue = AddDashboardRow(layout, "Active peer", RemoteActivePeerText());
-        _serviceStatusValue = AddDashboardRow(layout, "Service", RemoteServiceStatusText());
+        _remoteEndpointValue = AddDashboardRow(layout, "Remote endpoint", RemoteEndpointStatusText());
         AddDashboardRow(layout, "Clipboard", "Idle");
         AddDashboardRow(layout, "Recent errors", "None recorded this session");
 
@@ -379,9 +379,9 @@ internal static class Program
             _activePeerValue.Text = RemoteActivePeerText();
         }
 
-        if (_serviceStatusValue is not null && !_serviceStatusValue.IsDisposed)
+        if (_remoteEndpointValue is not null && !_remoteEndpointValue.IsDisposed)
         {
-            _serviceStatusValue.Text = RemoteServiceStatusText();
+            _remoteEndpointValue.Text = RemoteEndpointStatusText();
         }
     }
 
@@ -412,8 +412,13 @@ internal static class Program
             : RemoteActionBlockReason();
     }
 
-    private static string RemoteServiceStatusText()
+    private static string RemoteEndpointStatusText()
     {
+        if (_remoteState == RemoteConnectionState.NotPaired)
+        {
+            return "None";
+        }
+
         var remoteUrl = ResolveRemoteGrpcUrl();
         return _remoteState == RemoteConnectionState.Connected
             ? remoteUrl

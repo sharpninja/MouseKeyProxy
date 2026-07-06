@@ -54,6 +54,7 @@ public class AgentUiBrandingComplianceTests
             "MouseKeyProxy dashboard",
             "Pairing",
             "Active peer",
+            "Remote endpoint",
             "Service",
             "Clipboard",
             "Recent errors",
