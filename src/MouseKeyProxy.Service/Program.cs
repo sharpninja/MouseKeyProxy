@@ -38,7 +38,7 @@ internal static class Program
         builder.Logging.AddEventLog(options =>
         {
             options.SourceName = "MouseKeyProxy";
-            options.LogName = "Application";
+            options.LogName = "MouseKeyProxy";
             options.Filter = (_, level) => level >= LogLevel.Information;
         });
         builder.Logging.AddFilter<Microsoft.Extensions.Logging.EventLog.EventLogLoggerProvider>(
@@ -58,7 +58,7 @@ internal static class Program
         app.MapGrpcService<MouseKeyProxyImpl>();
 
         var logger = app.Services.GetRequiredService<ILoggerFactory>().CreateLogger("MouseKeyProxy.Service");
-        logger.LogInformation("MouseKeyProxy service starting (EventLog source=MouseKeyProxy)");
+        logger.LogInformation("MouseKeyProxy service starting (EventLog source=MouseKeyProxy, log=MouseKeyProxy)");
 
         app.Run();
 

@@ -13,6 +13,9 @@ namespace MouseKeyProxy.Repl.Tests;
 /// </summary>
 public class ReplBidiConstructionTests
 {
+    private static string RepoRoot =>
+        System.IO.Path.GetFullPath(System.IO.Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "..", ".."));
+
     [Fact]
     [Trait("Category", "REPL")]
     public async Task Repl_Inject_Uses_Handler_And_Sends_Real_SessionFrame_InputBatch()
@@ -38,5 +41,19 @@ public class ReplBidiConstructionTests
         // AC4 framing proof centralized to Commands.Tests (LastSentFrame on real transport, not console strings from Main)
         int code = MouseKeyProxy.Repl.Program.Main(new[] { "inject-text", "real-frame-from-main" });
         Assert.True(code == 0 || code == 1);
+    }
+
+    [Fact]
+    [Trait("Category", "Logging")]
+    public void Repl_Installer_Registers_Source_In_Dedicated_MouseKeyProxy_EventLog()
+    {
+        var sourcePath = System.IO.Path.Combine(RepoRoot, "src", "MouseKeyProxy.Repl", "Program.cs");
+        var source = System.IO.File.ReadAllText(sourcePath);
+
+        Assert.Contains("private const string EventLogSourceName = \"MouseKeyProxy\"", source, StringComparison.Ordinal);
+        Assert.Contains("private const string EventLogName = \"MouseKeyProxy\"", source, StringComparison.Ordinal);
+        Assert.Contains("EventLog.LogNameFromSourceName(EventLogSourceName, \".\")", source, StringComparison.Ordinal);
+        Assert.Contains("EventLog.CreateEventSource(EventLogSourceName, EventLogName)", source, StringComparison.Ordinal);
+        Assert.DoesNotContain("EventLog.CreateEventSource(\"MouseKeyProxy\", \"Application\")", source, StringComparison.Ordinal);
     }
 }

@@ -38,6 +38,7 @@ public class HotkeyRegistrationRegressionTests
         var openLogsHelper = source[openLogsStart..openLogsEnd];
 
         Assert.Contains("MinimumSize = new Size(811, 433)", dashboardHelper, StringComparison.Ordinal);
+        Assert.Contains("Icon = LoadTrayIcon()", dashboardHelper, StringComparison.Ordinal);
         Assert.Contains("AutoSizeMode = AutoSizeMode.GrowAndShrink", dashboardHelper, StringComparison.Ordinal);
         Assert.Contains("WrapContents = false", dashboardHelper, StringComparison.Ordinal);
         Assert.Contains("CreateDashboardButton", source, StringComparison.Ordinal);
@@ -53,7 +54,7 @@ public class HotkeyRegistrationRegressionTests
         Assert.DoesNotContain("CreateDashboardButton(\"Reconnect\",", source, StringComparison.Ordinal);
         Assert.DoesNotContain("hiddenForm.Show()", source, StringComparison.Ordinal);
         Assert.Contains("FileName = \"eventvwr.msc\"", openLogsHelper, StringComparison.Ordinal);
-        Assert.Contains("Arguments = \"/c:Application\"", openLogsHelper, StringComparison.Ordinal);
+        Assert.Contains("Arguments = \"/c:MouseKeyProxy\"", openLogsHelper, StringComparison.Ordinal);
         Assert.DoesNotContain("Environment.SpecialFolder.LocalApplicationData", openLogsHelper, StringComparison.Ordinal);
         Assert.DoesNotContain("Directory.CreateDirectory", openLogsHelper, StringComparison.Ordinal);
     }

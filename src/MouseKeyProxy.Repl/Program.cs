@@ -23,6 +23,8 @@ public static class Program
     private static readonly Cmn.ToggleStateMachine _toggle = new();
     private static System.Collections.Generic.List<Cmn.ClipboardEntry> _clipboardHistory = new();
     private const string TempDataRoot = @"%LOCALAPPDATA%\Temp\MouseKeyProxy";
+    private const string EventLogSourceName = "MouseKeyProxy";
+    private const string EventLogName = "MouseKeyProxy";
 
     public static int Main(string[] args)
     {
@@ -281,9 +283,18 @@ Explicit 'mkp service install' does NOT happen on 'dotnet tool install'.
 
         try
         {
-            if (!EventLog.SourceExists("MouseKeyProxy"))
+            if (EventLog.SourceExists(EventLogSourceName))
             {
-                EventLog.CreateEventSource("MouseKeyProxy", "Application");
+                var currentLogName = EventLog.LogNameFromSourceName(EventLogSourceName, ".");
+                if (!string.Equals(currentLogName, EventLogName, StringComparison.OrdinalIgnoreCase))
+                {
+                    EventLog.DeleteEventSource(EventLogSourceName);
+                    EventLog.CreateEventSource(EventLogSourceName, EventLogName);
+                }
+            }
+            else
+            {
+                EventLog.CreateEventSource(EventLogSourceName, EventLogName);
             }
         }
         catch (Exception ex)
@@ -304,9 +315,9 @@ Explicit 'mkp service install' does NOT happen on 'dotnet tool install'.
 
         try
         {
-            if (EventLog.SourceExists("MouseKeyProxy"))
+            if (EventLog.SourceExists(EventLogSourceName))
             {
-                EventLog.DeleteEventSource("MouseKeyProxy");
+                EventLog.DeleteEventSource(EventLogSourceName);
             }
         }
         catch { }

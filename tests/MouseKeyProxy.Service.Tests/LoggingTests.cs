@@ -8,6 +8,9 @@ namespace MouseKeyProxy.Service.Tests;
 
 public class LoggingTests
 {
+    private static string RepoRoot =>
+        Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "..", ".."));
+
     [Fact]
     [Trait("Category", "Logging")]
     public async Task Pair_Success_LogsInformation_Via_ILogger()
@@ -46,5 +49,17 @@ public class LoggingTests
             Arg.Is<object>(o => o.ToString()!.Contains("Pair failed")),
             null,
             Arg.Any<Func<object, Exception?, string>>());
+    }
+
+    [Fact]
+    [Trait("Category", "Logging")]
+    public void Service_Configures_Dedicated_MouseKeyProxy_EventLog()
+    {
+        var sourcePath = Path.Combine(RepoRoot, "src", "MouseKeyProxy.Service", "Program.cs");
+        var source = File.ReadAllText(sourcePath);
+
+        Assert.Contains("options.SourceName = \"MouseKeyProxy\"", source, StringComparison.Ordinal);
+        Assert.Contains("options.LogName = \"MouseKeyProxy\"", source, StringComparison.Ordinal);
+        Assert.DoesNotContain("options.LogName = \"Application\"", source, StringComparison.Ordinal);
     }
 }

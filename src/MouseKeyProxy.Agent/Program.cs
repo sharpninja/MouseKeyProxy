@@ -178,6 +178,7 @@ internal static class Program
         var form = new Form
         {
             Text = "MouseKeyProxy dashboard",
+            Icon = LoadTrayIcon(),
             StartPosition = FormStartPosition.CenterScreen,
             AutoSize = true,
             AutoSizeMode = AutoSizeMode.GrowAndShrink,
@@ -652,7 +653,7 @@ internal static class Program
         Process.Start(new ProcessStartInfo
         {
             FileName = "eventvwr.msc",
-            Arguments = "/c:Application",
+            Arguments = "/c:MouseKeyProxy",
             UseShellExecute = true
         });
     }
