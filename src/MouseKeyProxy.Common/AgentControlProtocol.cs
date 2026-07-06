@@ -10,6 +10,7 @@ public static class AgentControlPipe
     public const string LocateProcess = "locateProcess";
     public const string SetFocusByHwnd = "setFocusByHwnd";
     public const string InjectInput = "injectInput";
+    public const string NotifyPairingState = "notifyPairingState";
 }
 
 public sealed class AgentControlRequest
@@ -22,6 +23,9 @@ public sealed class AgentControlRequest
     public uint Pid { get; set; }
     public ulong Hwnd { get; set; }
     public bool BringToFront { get; set; }
+    public string RemotePeer { get; set; } = string.Empty;
+    public string RemoteGrpcUrl { get; set; } = string.Empty;
+    public string PairingCode { get; set; } = string.Empty;
     public List<InputEvent> Events { get; set; } = new();
 }
 

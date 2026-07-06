@@ -14,19 +14,27 @@ internal sealed class AgentControlPipeServer : IDisposable
 
     private readonly IRemoteDesktopController _desktopController;
     private readonly IInputInjector _inputInjector;
+    private readonly Func<AgentControlRequest, AgentControlResponse>? _pairingStateNotifier;
     private readonly CancellationTokenSource _stop = new();
     private readonly Task _loop;
 
-    private AgentControlPipeServer(IRemoteDesktopController desktopController, IInputInjector inputInjector)
+    private AgentControlPipeServer(
+        IRemoteDesktopController desktopController,
+        IInputInjector inputInjector,
+        Func<AgentControlRequest, AgentControlResponse>? pairingStateNotifier)
     {
         _desktopController = desktopController;
         _inputInjector = inputInjector;
+        _pairingStateNotifier = pairingStateNotifier;
         _loop = Task.Run(RunAsync);
     }
 
-    public static AgentControlPipeServer Start(IRemoteDesktopController desktopController, IInputInjector inputInjector)
+    public static AgentControlPipeServer Start(
+        IRemoteDesktopController desktopController,
+        IInputInjector inputInjector,
+        Func<AgentControlRequest, AgentControlResponse>? pairingStateNotifier = null)
     {
-        return new AgentControlPipeServer(desktopController, inputInjector);
+        return new AgentControlPipeServer(desktopController, inputInjector, pairingStateNotifier);
     }
 
     public void Dispose()
@@ -97,6 +105,7 @@ internal sealed class AgentControlPipeServer : IDisposable
                 AgentControlPipe.SetFocusByHwnd => ToResponse(_desktopController.SetFocusByHwnd(request.Hwnd, request.BringToFront)),
                 AgentControlPipe.LocateProcess => LocateProcess(request),
                 AgentControlPipe.InjectInput => InjectInput(request),
+                AgentControlPipe.NotifyPairingState => NotifyPairingState(request),
                 _ => AgentControlResponse.Failure("UNKNOWN_OPERATION", $"Unknown agent control operation: {request.Operation}")
             };
         }
@@ -123,6 +132,12 @@ internal sealed class AgentControlPipeServer : IDisposable
         return _inputInjector.TryInjectBatch(request.Events, out var error)
             ? AgentControlResponse.Success($"injected {request.Events.Count} events")
             : AgentControlResponse.Failure("INJECT_INPUT_FAILED", error ?? "Input injection failed.");
+    }
+
+    private AgentControlResponse NotifyPairingState(AgentControlRequest request)
+    {
+        return _pairingStateNotifier?.Invoke(request)
+            ?? AgentControlResponse.Failure("PAIRING_STATE_UNAVAILABLE", "Agent pairing state handler is not configured.");
     }
 
     private static AgentControlResponse ToResponse(RemoteControlResult result)

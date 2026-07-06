@@ -44,6 +44,19 @@ public class ReplBidiConstructionTests
     }
 
     [Fact]
+    [Trait("Category", "Pairing")]
+    public void Repl_Pair_Notifies_Local_Agent_Pairing_State()
+    {
+        var sourcePath = System.IO.Path.Combine(RepoRoot, "src", "MouseKeyProxy.Repl", "Program.cs");
+        var source = System.IO.File.ReadAllText(sourcePath);
+
+        Assert.Contains("NotifyLocalAgentPairingState(baseUrl, req.PairingCode)", source, StringComparison.Ordinal);
+        Assert.Contains("AgentControlPipe.NotifyPairingState", source, StringComparison.Ordinal);
+        Assert.Contains("RemoteGrpcUrl = remoteGrpcUrl", source, StringComparison.Ordinal);
+        Assert.Contains("[AGENT pairing state]", source, StringComparison.Ordinal);
+    }
+
+    [Fact]
     [Trait("Category", "Logging")]
     public void Repl_Installer_Registers_Source_In_Dedicated_MouseKeyProxy_EventLog()
     {

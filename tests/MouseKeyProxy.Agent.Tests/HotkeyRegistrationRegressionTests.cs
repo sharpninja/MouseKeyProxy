@@ -111,6 +111,23 @@ public class HotkeyRegistrationRegressionTests
     }
 
     [Fact]
+    [Trait("Category", "Pairing")]
+    public void Agent_Accepts_Repl_Pairing_State_Notification()
+    {
+        var programPath = Path.Combine(RepoRoot, "src", "MouseKeyProxy.Agent", "Program.cs");
+        var programSource = File.ReadAllText(programPath);
+        var pipePath = Path.Combine(RepoRoot, "src", "MouseKeyProxy.Agent", "AgentControlPipeServer.cs");
+        var pipeSource = File.ReadAllText(pipePath);
+
+        Assert.Contains("AgentControlPipe.NotifyPairingState", pipeSource, StringComparison.Ordinal);
+        Assert.Contains("NotifyPairingState", programSource, StringComparison.Ordinal);
+        Assert.Contains("ApplyPairingState", programSource, StringComparison.Ordinal);
+        Assert.Contains("PersistPairingState", programSource, StringComparison.Ordinal);
+        Assert.Contains("LoadPersistedPairingState();", programSource, StringComparison.Ordinal);
+        Assert.Contains("agent-pairing.json", programSource, StringComparison.Ordinal);
+    }
+
+    [Fact]
     [Trait("Category", "Hotkey")]
     public void Win32HotkeyMonitor_Does_Not_Silently_Ignore_RegisterHotKey_Failure()
     {

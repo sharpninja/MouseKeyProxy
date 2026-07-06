@@ -2,6 +2,7 @@ using System;
 using System.Diagnostics;
 using System.Drawing;
 using System.IO;
+using System.Text.Json;
 using System.Windows.Forms;
 using Grpc.Net.Client;
 using MouseKeyProxy.Common;
@@ -30,10 +31,13 @@ internal static class Program
     private const string DefaultRemotePeer = "payton-desktop";
     private const string NotPairedText = "Not paired";
     private const string NotConnectedText = "Not connected to a remote";
+    private static readonly JsonSerializerOptions PairingStateJsonOptions = new(JsonSerializerDefaults.Web) { WriteIndented = true };
     private static readonly List<RemoteActionBinding> PairedRemoteActions = new();
     private static readonly List<RemoteActionBinding> ConnectedRemoteActions = new();
     private static readonly ToolTip DashboardToolTip = new();
     private static RemoteConnectionState _remoteState = RemoteConnectionState.NotPaired;
+    private static string _activeRemotePeer = DefaultRemotePeer;
+    private static string? _activeRemoteGrpcUrl;
     private static string? _lastPairingCode;
     private static string? _lastRemoteError;
     private static Label? _pairingStatusValue;
@@ -50,8 +54,9 @@ internal static class Program
         _clip = new Win32CursorClip();
         _state = new ToggleStateMachine();
         _hotkey = new Win32HotkeyMonitor();
-        _controlPipe = AgentControlPipeServer.Start(new Win32DesktopController(), _injector);
+        _controlPipe = AgentControlPipeServer.Start(new Win32DesktopController(), _injector, NotifyPairingState);
         _forwarder = new RemoteInputForwarder();
+        LoadPersistedPairingState();
 
         _tray = new NotifyIcon
         {
@@ -126,7 +131,7 @@ internal static class Program
             Top = 12,
             Width = 232,
             DropDownStyle = ComboBoxStyle.DropDownList,
-            Items = { DefaultRemotePeer },
+            Items = { CurrentRemotePeer() },
             SelectedIndex = 0
         });
         form.Controls.Add(new Label { Text = "Text:", Left = 16, Top = 48, AutoSize = true });
@@ -148,7 +153,7 @@ internal static class Program
 
         using var form = new Form { Text = "Mirror Active peer", Width = 320, Height = 200, StartPosition = FormStartPosition.CenterScreen };
         form.Controls.Add(new Label { Text = "Active peer", Left = 16, Top = 16, AutoSize = true });
-        form.Controls.Add(new CheckBox { Text = DefaultRemotePeer, Left = 16, Top = 48, Checked = true });
+        form.Controls.Add(new CheckBox { Text = CurrentRemotePeer(), Left = 16, Top = 48, Checked = true });
         form.Controls.Add(new Button { Text = "Stop", Left = 200, Top = 120, Width = 80 });
         form.ShowDialog();
     }
@@ -334,13 +339,13 @@ internal static class Program
         {
             _primaryRemoteButton.Text = "Pair";
             _primaryRemoteButton.Enabled = true;
-            DashboardToolTip.SetToolTip(_primaryRemoteButton, $"Pair with {DefaultRemotePeer}");
+            DashboardToolTip.SetToolTip(_primaryRemoteButton, $"Pair with {CurrentRemotePeer()}");
             return;
         }
 
         _primaryRemoteButton.Text = "Reconnect";
         _primaryRemoteButton.Enabled = true;
-        DashboardToolTip.SetToolTip(_primaryRemoteButton, $"Reconnect to {DefaultRemotePeer}");
+        DashboardToolTip.SetToolTip(_primaryRemoteButton, $"Reconnect to {CurrentRemotePeer()}");
     }
 
     private static void ApplyRemoteActionAvailability(
@@ -408,7 +413,7 @@ internal static class Program
     private static string RemoteActivePeerText()
     {
         return _remoteState == RemoteConnectionState.Connected
-            ? DefaultRemotePeer
+            ? CurrentRemotePeer()
             : RemoteActionBlockReason();
     }
 
@@ -484,16 +489,15 @@ internal static class Program
                 return false;
             }
 
-            _remoteState = RemoteConnectionState.Connected;
-            _lastPairingCode = pairingCode;
-            _lastRemoteError = null;
-            message = $"Paired and connected to {DefaultRemotePeer}.";
-            UpdateRemoteActionAvailability();
+            ApplyPairingState(ResolveRemotePeerName(remoteUrl), remoteUrl, pairingCode, connected: true);
+            message = $"Paired and connected to {CurrentRemotePeer()}.";
             return true;
         }
         catch (Exception ex)
         {
             _remoteState = RemoteConnectionState.NotConnected;
+            _activeRemoteGrpcUrl = remoteUrl;
+            _activeRemotePeer = ResolveRemotePeerName(remoteUrl);
             if (!string.IsNullOrWhiteSpace(pairingCode))
             {
                 _lastPairingCode = pairingCode;
@@ -501,8 +505,131 @@ internal static class Program
 
             _lastRemoteError = ex.Message;
             message = $"{NotConnectedText}: {ex.Message}";
+            PersistPairingState(connected: false);
             UpdateRemoteActionAvailability();
             return false;
+        }
+    }
+
+    private static AgentControlResponse NotifyPairingState(AgentControlRequest request)
+    {
+        if (_hotkeyWindow is { IsHandleCreated: true } window && window.InvokeRequired)
+        {
+            return (AgentControlResponse)window.Invoke(new Func<AgentControlResponse>(() => NotifyPairingState(request)));
+        }
+
+        if (string.IsNullOrWhiteSpace(request.RemoteGrpcUrl))
+        {
+            return AgentControlResponse.Failure("PAIRING_STATE_BAD_REQUEST", "RemoteGrpcUrl is required.");
+        }
+
+        var peer = string.IsNullOrWhiteSpace(request.RemotePeer)
+            ? ResolveRemotePeerName(request.RemoteGrpcUrl)
+            : request.RemotePeer.Trim();
+        ApplyPairingState(peer, request.RemoteGrpcUrl.Trim(), request.PairingCode, connected: true);
+        return AgentControlResponse.Success($"paired and connected to {CurrentRemotePeer()}");
+    }
+
+    private static void ApplyPairingState(string remotePeer, string remoteGrpcUrl, string pairingCode, bool connected)
+    {
+        _activeRemotePeer = string.IsNullOrWhiteSpace(remotePeer) ? ResolveRemotePeerName(remoteGrpcUrl) : remotePeer;
+        _activeRemoteGrpcUrl = string.IsNullOrWhiteSpace(remoteGrpcUrl) ? null : remoteGrpcUrl;
+        _remoteState = connected ? RemoteConnectionState.Connected : RemoteConnectionState.NotConnected;
+        _lastPairingCode = pairingCode;
+        _lastRemoteError = null;
+        PersistPairingState(connected);
+        UpdateRemoteActionAvailability();
+    }
+
+    private static string CurrentRemotePeer()
+    {
+        return string.IsNullOrWhiteSpace(_activeRemotePeer) ? DefaultRemotePeer : _activeRemotePeer;
+    }
+
+    private static string ResolveRemotePeerName(string remoteGrpcUrl)
+    {
+        return Uri.TryCreate(remoteGrpcUrl, UriKind.Absolute, out var uri) && !string.IsNullOrWhiteSpace(uri.Host)
+            ? uri.Host.ToLowerInvariant()
+            : DefaultRemotePeer;
+    }
+
+    private static string PairingStatePath()
+    {
+        return Path.Combine(
+            Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+            "MouseKeyProxy",
+            "agent-pairing.json");
+    }
+
+    private static void LoadPersistedPairingState()
+    {
+        try
+        {
+            var path = PairingStatePath();
+            if (!File.Exists(path))
+            {
+                return;
+            }
+
+            var state = JsonSerializer.Deserialize<PersistedPairingState>(
+                File.ReadAllText(path),
+                PairingStateJsonOptions);
+            if (state is null || string.IsNullOrWhiteSpace(state.RemoteGrpcUrl))
+            {
+                return;
+            }
+
+            _activeRemotePeer = string.IsNullOrWhiteSpace(state.RemotePeer)
+                ? ResolveRemotePeerName(state.RemoteGrpcUrl)
+                : state.RemotePeer;
+            _activeRemoteGrpcUrl = state.RemoteGrpcUrl;
+            _lastPairingCode = state.PairingCode;
+            _lastRemoteError = state.Connected ? null : NotConnectedText;
+            _remoteState = state.Connected ? RemoteConnectionState.Connected : RemoteConnectionState.NotConnected;
+        }
+        catch
+        {
+            _remoteState = RemoteConnectionState.NotPaired;
+            _lastPairingCode = null;
+            _lastRemoteError = null;
+        }
+    }
+
+    private static void PersistPairingState(bool connected)
+    {
+        try
+        {
+            var path = PairingStatePath();
+            Directory.CreateDirectory(Path.GetDirectoryName(path)!);
+            var state = new PersistedPairingState
+            {
+                RemotePeer = CurrentRemotePeer(),
+                RemoteGrpcUrl = ResolveRemoteGrpcUrl(),
+                PairingCode = _lastPairingCode ?? string.Empty,
+                Connected = connected,
+                SavedAtUtc = DateTimeOffset.UtcNow
+            };
+            File.WriteAllText(path, JsonSerializer.Serialize(state, PairingStateJsonOptions));
+        }
+        catch (Exception ex)
+        {
+            _lastRemoteError = ex.Message;
+        }
+    }
+
+    private static void ClearPersistedPairingState()
+    {
+        try
+        {
+            var path = PairingStatePath();
+            if (File.Exists(path))
+            {
+                File.Delete(path);
+            }
+        }
+        catch (Exception ex)
+        {
+            _lastRemoteError = ex.Message;
         }
     }
 
@@ -510,6 +637,7 @@ internal static class Program
     {
         _remoteState = RemoteConnectionState.NotConnected;
         _lastRemoteError = ex.Message;
+        PersistPairingState(connected: false);
         UpdateRemoteActionAvailability();
     }
 
@@ -536,7 +664,7 @@ internal static class Program
         layout.ColumnStyles.Add(new ColumnStyle(SizeType.AutoSize));
         form.Controls.Add(layout);
 
-        AddDashboardRow(layout, "Remote", DefaultRemotePeer);
+        AddDashboardRow(layout, "Remote", CurrentRemotePeer());
         AddDashboardRow(layout, "Endpoint", ResolveRemoteGrpcUrl());
         var status = AddDashboardRow(layout, "Status", RemotePairingStatusText());
 
@@ -577,6 +705,7 @@ internal static class Program
                 _remoteState = RemoteConnectionState.NotPaired;
                 _lastPairingCode = null;
                 _lastRemoteError = null;
+                ClearPersistedPairingState();
                 UpdateRemoteActionAvailability();
                 status.Text = "Not paired. Enter the local pairing code.";
                 return;
@@ -735,6 +864,11 @@ internal static class Program
             return configured;
         }
 
+        if (!string.IsNullOrWhiteSpace(_activeRemoteGrpcUrl))
+        {
+            return _activeRemoteGrpcUrl;
+        }
+
         try
         {
             var (_, remotePeer) = LabTopology.ResolvePeers();
@@ -764,6 +898,15 @@ internal static class Program
         {
             return new RemoteActionBinding(enabledText, null, button);
         }
+    }
+
+    private sealed class PersistedPairingState
+    {
+        public string RemotePeer { get; set; } = string.Empty;
+        public string RemoteGrpcUrl { get; set; } = string.Empty;
+        public string PairingCode { get; set; } = string.Empty;
+        public bool Connected { get; set; }
+        public DateTimeOffset SavedAtUtc { get; set; }
     }
 
     private sealed class HotkeyMessageForm : Form

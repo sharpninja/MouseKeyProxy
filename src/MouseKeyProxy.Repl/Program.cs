@@ -1,10 +1,12 @@
 using System;
 using System.Diagnostics;
 using System.IO;
+using System.IO.Pipes;
 using System.Linq;
 using System.Security.AccessControl;
 using System.Security.Principal;
 using System.ServiceProcess;
+using System.Text.Json;
 using Grpc.Net.Client;
 using MouseKeyProxy.Commands;
 using Cmn = MouseKeyProxy.Common;
@@ -23,6 +25,7 @@ public static class Program
     private static readonly Cmn.ToggleStateMachine _toggle = new();
     private static System.Collections.Generic.List<Cmn.ClipboardEntry> _clipboardHistory = new();
     private const string TempDataRoot = @"%LOCALAPPDATA%\Temp\MouseKeyProxy";
+    private static readonly JsonSerializerOptions AgentControlJsonOptions = new(JsonSerializerDefaults.Web);
     private const string EventLogSourceName = "MouseKeyProxy";
     private const string EventLogName = "MouseKeyProxy";
 
@@ -77,7 +80,14 @@ Explicit 'mkp service install' does NOT happen on 'dotnet tool install'.
                     var req = new Wire.PairRequest { ProtocolVersion = "v1", PeerId = "repl-peer", PairingCode = args.Length > 1 ? args[1] : "0000" };
                     var resp = client.Pair(req);
                     Console.WriteLine($"[REAL gRPC Pair via transport path] success={resp.Success} err={resp.Error}");
-                    return resp.Success ? 0 : 1;
+                    if (!resp.Success)
+                    {
+                        return 1;
+                    }
+
+                    var agentResponse = NotifyLocalAgentPairingState(baseUrl, req.PairingCode);
+                    Console.WriteLine($"[AGENT pairing state] ok={agentResponse.Ok} err={agentResponse.ErrorCode} msg={agentResponse.Message}");
+                    return agentResponse.Ok ? 0 : 1;
                 }
                 catch (Exception ex) { Console.WriteLine($"[REAL Pair attempted] {ex.Message}"); return 1; }
             case "toggle":
@@ -206,6 +216,62 @@ Explicit 'mkp service install' does NOT happen on 'dotnet tool install'.
     {
         var index = Array.FindIndex(args, a => string.Equals(a, name, StringComparison.OrdinalIgnoreCase));
         return index >= 0 && index + 1 < args.Length ? args[index + 1] : defaultValue;
+    }
+
+    private static Cmn.AgentControlResponse NotifyLocalAgentPairingState(string remoteGrpcUrl, string pairingCode)
+    {
+        try
+        {
+            using var pipe = new NamedPipeClientStream(
+                ".",
+                Cmn.AgentControlPipe.PipeName,
+                PipeDirection.InOut,
+                PipeOptions.None);
+            pipe.Connect(2000);
+
+            using var writer = new StreamWriter(pipe, leaveOpen: true) { AutoFlush = true };
+            using var reader = new StreamReader(pipe, leaveOpen: true);
+
+            var request = new Cmn.AgentControlRequest
+            {
+                Operation = Cmn.AgentControlPipe.NotifyPairingState,
+                RemotePeer = ResolveRemotePeerName(remoteGrpcUrl),
+                RemoteGrpcUrl = remoteGrpcUrl,
+                PairingCode = pairingCode
+            };
+            writer.WriteLine(JsonSerializer.Serialize(request, AgentControlJsonOptions));
+            var line = reader.ReadLine();
+            if (string.IsNullOrWhiteSpace(line))
+            {
+                return Cmn.AgentControlResponse.Failure("AGENT_IPC_EMPTY_RESPONSE", "Agent control pipe returned no response.");
+            }
+
+            return JsonSerializer.Deserialize<Cmn.AgentControlResponse>(line, AgentControlJsonOptions)
+                ?? Cmn.AgentControlResponse.Failure("AGENT_IPC_BAD_RESPONSE", "Agent control pipe returned an unreadable response.");
+        }
+        catch (System.TimeoutException ex)
+        {
+            return Cmn.AgentControlResponse.Failure("AGENT_IPC_UNAVAILABLE", ex.Message);
+        }
+        catch (IOException ex)
+        {
+            return Cmn.AgentControlResponse.Failure("AGENT_IPC_UNAVAILABLE", ex.Message);
+        }
+        catch (UnauthorizedAccessException ex)
+        {
+            return Cmn.AgentControlResponse.Failure("AGENT_IPC_DENIED", ex.Message);
+        }
+        catch (Exception ex)
+        {
+            return Cmn.AgentControlResponse.Failure("AGENT_IPC_ERROR", ex.Message);
+        }
+    }
+
+    private static string ResolveRemotePeerName(string remoteGrpcUrl)
+    {
+        return Uri.TryCreate(remoteGrpcUrl, UriKind.Absolute, out var uri) && !string.IsNullOrWhiteSpace(uri.Host)
+            ? uri.Host.ToLowerInvariant()
+            : remoteGrpcUrl;
     }
 
     private static int GetIntOption(string[] args, string name, int defaultValue)
