@@ -23,6 +23,10 @@ internal static class Program
     private static Win32HotkeyMonitor? _hotkey;
     private static AgentControlPipeServer? _controlPipe;
     private static RemoteInputForwarder? _forwarder;
+    private static NotifyIcon? _tray;
+    private static HotkeyMessageForm? _hotkeyWindow;
+    private static Form? _dashboardForm;
+    private static bool _exitRequested;
 
     [STAThread]
     public static void Main()
@@ -36,7 +40,7 @@ internal static class Program
         _controlPipe = AgentControlPipeServer.Start(new Win32DesktopController(), _injector);
         _forwarder = new RemoteInputForwarder();
 
-        var tray = new NotifyIcon
+        _tray = new NotifyIcon
         {
             Icon = LoadTrayIcon(),
             Visible = true,
@@ -54,20 +58,18 @@ internal static class Program
         menu.Items.Add("Start Mirror Mode", null, (_, _) => ShowMirrorForm());
         menu.Items.Add("Emergency release", null, (_, _) => EmergencyRelease());
         menu.Items.Add("Open logs", null, (_, _) => OpenLogs());
-        menu.Items.Add("Exit", null, (_, _) => { tray.Visible = false; _forwarder?.Dispose(); _controlPipe?.Dispose(); Application.Exit(); });
-        tray.ContextMenuStrip = menu;
+        menu.Items.Add("Exit", null, (_, _) => ExitApplication());
+        _tray.ContextMenuStrip = menu;
+        _tray.DoubleClick += (_, _) => ShowDashboardForm();
 
         _hotkey.ToggleRequested += (_, _) => DoRealToggle();
         _hotkey.StartMonitoring();
 
-        var hiddenForm = new HotkeyMessageForm(() => _hotkey.RaiseToggle("Ctrl-Alt-F1", false))
-        {
-            Visible = false,
-            ShowInTaskbar = false
-        };
-        hiddenForm.Load += (_, _) => _hotkey.RegisterForWindow(hiddenForm.Handle, 0x0003, (uint)Keys.F1);
-        hiddenForm.Show();
+        _hotkeyWindow = new HotkeyMessageForm(() => _hotkey.RaiseToggle("Ctrl-Alt-F1", false));
+        _hotkey.RegisterForWindow(_hotkeyWindow.Handle, 0x0003, (uint)Keys.F1);
 
+        Application.ApplicationExit += (_, _) => CleanupApplication();
+        ShowDashboardForm();
         Application.Run();
     }
 
@@ -129,13 +131,41 @@ internal static class Program
 
     private static void ShowDashboardForm()
     {
-        using var form = new Form
+        if (_dashboardForm is null || _dashboardForm.IsDisposed)
+        {
+            _dashboardForm = CreateDashboardForm();
+        }
+
+        if (!_dashboardForm.Visible)
+        {
+            _dashboardForm.Show();
+        }
+
+        if (_dashboardForm.WindowState == FormWindowState.Minimized)
+        {
+            _dashboardForm.WindowState = FormWindowState.Normal;
+        }
+
+        _dashboardForm.Activate();
+    }
+
+    private static Form CreateDashboardForm()
+    {
+        var form = new Form
         {
             Text = "MouseKeyProxy dashboard",
             Width = 520,
             Height = 420,
             StartPosition = FormStartPosition.CenterScreen,
             MinimumSize = new Size(440, 360)
+        };
+        form.FormClosing += (_, args) =>
+        {
+            if (!_exitRequested && args.CloseReason == CloseReason.UserClosing)
+            {
+                args.Cancel = true;
+                form.Hide();
+            }
         };
 
         var layout = new TableLayoutPanel
@@ -183,7 +213,7 @@ internal static class Program
         }, 0, actionRow);
         layout.Controls.Add(actions, 1, actionRow);
 
-        form.ShowDialog();
+        return form;
     }
 
     private static void AddDashboardRow(TableLayoutPanel layout, string label, string value)
@@ -271,6 +301,26 @@ internal static class Program
         });
     }
 
+    private static void ExitApplication()
+    {
+        _exitRequested = true;
+        Application.Exit();
+    }
+
+    private static void CleanupApplication()
+    {
+        if (_tray is not null)
+        {
+            _tray.Visible = false;
+        }
+
+        _tray?.Dispose();
+        _hotkeyWindow?.Dispose();
+        _dashboardForm?.Dispose();
+        _forwarder?.Dispose();
+        _controlPipe?.Dispose();
+    }
+
     private static void ApplyClipForActive(bool active)
     {
         if (active)
@@ -341,6 +391,14 @@ internal static class Program
         public HotkeyMessageForm(Action onHotkey)
         {
             _onHotkey = onHotkey ?? throw new ArgumentNullException(nameof(onHotkey));
+            ShowInTaskbar = false;
+            FormBorderStyle = FormBorderStyle.FixedToolWindow;
+            Size = new Size(1, 1);
+        }
+
+        protected override void SetVisibleCore(bool value)
+        {
+            base.SetVisibleCore(false);
         }
 
         protected override void WndProc(ref Message m)

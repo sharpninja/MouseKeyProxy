@@ -20,6 +20,20 @@ public class HotkeyRegistrationRegressionTests
 
     [Fact]
     [Trait("Category", "Hotkey")]
+    public void Agent_Startup_Shows_Dashboard_Not_Blank_Hotkey_Window()
+    {
+        var sourcePath = Path.Combine(RepoRoot, "src", "MouseKeyProxy.Agent", "Program.cs");
+        var source = File.ReadAllText(sourcePath);
+
+        Assert.Contains("ShowDashboardForm();", source, StringComparison.Ordinal);
+        Assert.Contains("_tray.DoubleClick", source, StringComparison.Ordinal);
+        Assert.Contains("_hotkey.RegisterForWindow(_hotkeyWindow.Handle", source, StringComparison.Ordinal);
+        Assert.Contains("SetVisibleCore", source, StringComparison.Ordinal);
+        Assert.DoesNotContain("hiddenForm.Show()", source, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    [Trait("Category", "Hotkey")]
     public void Win32HotkeyMonitor_Does_Not_Silently_Ignore_RegisterHotKey_Failure()
     {
         var sourcePath = Path.Combine(RepoRoot, "src", "MouseKeyProxy.Agent", "Win32SeamImpls.cs");
