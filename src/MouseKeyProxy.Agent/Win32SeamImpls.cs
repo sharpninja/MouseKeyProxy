@@ -263,23 +263,63 @@ public class Win32CursorClip : ICursorClip
 // Real hotkey using RegisterHotKey (shipped, no 'demo'/'sim')
 public class Win32HotkeyMonitor : IHotkeyMonitor
 {
+    private const int WH_KEYBOARD_LL = 13;
+    private const int WM_KEYDOWN = 0x0100;
+    private const int WM_SYSKEYDOWN = 0x0104;
+    private const uint VK_F1 = 0x70;
+    private const uint VK_CONTROL = 0x11;
+    private const uint VK_MENU = 0x12;
+    private static readonly TimeSpan ToggleDebounceWindow = TimeSpan.FromMilliseconds(300);
+
     public event EventHandler<ToggleEventArgs>? ToggleRequested;
 
     [DllImport("user32.dll", SetLastError = true)] static extern bool RegisterHotKey(IntPtr hWnd, int id, uint fsModifiers, uint vk);
     [DllImport("user32.dll")] static extern bool UnregisterHotKey(IntPtr hWnd, int id);
+    [DllImport("user32.dll", SetLastError = true)] static extern IntPtr SetWindowsHookEx(int idHook, KeyboardHookProc lpfn, IntPtr hMod, uint dwThreadId);
+    [DllImport("user32.dll", SetLastError = true)] static extern bool UnhookWindowsHookEx(IntPtr hhk);
+    [DllImport("user32.dll")] static extern IntPtr CallNextHookEx(IntPtr hhk, int nCode, IntPtr wParam, IntPtr lParam);
+    [DllImport("user32.dll")] static extern short GetAsyncKeyState(int vKey);
+    [DllImport("kernel32.dll", CharSet = CharSet.Auto, SetLastError = true)] static extern IntPtr GetModuleHandle(string? lpModuleName);
 
     private IntPtr _hwnd;
+    private IntPtr _keyboardHook;
     private int _id = 1;
+    private readonly KeyboardHookProc _keyboardProc;
+    private long _lastToggleTimestamp;
+
+    public Win32HotkeyMonitor()
+    {
+        _keyboardProc = KeyboardHookCallback;
+    }
 
     public void StartMonitoring()
     {
-        // Real registration (for tray hwnd); in practice called from Form handle
-        // Called from Program tray or test to drive real state + resync
+        if (_keyboardHook != IntPtr.Zero)
+        {
+            return;
+        }
+
+        using var currentProcess = Process.GetCurrentProcess();
+        using var currentModule = currentProcess.MainModule;
+        var moduleHandle = currentModule?.ModuleName is { Length: > 0 } moduleName
+            ? GetModuleHandle(moduleName)
+            : IntPtr.Zero;
+        _keyboardHook = SetWindowsHookEx(WH_KEYBOARD_LL, _keyboardProc, moduleHandle, 0);
+        if (_keyboardHook == IntPtr.Zero)
+        {
+            throw new InvalidOperationException($"SetWindowsHookEx failed for Ctrl-Alt-F1 hotkey monitor win32={Marshal.GetLastWin32Error()}");
+        }
     }
 
     public void StopMonitoring()
     {
         if (_hwnd != IntPtr.Zero) UnregisterHotKey(_hwnd, _id);
+        _hwnd = IntPtr.Zero;
+        if (_keyboardHook != IntPtr.Zero)
+        {
+            UnhookWindowsHookEx(_keyboardHook);
+            _keyboardHook = IntPtr.Zero;
+        }
     }
 
     public void RegisterForWindow(IntPtr hwnd, uint modifiers, uint vk)
@@ -294,6 +334,66 @@ public class Win32HotkeyMonitor : IHotkeyMonitor
     // Called from real WM_HOTKEY handler or test to drive shipped state
     public void RaiseToggle(string chord, bool remote)
     {
+        if (!ShouldDispatchToggle())
+        {
+            return;
+        }
+
         ToggleRequested?.Invoke(this, new ToggleEventArgs(chord, remote));
+    }
+
+    private IntPtr KeyboardHookCallback(int nCode, IntPtr wParam, IntPtr lParam)
+    {
+        if (nCode >= 0 && IsKeyDownMessage(wParam.ToInt32()))
+        {
+            var data = Marshal.PtrToStructure<KBDLLHOOKSTRUCT>(lParam);
+            if (IsCtrlAltF1(data.vkCode))
+            {
+                RaiseToggle("Ctrl-Alt-F1", false);
+                return new IntPtr(1);
+            }
+        }
+
+        return CallNextHookEx(_keyboardHook, nCode, wParam, lParam);
+    }
+
+    private bool ShouldDispatchToggle()
+    {
+        var now = Stopwatch.GetTimestamp();
+        var previous = Interlocked.Read(ref _lastToggleTimestamp);
+        if (previous != 0 && Stopwatch.GetElapsedTime(previous, now) < ToggleDebounceWindow)
+        {
+            return false;
+        }
+
+        Interlocked.Exchange(ref _lastToggleTimestamp, now);
+        return true;
+    }
+
+    private static bool IsKeyDownMessage(int message)
+    {
+        return message is WM_KEYDOWN or WM_SYSKEYDOWN;
+    }
+
+    private static bool IsCtrlAltF1(uint vk)
+    {
+        return vk == VK_F1 && IsKeyDown(VK_CONTROL) && IsKeyDown(VK_MENU);
+    }
+
+    private static bool IsKeyDown(uint vk)
+    {
+        return (GetAsyncKeyState((int)vk) & 0x8000) != 0;
+    }
+
+    private delegate IntPtr KeyboardHookProc(int nCode, IntPtr wParam, IntPtr lParam);
+
+    [StructLayout(LayoutKind.Sequential)]
+    private struct KBDLLHOOKSTRUCT
+    {
+        public uint vkCode;
+        public uint scanCode;
+        public uint flags;
+        public uint time;
+        public UIntPtr dwExtraInfo;
     }
 }

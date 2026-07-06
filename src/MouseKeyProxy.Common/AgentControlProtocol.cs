@@ -11,6 +11,7 @@ public static class AgentControlPipe
     public const string SetFocusByHwnd = "setFocusByHwnd";
     public const string InjectInput = "injectInput";
     public const string NotifyPairingState = "notifyPairingState";
+    public const string GetAgentStatus = "getAgentStatus";
 }
 
 public sealed class AgentControlRequest
@@ -34,6 +35,10 @@ public sealed class AgentControlResponse
     public bool Ok { get; set; }
     public string ErrorCode { get; set; } = "0";
     public string Message { get; set; } = string.Empty;
+    public string RemotePeer { get; set; } = string.Empty;
+    public string RemoteGrpcUrl { get; set; } = string.Empty;
+    public string RemoteState { get; set; } = string.Empty;
+    public bool ForwardingActive { get; set; }
     public List<RemoteWindowNode> Nodes { get; set; } = new();
 
     public static AgentControlResponse Success(string message = "ok") => new()

@@ -32,6 +32,12 @@ $mkpLiteral = $mkpExe.Replace("'", "''")
 `$ErrorActionPreference = 'Continue'
 Write-Output '=== uninstall ==='
 & '$mkpLiteral' service uninstall 2>&1
+`$deadline = (Get-Date).AddSeconds(30)
+do {
+    `$svcProc = Get-Process -Name MouseKeyProxy.Service -ErrorAction SilentlyContinue
+    if (-not `$svcProc) { break }
+    Start-Sleep -Seconds 1
+} while ((Get-Date) -lt `$deadline)
 Write-Output '=== install ==='
 & '$mkpLiteral' service install 2>&1
 Write-Output '=== status ==='

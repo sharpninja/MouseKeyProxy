@@ -125,6 +125,9 @@ public class HotkeyRegistrationRegressionTests
         Assert.Contains("PersistPairingState", programSource, StringComparison.Ordinal);
         Assert.Contains("LoadPersistedPairingState();", programSource, StringComparison.Ordinal);
         Assert.Contains("agent-pairing.json", programSource, StringComparison.Ordinal);
+        Assert.Contains("AgentControlPipe.GetAgentStatus", pipeSource, StringComparison.Ordinal);
+        Assert.Contains("GetAgentStatus", programSource, StringComparison.Ordinal);
+        Assert.Contains("ForwardingActive = _forwarder?.IsActive ?? false", programSource, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -137,5 +140,34 @@ public class HotkeyRegistrationRegressionTests
         Assert.Contains("SetLastError = true", source, StringComparison.Ordinal);
         Assert.Contains("RegisterHotKey failed", source, StringComparison.Ordinal);
         Assert.Contains("Marshal.GetLastWin32Error()", source, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    [Trait("Category", "Hotkey")]
+    public void Win32HotkeyMonitor_Installs_Keyboard_Hook_Fallback_For_Ctrl_Alt_F1()
+    {
+        var sourcePath = Path.Combine(RepoRoot, "src", "MouseKeyProxy.Agent", "Win32SeamImpls.cs");
+        var source = File.ReadAllText(sourcePath);
+
+        Assert.Contains("WH_KEYBOARD_LL", source, StringComparison.Ordinal);
+        Assert.Contains("SetWindowsHookEx(WH_KEYBOARD_LL", source, StringComparison.Ordinal);
+        Assert.Contains("KeyboardHookCallback", source, StringComparison.Ordinal);
+        Assert.Contains("IsCtrlAltF1", source, StringComparison.Ordinal);
+        Assert.Contains("vk == VK_F1 && IsKeyDown(VK_CONTROL) && IsKeyDown(VK_MENU)", source, StringComparison.Ordinal);
+        Assert.Contains("UnhookWindowsHookEx", source, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    [Trait("Category", "Hotkey")]
+    public void Win32HotkeyMonitor_Debounces_Duplicate_Hook_And_WmHotkey_Dispatches()
+    {
+        var monitor = new MouseKeyProxy.Agent.Win32HotkeyMonitor();
+        var dispatchCount = 0;
+        monitor.ToggleRequested += (_, _) => dispatchCount++;
+
+        monitor.RaiseToggle("Ctrl-Alt-F1", remote: false);
+        monitor.RaiseToggle("Ctrl-Alt-F1", remote: false);
+
+        Assert.Equal(1, dispatchCount);
     }
 }

@@ -54,7 +54,7 @@ internal static class Program
         _clip = new Win32CursorClip();
         _state = new ToggleStateMachine();
         _hotkey = new Win32HotkeyMonitor();
-        _controlPipe = AgentControlPipeServer.Start(new Win32DesktopController(), _injector, NotifyPairingState);
+        _controlPipe = AgentControlPipeServer.Start(new Win32DesktopController(), _injector, NotifyPairingState, GetAgentStatus);
         _forwarder = new RemoteInputForwarder();
         LoadPersistedPairingState();
 
@@ -528,6 +528,25 @@ internal static class Program
             : request.RemotePeer.Trim();
         ApplyPairingState(peer, request.RemoteGrpcUrl.Trim(), request.PairingCode, connected: true);
         return AgentControlResponse.Success($"paired and connected to {CurrentRemotePeer()}");
+    }
+
+    private static AgentControlResponse GetAgentStatus()
+    {
+        if (_hotkeyWindow is { IsHandleCreated: true } window && window.InvokeRequired)
+        {
+            return (AgentControlResponse)window.Invoke(new Func<AgentControlResponse>(GetAgentStatus));
+        }
+
+        return new AgentControlResponse
+        {
+            Ok = true,
+            ErrorCode = "0",
+            Message = "agent status",
+            RemotePeer = CurrentRemotePeer(),
+            RemoteGrpcUrl = RemoteEndpointStatusText(),
+            RemoteState = _remoteState.ToString(),
+            ForwardingActive = _forwarder?.IsActive ?? false
+        };
     }
 
     private static void ApplyPairingState(string remotePeer, string remoteGrpcUrl, string pairingCode, bool connected)
