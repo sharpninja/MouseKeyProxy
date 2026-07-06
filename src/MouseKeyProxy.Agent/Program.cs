@@ -154,10 +154,10 @@ internal static class Program
         var form = new Form
         {
             Text = "MouseKeyProxy dashboard",
-            Width = 520,
-            Height = 420,
             StartPosition = FormStartPosition.CenterScreen,
-            MinimumSize = new Size(440, 360)
+            AutoSize = true,
+            AutoSizeMode = AutoSizeMode.GrowAndShrink,
+            MinimumSize = new Size(811, 433)
         };
         form.FormClosing += (_, args) =>
         {
@@ -170,13 +170,15 @@ internal static class Program
 
         var layout = new TableLayoutPanel
         {
-            Dock = DockStyle.Fill,
-            Padding = new Padding(16),
+            AutoSize = true,
+            AutoSizeMode = AutoSizeMode.GrowAndShrink,
+            Padding = new Padding(24, 20, 24, 20),
             ColumnCount = 2,
-            RowCount = 7
+            Margin = Padding.Empty,
+            RowCount = 0
         };
-        layout.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 140));
-        layout.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100));
+        layout.ColumnStyles.Add(new ColumnStyle(SizeType.AutoSize));
+        layout.ColumnStyles.Add(new ColumnStyle(SizeType.AutoSize));
         form.Controls.Add(layout);
 
         AddDashboardRow(layout, "Pairing", "Ready for local code entry");
@@ -187,29 +189,33 @@ internal static class Program
 
         var actions = new FlowLayoutPanel
         {
-            Dock = DockStyle.Fill,
             FlowDirection = FlowDirection.LeftToRight,
-            WrapContents = true,
-            AutoSize = true
+            WrapContents = false,
+            AutoSize = true,
+            AutoSizeMode = AutoSizeMode.GrowAndShrink,
+            Margin = Padding.Empty,
+            Padding = Padding.Empty
         };
-        var reconnect = new Button { Text = "Reconnect", Width = 120, Height = 32 };
+        var reconnect = CreateDashboardButton("Reconnect");
         reconnect.Click += (_, _) => TryReconnect();
         actions.Controls.Add(reconnect);
-        var release = new Button { Text = "Emergency release", Width = 140, Height = 32 };
+        var release = CreateDashboardButton("Emergency release");
         release.Click += (_, _) => EmergencyRelease();
         actions.Controls.Add(release);
-        var logs = new Button { Text = "Open logs", Width = 120, Height = 32 };
+        var logs = CreateDashboardButton("Open logs");
         logs.Click += (_, _) => OpenLogs();
         actions.Controls.Add(logs);
 
         var actionRow = layout.RowStyles.Count;
-        layout.RowStyles.Add(new RowStyle(SizeType.Absolute, 64));
+        layout.RowStyles.Add(new RowStyle(SizeType.AutoSize));
         layout.Controls.Add(new Label
         {
             Text = "Controls",
             Font = CreateBoldMessageFont(),
             TextAlign = ContentAlignment.MiddleLeft,
-            Dock = DockStyle.Fill
+            AutoSize = true,
+            Anchor = AnchorStyles.Left,
+            Margin = new Padding(0, 6, 28, 0)
         }, 0, actionRow);
         layout.Controls.Add(actions, 1, actionRow);
 
@@ -219,21 +225,39 @@ internal static class Program
     private static void AddDashboardRow(TableLayoutPanel layout, string label, string value)
     {
         var row = layout.RowStyles.Count;
-        layout.RowStyles.Add(new RowStyle(SizeType.Absolute, 48));
+        layout.RowStyles.Add(new RowStyle(SizeType.AutoSize));
         layout.Controls.Add(new Label
         {
             Text = label,
             Font = CreateBoldMessageFont(),
             TextAlign = ContentAlignment.MiddleLeft,
-            Dock = DockStyle.Fill
+            AutoSize = true,
+            Anchor = AnchorStyles.Left,
+            Margin = new Padding(0, 4, 28, 0)
         }, 0, row);
         layout.Controls.Add(new Label
         {
             Text = value,
             TextAlign = ContentAlignment.MiddleLeft,
-            Dock = DockStyle.Fill,
-            AutoEllipsis = true
+            AutoSize = true,
+            AutoEllipsis = true,
+            Margin = new Padding(0, 4, 0, 0)
         }, 1, row);
+    }
+
+    private static Button CreateDashboardButton(string text)
+    {
+        return new Button
+        {
+            Text = text,
+            AutoSize = true,
+            AutoSizeMode = AutoSizeMode.GrowAndShrink,
+            TextAlign = ContentAlignment.MiddleCenter,
+            MinimumSize = new Size(0, 48),
+            Padding = new Padding(18, 8, 18, 8),
+            Margin = new Padding(0, 0, 14, 0),
+            UseVisualStyleBackColor = true
+        };
     }
 
     private static Font CreateBoldMessageFont()
@@ -289,14 +313,10 @@ internal static class Program
 
     private static void OpenLogs()
     {
-        var logDirectory = Path.Combine(
-            Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
-            "MouseKeyProxy",
-            "logs");
-        Directory.CreateDirectory(logDirectory);
         Process.Start(new ProcessStartInfo
         {
-            FileName = logDirectory,
+            FileName = "eventvwr.msc",
+            Arguments = "/c:Application",
             UseShellExecute = true
         });
     }
