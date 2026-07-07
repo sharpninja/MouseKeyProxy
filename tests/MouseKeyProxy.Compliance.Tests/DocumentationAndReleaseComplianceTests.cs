@@ -67,4 +67,18 @@ public class DocumentationAndReleaseComplianceTests
         Assert.Contains("--version", replProgram);
         Assert.Contains("AssemblyInformationalVersionAttribute", replProgram);
     }
+    [Fact]
+    [Trait("Category", "ReleaseContract")]
+    public void Azure_Pipeline_Uses_Default_Pool_And_Nuke_Tool_Publish_Targets()
+    {
+        var pipeline = File.ReadAllText(Path.Combine(RepoRoot, "azure-pipelines.yml"));
+        Assert.Contains("name: Default", pipeline);
+        Assert.Contains("--target Test", pipeline);
+        Assert.Contains("--target PackRepl", pipeline);
+        Assert.Contains("--target PublishToolToNuGet", pipeline);
+        Assert.Contains("NUGET_API_KEY: $(NUGET_API_KEY)", pipeline);
+        Assert.Contains("fetchDepth: 0", pipeline);
+        Assert.Contains("fetchTags: true", pipeline);
+        Assert.Contains("refs/tags/v", pipeline);
+    }
 }
