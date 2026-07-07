@@ -29,9 +29,12 @@
     <None Include="..\..\README.md" Pack="true" PackagePath="\" />
   </ItemGroup>
 
-  <!-- Bundle the "RUFUS For MouseKeyProxy" writer next to the tool for local build/publish/test. -->
+  <!-- Bundle the "RUFUS For MouseKeyProxy" writer next to the tool for local build/test.
+       Kept out of publish output (and thus out of auto tool-package inclusion) so the
+       PublishPayloadsForPackage target is the single source that adds it to the .nupkg,
+       avoiding the NU5118 duplicate-file error. -->
   <ItemGroup>
-    <None Include="..\..\assets\rufus\rufus.exe" Link="payloads\rufus\rufus.exe" CopyToOutputDirectory="PreserveNewest" Pack="false" />
+    <None Include="..\..\assets\rufus\rufus.exe" Link="payloads\rufus\rufus.exe" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="Never" Pack="false" />
   </ItemGroup>
 
   <Target Name="PublishPayloadsForPackage">
