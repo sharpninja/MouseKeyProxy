@@ -788,7 +788,7 @@ internal static class Program
             return (AgentControlResponse)window.Invoke(new Func<AgentControlResponse>(() => ExecuteEmergencyReleaseCommand(request)));
         }
 
-        return PerformEmergencyRelease(showUi: false, notifyPeer: false, source: request.RemotePeer);
+        return PerformEmergencyRelease(showUi: false, notifyPeer: request.NotifyPeer, source: request.RemotePeer);
     }
 
     private static AgentControlResponse PerformEmergencyRelease(bool showUi, bool notifyPeer, string? source)

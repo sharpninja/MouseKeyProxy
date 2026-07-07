@@ -12,7 +12,7 @@ Scope: layer-1+
 
 ## TR-MKP-AGENTIPC-001
 
-**Agent command surface** — REPL, tray, and dashboard actions must call shared command implementations. UI actions must not shell out per click for core operations. Commands must expose structured status and error results suitable for UI rendering and test assertions.
+**Agent command surface** — The CLI/REPL is the canonical implementation of the control surface. REPL, tray, and dashboard actions must call shared command implementations. UI actions must not shell out per click for core operations and must not expose control actions that are unavailable through the CLI. Commands must expose structured status and error results suitable for UI rendering and test assertions.
 Scope: layer-1+
 
 ## TR-MKP-ARCH-001
@@ -52,7 +52,7 @@ Scope: layer-1+
 
 ## TR-MKP-REPL-001
 
-**REPL install and payload publish** — REPL commands must support explicit service install/uninstall/update, pairing, status, settings, clipboard, and toggle operations. Install bundles self-contained service payloads, configures Kestrel HTTP/2 on the configured gRPC port, uses Windows PowerShell 5.1 where required for firewall/service operations, and separates service payload location from global tool installation.
+**REPL install and payload publish** — REPL commands must support explicit service install/uninstall/update/status, pairing, pair status, agent status, emergency release, logs, settings, clipboard, remote-control operations, and toggle operations. Install bundles self-contained service payloads, configures Kestrel HTTP/2 on the configured gRPC port, uses Windows PowerShell 5.1 where required for firewall/service operations, and separates service payload location from global tool installation.
 Scope: layer-1+
 
 ## TR-MKP-SEC-001

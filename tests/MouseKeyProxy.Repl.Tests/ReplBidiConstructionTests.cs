@@ -57,6 +57,32 @@ public class ReplBidiConstructionTests
     }
 
     [Fact]
+    [Trait("Category", "REPL")]
+    public void Repl_Exposes_Canonical_Agent_Status_And_Emergency_Release_Commands()
+    {
+        var sourcePath = System.IO.Path.Combine(RepoRoot, "src", "MouseKeyProxy.Repl", "Program.cs");
+        var source = System.IO.File.ReadAllText(sourcePath);
+
+        Assert.Contains("mkp status [--json]", source, StringComparison.Ordinal);
+        Assert.Contains("mkp agent status [--json] | emergency-release [--json]", source, StringComparison.Ordinal);
+        Assert.Contains("mkp pair discover | pair <code> | pair status [--json]", source, StringComparison.Ordinal);
+        Assert.Contains("mkp emergency-release [--json]", source, StringComparison.Ordinal);
+        Assert.Contains("mkp logs", source, StringComparison.Ordinal);
+        Assert.Contains("case \"status\":", source, StringComparison.Ordinal);
+        Assert.Contains("case \"agent\":", source, StringComparison.Ordinal);
+        Assert.Contains("case \"emergency-release\":", source, StringComparison.Ordinal);
+        Assert.Contains("case \"release\":", source, StringComparison.Ordinal);
+        Assert.Contains("case \"logs\":", source, StringComparison.Ordinal);
+        Assert.Contains("eventvwr.msc", source, StringComparison.Ordinal);
+        Assert.Contains("Arguments = \"/c:MouseKeyProxy\"", source, StringComparison.Ordinal);
+        Assert.Contains("AgentControlPipe.GetAgentStatus", source, StringComparison.Ordinal);
+        Assert.Contains("AgentControlPipe.EmergencyRelease", source, StringComparison.Ordinal);
+        Assert.Contains("NotifyPeer = true", source, StringComparison.Ordinal);
+        Assert.Contains("SendLocalAgentControlRequest", source, StringComparison.Ordinal);
+        Assert.Contains("ReadServiceStatus", source, StringComparison.Ordinal);
+    }
+
+    [Fact]
     [Trait("Category", "Logging")]
     public void Repl_Installer_Registers_Source_In_Dedicated_MouseKeyProxy_EventLog()
     {

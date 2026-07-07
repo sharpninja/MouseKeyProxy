@@ -68,10 +68,10 @@ Scope: layer-1+
 Provide setup tooling, a management REPL, service lifecycle commands, and a usable agent UI. The UI must not be a throwaway or diagnostic-only surface.
 
 Acceptance Criteria:
-- REPL manages pairing, settings, service install/uninstall/update, clipboard operations, toggle state, and status.
+- REPL/CLI is the canonical implementation of the control surface. It manages pairing, pair status, agent status, service install/uninstall/update/status, clipboard operations, toggle state, emergency release, logs, and remote-control commands.
 - Service install is explicit (`mkp service install`) and includes rollback for partial failures.
 - User-session agent UI provides tray status and a compact dashboard for pairing state, active peer, service state, clipboard sync, and recent errors.
-- Tray/dashboard actions use shared command implementation instead of per-click process spawning.
+- Tray/dashboard actions use shared command implementation instead of per-click process spawning, and must not expose UI-only controls that are missing from the CLI.
 - UI can initiate and display pairing, toggle, reconnect, emergency release, service status, and logs/receipt location.
 - UI visual design is validated by Codex through screenshots or equivalent visual receipts.
 Scope: layer-1+

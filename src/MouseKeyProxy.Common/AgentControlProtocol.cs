@@ -29,6 +29,7 @@ public sealed class AgentControlRequest
     public string RemoteGrpcUrl { get; set; } = string.Empty;
     public string PairingCode { get; set; } = string.Empty;
     public string CorrelationId { get; set; } = string.Empty;
+    public bool NotifyPeer { get; set; }
     public List<InputEvent> Events { get; set; } = new();
 }
 

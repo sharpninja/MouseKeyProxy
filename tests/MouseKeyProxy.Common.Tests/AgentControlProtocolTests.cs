@@ -50,11 +50,13 @@ public class AgentControlProtocolTests
         {
             Operation = AgentControlPipe.EmergencyRelease,
             RemotePeer = "payton-desktop",
-            CorrelationId = "release-proof"
+            CorrelationId = "release-proof",
+            NotifyPeer = true
         };
 
         Assert.Equal("emergencyRelease", AgentControlPipe.EmergencyRelease);
         Assert.Equal("payton-desktop", request.RemotePeer);
         Assert.Equal("release-proof", request.CorrelationId);
+        Assert.True(request.NotifyPeer);
     }
 }

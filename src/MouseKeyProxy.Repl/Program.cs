@@ -38,9 +38,13 @@ See: https://github.com/sharpninja/MouseKeyProxy
 
 Commands:
   mkp --help
+  mkp status [--json]
   mkp service status | install | uninstall | start | stop   (uses sc.exe, netsh, schtasks; elevation via runas)
-  mkp pair discover | pair <code>
+  mkp agent status [--json] | emergency-release [--json]
+  mkp pair discover | pair <code> | pair status [--json]
   mkp toggle
+  mkp emergency-release [--json]
+  mkp logs
   mkp clipboard list | clear
   mkp set-mouse --display X --x 100 --y 200
   mkp inject-text ""hello""
@@ -57,6 +61,10 @@ Explicit 'mkp service install' does NOT happen on 'dotnet tool install'.
 
         switch (cmd)
         {
+            case "status":
+                return DoStatus(args);
+            case "agent":
+                return DoAgent(args);
             case "service":
                 var sub = args.Length > 1 ? args[1].ToLowerInvariant() : "status";
                 return sub switch
@@ -68,6 +76,11 @@ Explicit 'mkp service install' does NOT happen on 'dotnet tool install'.
                     _ => DoServiceStatus()
                 };
             case "pair":
+                if (args.Length > 1 && args[1].Equals("status", StringComparison.OrdinalIgnoreCase))
+                {
+                    return DoAgentStatus(args);
+                }
+
                 try
                 {
                     using var channel = GrpcChannel.ForAddress(baseUrl, new GrpcChannelOptions
@@ -109,6 +122,12 @@ Explicit 'mkp service install' does NOT happen on 'dotnet tool install'.
                     Console.WriteLine($"[REAL bidi via transport] toggle FAILED: {ex.Message}");  // re-touched via agent tool (C: plain dir, no nested .git)
                     return 1;
                 }
+            case "emergency-release":
+            case "release":
+                return DoEmergencyRelease(args);
+            case "logs":
+            case "open-logs":
+                return DoOpenLogs();
             case "clipboard":
                 var dataDir = Environment.ExpandEnvironmentVariables(TempDataRoot);
                 Directory.CreateDirectory(dataDir);
@@ -212,6 +231,117 @@ Explicit 'mkp service install' does NOT happen on 'dotnet tool install'.
         }
     }
 
+    private static int DoStatus(string[] args)
+    {
+        if (WantsJson(args))
+        {
+            var service = ReadServiceStatus();
+            var agent = GetLocalAgentStatus();
+            Console.WriteLine(JsonSerializer.Serialize(new { service, agent }, AgentControlJsonOptions));
+            return service.Ok && agent.Ok ? 0 : 1;
+        }
+
+        var serviceExitCode = DoServiceStatus();
+        var agentStatus = GetLocalAgentStatus();
+        PrintAgentStatus(agentStatus);
+        return serviceExitCode == 0 && agentStatus.Ok ? 0 : 1;
+    }
+
+    private static int DoAgent(string[] args)
+    {
+        var sub = args.Length > 1 ? args[1].ToLowerInvariant() : "status";
+        return sub switch
+        {
+            "status" => DoAgentStatus(args),
+            "emergency-release" => DoEmergencyRelease(args),
+            "release" => DoEmergencyRelease(args),
+            _ => UnknownAgentCommand(sub)
+        };
+    }
+
+    private static int UnknownAgentCommand(string sub)
+    {
+        Console.WriteLine($"unknown agent cmd: {sub}. Use mkp agent status or mkp agent emergency-release.");
+        return 1;
+    }
+
+    private static int DoAgentStatus(string[] args)
+    {
+        var response = GetLocalAgentStatus();
+        if (WantsJson(args))
+        {
+            Console.WriteLine(JsonSerializer.Serialize(response, AgentControlJsonOptions));
+        }
+        else
+        {
+            PrintAgentStatus(response);
+        }
+
+        return response.Ok ? 0 : 1;
+    }
+
+    private static int DoEmergencyRelease(string[] args)
+    {
+        var response = SendLocalAgentControlRequest(new Cmn.AgentControlRequest
+        {
+            Operation = Cmn.AgentControlPipe.EmergencyRelease,
+            RemotePeer = Environment.MachineName.ToLowerInvariant(),
+            CorrelationId = Guid.NewGuid().ToString("N"),
+            NotifyPeer = true
+        });
+
+        if (WantsJson(args))
+        {
+            Console.WriteLine(JsonSerializer.Serialize(response, AgentControlJsonOptions));
+        }
+        else
+        {
+            Console.WriteLine($"[AGENT emergency release] ok={response.Ok} err={response.ErrorCode} msg={response.Message}");
+        }
+
+        return response.Ok ? 0 : 1;
+    }
+
+    private static Cmn.AgentControlResponse GetLocalAgentStatus()
+    {
+        return SendLocalAgentControlRequest(new Cmn.AgentControlRequest
+        {
+            Operation = Cmn.AgentControlPipe.GetAgentStatus
+        });
+    }
+
+    private static void PrintAgentStatus(Cmn.AgentControlResponse response)
+    {
+        Console.WriteLine($"Agent: ok={response.Ok} err={response.ErrorCode} msg={response.Message}");
+        Console.WriteLine($"Pairing: state={response.RemoteState} peer={response.RemotePeer} endpoint={response.RemoteGrpcUrl}");
+        Console.WriteLine($"Forwarding: active={response.ForwardingActive}");
+    }
+
+    private static bool WantsJson(string[] args)
+    {
+        return args.Any(static arg => arg.Equals("--json", StringComparison.OrdinalIgnoreCase));
+    }
+
+    private static int DoOpenLogs()
+    {
+        try
+        {
+            Process.Start(new ProcessStartInfo
+            {
+                FileName = "eventvwr.msc",
+                Arguments = "/c:MouseKeyProxy",
+                UseShellExecute = true
+            });
+            Console.WriteLine("[REAL Event Viewer] opened MouseKeyProxy log");
+            return 0;
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"[REAL Event Viewer] failed: {ex.Message}");
+            return 1;
+        }
+    }
+
     private static string GetOption(string[] args, string name, string defaultValue)
     {
         var index = Array.FindIndex(args, a => string.Equals(a, name, StringComparison.OrdinalIgnoreCase));
@@ -219,6 +349,17 @@ Explicit 'mkp service install' does NOT happen on 'dotnet tool install'.
     }
 
     private static Cmn.AgentControlResponse NotifyLocalAgentPairingState(string remoteGrpcUrl, string pairingCode)
+    {
+        return SendLocalAgentControlRequest(new Cmn.AgentControlRequest
+        {
+            Operation = Cmn.AgentControlPipe.NotifyPairingState,
+            RemotePeer = ResolveRemotePeerName(remoteGrpcUrl),
+            RemoteGrpcUrl = remoteGrpcUrl,
+            PairingCode = pairingCode
+        });
+    }
+
+    private static Cmn.AgentControlResponse SendLocalAgentControlRequest(Cmn.AgentControlRequest request)
     {
         try
         {
@@ -232,13 +373,6 @@ Explicit 'mkp service install' does NOT happen on 'dotnet tool install'.
             using var writer = new StreamWriter(pipe, leaveOpen: true) { AutoFlush = true };
             using var reader = new StreamReader(pipe, leaveOpen: true);
 
-            var request = new Cmn.AgentControlRequest
-            {
-                Operation = Cmn.AgentControlPipe.NotifyPairingState,
-                RemotePeer = ResolveRemotePeerName(remoteGrpcUrl),
-                RemoteGrpcUrl = remoteGrpcUrl,
-                PairingCode = pairingCode
-            };
             writer.WriteLine(JsonSerializer.Serialize(request, AgentControlJsonOptions));
             var line = reader.ReadLine();
             if (string.IsNullOrWhiteSpace(line))
@@ -444,20 +578,50 @@ Explicit 'mkp service install' does NOT happen on 'dotnet tool install'.
         }
     }
 
-    private static int DoServiceStatus()
+    private static ServiceStatusSnapshot ReadServiceStatus()
     {
         try
         {
             using var sc = new ServiceController("MouseKeyProxy");
-            Console.WriteLine($"Service: {sc.ServiceName} - {sc.Status} (StartType: {sc.StartType})");
+            return new ServiceStatusSnapshot
+            {
+                Ok = true,
+                Name = sc.ServiceName,
+                Status = sc.Status.ToString(),
+                StartType = sc.StartType.ToString()
+            };
+        }
+        catch (Exception ex)
+        {
+            return new ServiceStatusSnapshot
+            {
+                Ok = false,
+                Name = "MouseKeyProxy",
+                Error = ex.Message
+            };
+        }
+    }
+
+    private static int DoServiceStatus()
+    {
+        var status = ReadServiceStatus();
+        if (status.Ok)
+        {
+            Console.WriteLine($"Service: {status.Name} - {status.Status} (StartType: {status.StartType})");
             return 0;
         }
-        catch
-        {
-            Console.WriteLine("Service not installed or inaccessible.");
-        }
 
+        Console.WriteLine("Service not installed or inaccessible.");
         Console.WriteLine("[SHIPPED] service status - uses sc.exe/netsh/schtasks when elevated (sandbox may limit)");
         return 1;
+    }
+
+    private sealed class ServiceStatusSnapshot
+    {
+        public bool Ok { get; set; }
+        public string Name { get; set; } = string.Empty;
+        public string Status { get; set; } = string.Empty;
+        public string StartType { get; set; } = string.Empty;
+        public string Error { get; set; } = string.Empty;
     }
 }

@@ -62,7 +62,7 @@ LocateProcess and SetFocusByHwnd tests verify process lookup, HWND tree return s
 
 ### TEST-MKP-012
 
-REPL and shared command tests verify pairing, settings persistence, status, clipboard commands, toggle commands, and structured errors.
+REPL and shared command tests verify the CLI is the canonical control surface, including pairing, pair status, agent status, service status, emergency release, logs, settings persistence, clipboard commands, remote-control commands, toggle commands, and structured errors.
 
 ### TEST-MKP-013
 

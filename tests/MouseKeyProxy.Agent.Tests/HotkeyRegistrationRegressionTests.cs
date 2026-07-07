@@ -201,7 +201,7 @@ public class HotkeyRegistrationRegressionTests
 
         Assert.Contains("AgentControlPipe.EmergencyRelease", pipeSource, StringComparison.Ordinal);
         Assert.Contains("ExecuteEmergencyReleaseCommand", programSource, StringComparison.Ordinal);
-        Assert.Contains("PerformEmergencyRelease(showUi: false, notifyPeer: false", programSource, StringComparison.Ordinal);
+        Assert.Contains("PerformEmergencyRelease(showUi: false, notifyPeer: request.NotifyPeer", programSource, StringComparison.Ordinal);
         Assert.Contains("_forwarder?.Stop();", programSource, StringComparison.Ordinal);
         Assert.Contains("_clip?.Release();", programSource, StringComparison.Ordinal);
         Assert.Contains("_state?.Reset();", programSource, StringComparison.Ordinal);
