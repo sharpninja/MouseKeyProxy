@@ -1,13 +1,14 @@
 using System;
+using System.Collections.Generic;
+using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
-using MouseKeyProxy.Common;
 
 namespace MouseKeyProxy.Common;
 
 /// <summary>
 /// Pure dispatcher for received frames (AC4/AC5).
-/// Calls IInputInjector for input batches; handles toggle for ModResync.
+/// Calls IInputInjector for complete batches and converts modifier resync into real key-up events.
 /// </summary>
 public class SessionFrameDispatcher
 {
@@ -20,16 +21,37 @@ public class SessionFrameDispatcher
         _toggle = toggle ?? throw new ArgumentNullException(nameof(toggle));
     }
 
-    public Task HandleInputBatchAsync(System.Collections.Generic.IEnumerable<InputEvent> events, CancellationToken ct = default)
+    public Task HandleInputBatchAsync(IEnumerable<InputEvent> events, CancellationToken ct = default)
     {
-        if (_injector != null)
+        ct.ThrowIfCancellationRequested();
+        if (_injector is null)
         {
-            foreach (var e in events)
-            {
-                _injector.Send(e);
-            }
+            return Task.CompletedTask;
         }
+
+        var batch = events.ToArray();
+        if (batch.Length == 0)
+        {
+            return Task.CompletedTask;
+        }
+
+        if (!_injector.TryInjectBatch(batch, out var error))
+        {
+            throw new InvalidOperationException(error ?? "Input batch injection failed.");
+        }
+
         return Task.CompletedTask;
+    }
+
+    public Task HandleModifierResyncAsync(IEnumerable<uint> ups, CancellationToken ct = default)
+    {
+        var releases = ModifierReleasePolicy.CreateKeyUpEvents(ups).ToArray();
+        return HandleInputBatchAsync(releases, ct);
+    }
+
+    public Task ClearModifiersAsync(CancellationToken ct = default)
+    {
+        return HandleInputBatchAsync(ModifierReleasePolicy.CreateKeyUpEvents(), ct);
     }
 
     public (bool NewActive, bool EmitModResync) HandleToggle(string peer)

@@ -169,3 +169,68 @@ internal sealed class AgentPipeEmergencyReleaseController : IEmergencyReleaseCon
         return new RemoteControlResult(response.Ok, response.ErrorCode, response.Message);
     }
 }
+
+internal sealed class AgentPipeModifierReleaseController : IModifierReleaseController
+{
+    private readonly AgentControlPipeClient _client;
+
+    public AgentPipeModifierReleaseController(AgentControlPipeClient client)
+    {
+        _client = client;
+    }
+
+    public RemoteControlResult ClearModifiers(string peerId, string correlationId)
+    {
+        var response = _client.Send(new AgentControlRequest
+        {
+            Operation = AgentControlPipe.ClearModifiers,
+            RemotePeer = peerId,
+            CorrelationId = correlationId
+        });
+
+        return new RemoteControlResult(response.Ok, response.ErrorCode, response.Message);
+    }
+}
+
+internal sealed class AgentPipeScreenshotCapture : IScreenshotCapture
+{
+    private readonly AgentControlPipeClient _client;
+
+    public AgentPipeScreenshotCapture(AgentControlPipeClient client)
+    {
+        _client = client;
+    }
+
+    public ScreenshotCaptureResult Capture(ScreenshotCaptureRequest request)
+    {
+        var response = _client.Send(new AgentControlRequest
+        {
+            Operation = AgentControlPipe.CaptureScreenshot,
+            ScreenshotTarget = request.Target.ToString(),
+            Hwnd = request.Hwnd,
+            CorrelationId = request.CorrelationId,
+            IncludeCursor = request.IncludeCursor
+        });
+
+        if (!response.Ok)
+        {
+            throw new InvalidOperationException($"{response.ErrorCode}: {response.Message}");
+        }
+
+        var target = Enum.TryParse<ScreenshotTarget>(response.ScreenshotTarget, ignoreCase: true, out var parsed)
+            ? parsed
+            : request.Target;
+
+        return new ScreenshotCaptureResult(
+            new ScreenshotMetadata(
+                response.CapturedAtUtc,
+                response.SourceHost,
+                response.CorrelationId,
+                target,
+                response.Hwnd,
+                response.Width,
+                response.Height,
+                response.Sha256),
+            response.ScreenshotPng);
+    }
+}

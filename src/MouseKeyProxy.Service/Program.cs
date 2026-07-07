@@ -49,6 +49,8 @@ internal static class Program
         builder.Services.AddSingleton<IInputInjector, AgentPipeInputInjector>();
         builder.Services.AddSingleton<IRemoteDesktopController, AgentPipeRemoteDesktopController>();
         builder.Services.AddSingleton<IEmergencyReleaseController, AgentPipeEmergencyReleaseController>();
+        builder.Services.AddSingleton<IModifierReleaseController, AgentPipeModifierReleaseController>();
+        builder.Services.AddSingleton<IScreenshotCapture, AgentPipeScreenshotCapture>();
         builder.Services.AddSingleton<SessionFrameDispatcher>(sp =>
             new SessionFrameDispatcher(sp.GetRequiredService<IInputInjector>(), new ToggleStateMachine()));
 

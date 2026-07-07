@@ -87,12 +87,42 @@ public class BidiSessionTransport : IDisposable
         return frame;
     }
 
+    protected virtual Wire.SessionFrame BuildControlFrame(Wire.ControlMsg control)
+    {
+        control.Seq = _nextSeq;
+        return new Wire.SessionFrame { Seq = _nextSeq++, Control = control };
+    }
     protected virtual async Task DeliverFrameAsync(Wire.SessionFrame frame, CancellationToken ct = default)
     {
         if (_call == null) await OpenAsync(ct);
         await _call!.RequestStream.WriteAsync(frame);
     }
 
+    public virtual async Task SendControlAsync(Wire.ControlMsg control, CancellationToken ct = default)
+    {
+        var frame = BuildControlFrame(control);
+        _sentFrames.Add(frame);
+        LastSentFrame = frame;
+
+        if (_client == null)
+        {
+            return;
+        }
+
+        await DeliverFrameAsync(frame, ct);
+    }
+
+    public Task SendToggleAsync(bool active, CancellationToken ct = default)
+    {
+        return SendControlAsync(new Wire.ControlMsg { Toggle = new Wire.Toggle { Active = active } }, ct);
+    }
+
+    public Task SendModifierResyncAsync(IEnumerable<uint> modifierUps, CancellationToken ct = default)
+    {
+        var mods = new Wire.ModResync();
+        mods.Ups.AddRange(modifierUps);
+        return SendControlAsync(new Wire.ControlMsg { Mods = mods }, ct);
+    }
     public virtual async Task SendInputBatchAsync(IEnumerable<Cmn.InputEvent> events, CancellationToken ct = default)
     {
         // Build first (always, for probe), record, then optional deliver. This ensures resync frames are in SentFrames even if deliver throws.

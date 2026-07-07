@@ -20,8 +20,31 @@ public static class InputCommandHandler
     /// </summary>
     public static async Task SendInputAsync(BidiSessionTransport transport, InputKind kind, string? text = null, CancellationToken ct = default)
     {
+        if (PiHidClient.IsPiHidBackendEnabled())
+        {
+            await SendViaPiHidBackendAsync(kind, text, ct).ConfigureAwait(false);
+            return;
+        }
+
         var evt = new InputEvent(kind, Text: text, TsMs: (ulong)DateTimeOffset.UtcNow.ToUnixTimeMilliseconds());
         await transport.SendInputBatchAsync(new[] { evt }, ct);
+    }
+
+    private static async Task SendViaPiHidBackendAsync(InputKind kind, string? text, CancellationToken ct)
+    {
+        if (kind != InputKind.TEXT_INPUT || !PiHidReports.TryParseChord(text, out var chord))
+        {
+            throw new NotSupportedException("MKP_INPUT_BACKEND=pi-hid supports text input only when it names a HID test chord such as alt+space, win+left, or win+right.");
+        }
+
+        using var http = new HttpClient { Timeout = TimeSpan.FromSeconds(5) };
+        var client = new PiHidClient(http, PiHidClientOptions.FromEnvironment());
+        var results = await client.TestChordAsync(chord, ct).ConfigureAwait(false);
+        var failed = results.FirstOrDefault(static r => !r.Ok);
+        if (failed != null)
+        {
+            throw new InvalidOperationException($"Pi HID backend rejected {chord}: HTTP {failed.StatusCodeValue} {failed.Body}");
+        }
     }
 
     /// <summary>
@@ -32,12 +55,10 @@ public static class InputCommandHandler
         var res = state.ApplyToggle(peer);
         if (transport != null)
         {
-            // send control/mod resync frame (real SessionFrame) for toggle per AC-4
-            await transport.SendInputBatchAsync(Array.Empty<InputEvent>(), ct);
+            await transport.SendToggleAsync(res.NewActive, ct);
             if (res.EmitModResync)
             {
-                // actual emission of mod resync (empty batch signals resync on receiving end)
-                await transport.SendInputBatchAsync(Array.Empty<InputEvent>(), ct);
+                await transport.SendModifierResyncAsync(ModifierReleasePolicy.ModifierVirtualKeys, ct);
             }
         }
         return res.NewActive;

@@ -56,3 +56,12 @@ Traceability policy: see `Requirements-Traceability-Policy.md`.
 | TEST-MKP-020 | Test | Tracked | Testing-Requirements.md | FR-MKP-005; TR-MKP-ORCH-001 |
 | TEST-MKP-021 | Test | Tracked | Testing-Requirements.md | FR-MKP-006, FR-MKP-009; TR-MKP-REPL-001, TR-MKP-ORCH-001 |
 | TEST-MKP-022 | Test | Tracked | Testing-Requirements.md | FR-MKP-011; TR-MKP-TESTDOUBLE-001 |
+| FR-MKP-012 | Tracked | Functional-Requirements.md |
+| TR-MKP-HID-001 | Tracked | Technical-Requirements.md |
+| TEST-MKP-023 | Tracked | Testing-Requirements.md |
+| TEST-MKP-024 | Tracked | Testing-Requirements.md |
+| TEST-MKP-025 | Tracked | Testing-Requirements.md |
+| TEST-MKP-026 | Tracked | Testing-Requirements.md |
+| TEST-MKP-027 | Tracked | Testing-Requirements.md |
+| TEST-MKP-028 | Tracked | Testing-Requirements.md |
+| TEST-MKP-029 | Tracked | Testing-Requirements.md |

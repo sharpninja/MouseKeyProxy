@@ -54,7 +54,7 @@ internal static class Program
         _clip = new Win32CursorClip();
         _state = new ToggleStateMachine();
         _hotkey = new Win32HotkeyMonitor();
-        _controlPipe = AgentControlPipeServer.Start(new Win32DesktopController(), _injector, NotifyPairingState, GetAgentStatus, ExecuteEmergencyReleaseCommand);
+        _controlPipe = AgentControlPipeServer.Start(new Win32DesktopController(), _injector, NotifyPairingState, GetAgentStatus, ExecuteEmergencyReleaseCommand, new Win32ScreenshotCapture());
         _forwarder = new RemoteInputForwarder();
         LoadPersistedPairingState();
 
@@ -794,6 +794,8 @@ internal static class Program
     private static AgentControlResponse PerformEmergencyRelease(bool showUi, bool notifyPeer, string? source)
     {
         var failures = new List<string>();
+        ClearLocalModifiers();
+        var peerClear = notifyPeer ? TryRequestPeerClearModifiers() : null;
         var peerRelease = notifyPeer ? TryRequestPeerEmergencyRelease() : null;
 
         try
@@ -816,6 +818,11 @@ internal static class Program
 
         _state?.Reset();
         UpdateRemoteActionAvailability();
+
+        if (peerClear is { Ok: false })
+        {
+            failures.Add($"peer modifier clear failed: {peerClear.Value.ErrorCode}: {peerClear.Value.Message}");
+        }
 
         if (peerRelease is { Ok: false })
         {
@@ -840,6 +847,48 @@ internal static class Program
         return ok
             ? AgentControlResponse.Success(message)
             : AgentControlResponse.Failure("EMERGENCY_RELEASE_PARTIAL", message);
+    }
+
+    private static RemoteControlResult? TryRequestPeerClearModifiers()
+    {
+        if (_remoteState == RemoteConnectionState.NotPaired || string.IsNullOrWhiteSpace(_activeRemoteGrpcUrl))
+        {
+            return null;
+        }
+
+        try
+        {
+            using var channel = GrpcChannel.ForAddress(_activeRemoteGrpcUrl, new GrpcChannelOptions
+            {
+                HttpHandler = new System.Net.Http.SocketsHttpHandler { EnableMultipleHttp2Connections = true }
+            });
+            var client = new Wire.MouseKeyProxy.MouseKeyProxyClient(channel);
+            var response = client.ClearModifiers(new Wire.ClearModifiersRequest
+            {
+                ProtocolVersion = "v1",
+                PeerId = Environment.MachineName.ToLowerInvariant(),
+                CorrelationId = Guid.NewGuid().ToString("N")
+            });
+
+            return new RemoteControlResult(response.Ok, response.Err, response.Msg);
+        }
+        catch (Exception ex)
+        {
+            return RemoteControlResult.Failure("CLEAR_MODIFIERS_RPC_FAILED", ex.Message);
+        }
+    }
+
+    private static AgentControlResponse ClearLocalModifiers()
+    {
+        if (_injector is null)
+        {
+            return AgentControlResponse.Failure("LOCAL_INJECTOR_UNAVAILABLE", "Local input injector is not configured.");
+        }
+
+        var releases = ModifierReleasePolicy.CreateKeyUpEvents();
+        return _injector.TryInjectBatch(releases, out var error)
+            ? AgentControlResponse.Success($"cleared {releases.Count} local modifiers")
+            : AgentControlResponse.Failure("LOCAL_CLEAR_MODIFIERS_FAILED", error ?? "Local modifier cleanup failed.");
     }
 
     private static RemoteControlResult? TryRequestPeerEmergencyRelease()
@@ -894,6 +943,9 @@ internal static class Program
             _tray.Visible = false;
         }
 
+        _forwarder?.Stop();
+        _clip?.Release();
+        ClearLocalModifiers();
         _tray?.Dispose();
         _hotkeyWindow?.Dispose();
         _dashboardForm?.Dispose();
@@ -922,6 +974,8 @@ internal static class Program
 
         try
         {
+            ClearLocalModifiers();
+            TryRequestPeerClearModifiers();
             var remoteUrl = ResolveRemoteGrpcUrl();
             var activePeer = remoteUrl;
             bool active = InputCommandHandler.ToggleAsync(_state!, null, activePeer).GetAwaiter().GetResult();
@@ -934,12 +988,16 @@ internal static class Program
             {
                 _forwarder?.Stop();
                 _clip?.Release();
+                ClearLocalModifiers();
+                TryRequestPeerClearModifiers();
             }
         }
         catch (Exception ex)
         {
             _forwarder?.Stop();
             _clip?.Release();
+            ClearLocalModifiers();
+            TryRequestPeerClearModifiers();
             MarkRemoteDisconnected(ex);
             Console.WriteLine($"toggle FAILED: {ex.Message}");
         }

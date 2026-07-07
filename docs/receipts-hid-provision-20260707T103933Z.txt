@@ -1,0 +1,19 @@
+MouseKeyProxy Pi HID discovery receipt
+capturedAtUtc=2026-07-07T10:39:34.0007873Z
+sourceHost=payton-legion2
+targetHost=payton-desktop
+piHost=mkp-hid-pi
+--- DNS ---
+unresolved: mkp-hid-pi : DNS name does not exist.
+--- local PnP candidates ---
+Class    FriendlyName         InstanceId                                          Status
+-----    ------------         ----------                                          ------
+Mouse    HID-compliant mouse  HID\VID_25A7&PID_FA61&MI_01&COL01\8&262D6F09&0&0000 OK
+USB      USB Composite Device USB\VID_25A7&PID_FA61\6&578DBB&0&2                  OK
+USB      USB Composite Device USB\VID_174F&PID_2435\6&578DBB&0&3                  OK
+Mouse    HID-compliant mouse  HID\SYNA2BA6&COL01\4&2A135CAD&0&0000                OK
+Keyboard HID Keyboard Device  HID\VID_048D&PID_C967&COL04\7&2BA9DAD4&0&0003       OK
+Keyboard HID Keyboard Device  HID\VID_25A7&PID_FA61&MI_00\8&2563147&0&0000        OK
+--- mkp hid provision-check with dummy token ---
+pi-hid provision-check sourceHost=payton-legion2 targetHost=payton-desktop url=http://mkp-hid-pi:8765/ tokenPresent=True
+hid provision-check failed: No such host is known. (mkp-hid-pi:8765)

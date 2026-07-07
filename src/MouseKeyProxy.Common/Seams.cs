@@ -71,6 +71,16 @@ public interface IEmergencyReleaseController
     RemoteControlResult EmergencyRelease(string peerId, string correlationId);
 }
 
+public interface IModifierReleaseController
+{
+    RemoteControlResult ClearModifiers(string peerId, string correlationId);
+}
+
+public interface IScreenshotCapture
+{
+    ScreenshotCaptureResult Capture(ScreenshotCaptureRequest request);
+}
+
 public readonly record struct RemoteControlResult(bool Ok, string ErrorCode, string Message)
 {
     public static RemoteControlResult Success(string message = "ok") => new(true, "0", message);

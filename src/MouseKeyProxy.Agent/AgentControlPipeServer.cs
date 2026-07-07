@@ -14,6 +14,7 @@ internal sealed class AgentControlPipeServer : IDisposable
 
     private readonly IRemoteDesktopController _desktopController;
     private readonly IInputInjector _inputInjector;
+    private readonly IScreenshotCapture? _screenshotCapture;
     private readonly Func<AgentControlRequest, AgentControlResponse>? _pairingStateNotifier;
     private readonly Func<AgentControlResponse>? _statusProvider;
     private readonly Func<AgentControlRequest, AgentControlResponse>? _emergencyReleaseHandler;
@@ -23,12 +24,14 @@ internal sealed class AgentControlPipeServer : IDisposable
     private AgentControlPipeServer(
         IRemoteDesktopController desktopController,
         IInputInjector inputInjector,
+        IScreenshotCapture? screenshotCapture,
         Func<AgentControlRequest, AgentControlResponse>? pairingStateNotifier,
         Func<AgentControlResponse>? statusProvider,
         Func<AgentControlRequest, AgentControlResponse>? emergencyReleaseHandler)
     {
         _desktopController = desktopController;
         _inputInjector = inputInjector;
+        _screenshotCapture = screenshotCapture;
         _pairingStateNotifier = pairingStateNotifier;
         _statusProvider = statusProvider;
         _emergencyReleaseHandler = emergencyReleaseHandler;
@@ -40,9 +43,10 @@ internal sealed class AgentControlPipeServer : IDisposable
         IInputInjector inputInjector,
         Func<AgentControlRequest, AgentControlResponse>? pairingStateNotifier = null,
         Func<AgentControlResponse>? statusProvider = null,
-        Func<AgentControlRequest, AgentControlResponse>? emergencyReleaseHandler = null)
+        Func<AgentControlRequest, AgentControlResponse>? emergencyReleaseHandler = null,
+        IScreenshotCapture? screenshotCapture = null)
     {
-        return new AgentControlPipeServer(desktopController, inputInjector, pairingStateNotifier, statusProvider, emergencyReleaseHandler);
+        return new AgentControlPipeServer(desktopController, inputInjector, screenshotCapture, pairingStateNotifier, statusProvider, emergencyReleaseHandler);
     }
 
     public void Dispose()
@@ -113,6 +117,8 @@ internal sealed class AgentControlPipeServer : IDisposable
                 AgentControlPipe.SetFocusByHwnd => ToResponse(_desktopController.SetFocusByHwnd(request.Hwnd, request.BringToFront)),
                 AgentControlPipe.LocateProcess => LocateProcess(request),
                 AgentControlPipe.InjectInput => InjectInput(request),
+                AgentControlPipe.ClearModifiers => ClearModifiers(),
+                AgentControlPipe.CaptureScreenshot => CaptureScreenshot(request),
                 AgentControlPipe.NotifyPairingState => NotifyPairingState(request),
                 AgentControlPipe.GetAgentStatus => GetAgentStatus(),
                 AgentControlPipe.EmergencyRelease => EmergencyRelease(request),
@@ -144,6 +150,45 @@ internal sealed class AgentControlPipeServer : IDisposable
             : AgentControlResponse.Failure("INJECT_INPUT_FAILED", error ?? "Input injection failed.");
     }
 
+    private AgentControlResponse ClearModifiers()
+    {
+        var releases = ModifierReleasePolicy.CreateKeyUpEvents();
+        return _inputInjector.TryInjectBatch(releases, out var error)
+            ? AgentControlResponse.Success($"cleared {releases.Count} modifiers")
+            : AgentControlResponse.Failure("CLEAR_MODIFIERS_FAILED", error ?? "Modifier cleanup failed.");
+    }
+
+    private AgentControlResponse CaptureScreenshot(AgentControlRequest request)
+    {
+        if (_screenshotCapture is null)
+        {
+            return AgentControlResponse.Failure("SCREENSHOT_UNAVAILABLE", "Agent screenshot capture is not configured.");
+        }
+
+        var target = ParseScreenshotTarget(request.ScreenshotTarget);
+        var capture = _screenshotCapture.Capture(new ScreenshotCaptureRequest(
+            target,
+            request.Hwnd,
+            string.IsNullOrWhiteSpace(request.CorrelationId) ? Guid.NewGuid().ToString("N") : request.CorrelationId,
+            request.IncludeCursor));
+
+        return new AgentControlResponse
+        {
+            Ok = true,
+            ErrorCode = "0",
+            Message = $"captured {capture.Metadata.Width}x{capture.Metadata.Height} screenshot",
+            ScreenshotPng = capture.Png,
+            CapturedAtUtc = capture.Metadata.CapturedAtUtc,
+            SourceHost = capture.Metadata.SourceHost,
+            ScreenshotTarget = capture.Metadata.Target.ToString(),
+            Hwnd = capture.Metadata.Hwnd,
+            Width = capture.Metadata.Width,
+            Height = capture.Metadata.Height,
+            Sha256 = capture.Metadata.Sha256,
+            CorrelationId = capture.Metadata.CorrelationId
+        };
+    }
+
     private AgentControlResponse NotifyPairingState(AgentControlRequest request)
     {
         return _pairingStateNotifier?.Invoke(request)
@@ -160,6 +205,16 @@ internal sealed class AgentControlPipeServer : IDisposable
     {
         return _emergencyReleaseHandler?.Invoke(request)
             ?? AgentControlResponse.Failure("EMERGENCY_RELEASE_UNAVAILABLE", "Agent emergency release handler is not configured.");
+    }
+
+    private static ScreenshotTarget ParseScreenshotTarget(string value)
+    {
+        return value.ToLowerInvariant() switch
+        {
+            "foreground" => ScreenshotTarget.Foreground,
+            "hwnd" => ScreenshotTarget.Hwnd,
+            _ => ScreenshotTarget.Desktop
+        };
     }
 
     private static AgentControlResponse ToResponse(RemoteControlResult result)

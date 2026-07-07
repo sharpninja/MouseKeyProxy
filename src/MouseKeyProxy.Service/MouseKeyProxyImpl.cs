@@ -1,8 +1,13 @@
+using System;
+using System.Collections.Generic;
+using System.Globalization;
 using System.Threading.Tasks;
 using Grpc.Core;
 using Microsoft.Extensions.Logging;
 using MouseKeyProxy.Common;
 using MouseKeyProxy.Network.V1;
+using CommonScreenshotTarget = MouseKeyProxy.Common.ScreenshotTarget;
+using WireScreenshotTarget = MouseKeyProxy.Network.V1.ScreenshotTarget;
 
 namespace MouseKeyProxy.Service;
 
@@ -14,22 +19,29 @@ namespace MouseKeyProxy.Service;
 public class MouseKeyProxyImpl : MouseKeyProxy.Network.V1.MouseKeyProxy.MouseKeyProxyBase
 {
     private const string AgentIpcUnavailable = "AGENT_IPC_UNAVAILABLE";
+    private const int ScreenshotChunkSize = 64 * 1024;
 
     private readonly ILogger<MouseKeyProxyImpl> _logger;
     private readonly SessionFrameDispatcher? _dispatcher;
     private readonly IRemoteDesktopController? _desktopController;
     private readonly IEmergencyReleaseController? _emergencyReleaseController;
+    private readonly IModifierReleaseController? _modifierReleaseController;
+    private readonly IScreenshotCapture? _screenshotCapture;
 
     public MouseKeyProxyImpl(
         ILogger<MouseKeyProxyImpl> logger,
         SessionFrameDispatcher? dispatcher = null,
         IRemoteDesktopController? desktopController = null,
-        IEmergencyReleaseController? emergencyReleaseController = null)
+        IEmergencyReleaseController? emergencyReleaseController = null,
+        IModifierReleaseController? modifierReleaseController = null,
+        IScreenshotCapture? screenshotCapture = null)
     {
         _logger = logger;
         _dispatcher = dispatcher;
         _desktopController = desktopController;
         _emergencyReleaseController = emergencyReleaseController;
+        _modifierReleaseController = modifierReleaseController;
+        _screenshotCapture = screenshotCapture;
     }
 
     public override Task<PairResponse> Pair(PairRequest request, ServerCallContext context)
@@ -64,13 +76,26 @@ public class MouseKeyProxyImpl : MouseKeyProxy.Network.V1.MouseKeyProxy.MouseKey
                         frame.Input.Events.Count, frame.Input.BaseSeq);
                     if (_dispatcher != null)
                     {
-                        var evts = new System.Collections.Generic.List<MouseKeyProxy.Common.InputEvent>();
+                        var evts = new List<MouseKeyProxy.Common.InputEvent>();
                         foreach (var we in frame.Input.Events)
                         {
                             evts.Add(ToCommonInputEvent(we));
                         }
-                        await _dispatcher.HandleInputBatchAsync(evts);
+                        await _dispatcher.HandleInputBatchAsync(evts, context.CancellationToken);
                     }
+                }
+                else if (frame.Control?.Mods is not null)
+                {
+                    _logger.LogInformation("Received ModResync with {Count} key-up events", frame.Control.Mods.Ups.Count);
+                    if (_dispatcher != null)
+                    {
+                        await _dispatcher.HandleModifierResyncAsync(frame.Control.Mods.Ups, context.CancellationToken);
+                    }
+                }
+                else if (frame.Control?.Toggle is not null)
+                {
+                    _logger.LogInformation("Received Toggle active={Active} seq={Seq}", frame.Control.Toggle.Active, frame.Control.Seq);
+                    _dispatcher?.HandleToggle(context.Peer);
                 }
                 else if (frame.Clipboard != null)
                 {
@@ -94,7 +119,7 @@ public class MouseKeyProxyImpl : MouseKeyProxy.Network.V1.MouseKeyProxy.MouseKey
     }
 
     // AC-5: full overrides for all advanced controls (use CommandResult where defined in proto)
-    public override Task<global::MouseKeyProxy.Network.V1.CommandResult> SetMousePosition(global::MouseKeyProxy.Network.V1.SetMousePositionRequest request, ServerCallContext context)
+    public override Task<CommandResult> SetMousePosition(SetMousePositionRequest request, ServerCallContext context)
     {
         _logger.LogInformation(
             "SetMousePosition peerId={PeerId} displayId={DisplayId} x={X} y={Y} correlationId={CorrelationId}",
@@ -114,7 +139,7 @@ public class MouseKeyProxyImpl : MouseKeyProxy.Network.V1.MouseKeyProxy.MouseKey
         return Task.FromResult(ToCommandResult(result));
     }
 
-    public override Task<global::MouseKeyProxy.Network.V1.LocateProcessResponse> LocateProcess(global::MouseKeyProxy.Network.V1.LocateProcessRequest request, ServerCallContext context)
+    public override Task<LocateProcessResponse> LocateProcess(LocateProcessRequest request, ServerCallContext context)
     {
         _logger.LogInformation(
             "LocateProcess peerId={PeerId} processName={ProcessName} pid={Pid}",
@@ -125,13 +150,13 @@ public class MouseKeyProxyImpl : MouseKeyProxy.Network.V1.MouseKeyProxy.MouseKey
         if (_desktopController is null)
         {
             _logger.LogWarning("LocateProcess failed: {ErrorCode}", AgentIpcUnavailable);
-            return Task.FromResult(new global::MouseKeyProxy.Network.V1.LocateProcessResponse
+            return Task.FromResult(new LocateProcessResponse
             {
                 ErrorCode = AgentIpcUnavailable
             });
         }
 
-        var response = new global::MouseKeyProxy.Network.V1.LocateProcessResponse { ErrorCode = "0" };
+        var response = new LocateProcessResponse { ErrorCode = "0" };
         foreach (var node in _desktopController.LocateProcess(request.ProcessName, request.Pid))
         {
             response.Nodes.Add(ToHwndNode(node));
@@ -140,7 +165,7 @@ public class MouseKeyProxyImpl : MouseKeyProxy.Network.V1.MouseKeyProxy.MouseKey
         return Task.FromResult(response);
     }
 
-    public override Task<global::MouseKeyProxy.Network.V1.CommandResult> SetFocusByHwnd(global::MouseKeyProxy.Network.V1.SetFocusByHwndRequest request, ServerCallContext context)
+    public override Task<CommandResult> SetFocusByHwnd(SetFocusByHwndRequest request, ServerCallContext context)
     {
         _logger.LogInformation(
             "SetFocusByHwnd peerId={PeerId} hwnd={Hwnd} bringToFront={BringToFront} correlationId={CorrelationId}",
@@ -159,23 +184,92 @@ public class MouseKeyProxyImpl : MouseKeyProxy.Network.V1.MouseKeyProxy.MouseKey
         return Task.FromResult(ToCommandResult(result));
     }
 
-    public override async Task<global::MouseKeyProxy.Network.V1.CommandResult> InjectInput(global::MouseKeyProxy.Network.V1.InjectInputRequest request, ServerCallContext context)
+    public override async Task<CommandResult> InjectInput(InjectInputRequest request, ServerCallContext context)
     {
         _logger.LogInformation("InjectInput events={C} (real dispatch path for AC5)", request.Events?.Count ?? 0);
         if (_dispatcher != null && request.Events != null && request.Events.Count > 0)
         {
-            var evts = new System.Collections.Generic.List<MouseKeyProxy.Common.InputEvent>();
+            var evts = new List<MouseKeyProxy.Common.InputEvent>();
             foreach (var we in request.Events)
             {
                 evts.Add(ToCommonInputEvent(we));
             }
-            await _dispatcher.HandleInputBatchAsync(evts);
+            await _dispatcher.HandleInputBatchAsync(evts, context.CancellationToken);
         }
-        return new global::MouseKeyProxy.Network.V1.CommandResult { Ok = true, Msg = "ok" };
+        return new CommandResult { Ok = true, Msg = "ok" };
     }
 
-    public override Task<global::MouseKeyProxy.Network.V1.CommandResult> EmergencyRelease(
-        global::MouseKeyProxy.Network.V1.EmergencyReleaseRequest request,
+    public override async Task<CommandResult> ClearModifiers(ClearModifiersRequest request, ServerCallContext context)
+    {
+        _logger.LogInformation(
+            "ClearModifiers peerId={PeerId} correlationId={CorrelationId}",
+            request.PeerId,
+            request.CorrelationId);
+
+        if (_modifierReleaseController is not null)
+        {
+            return ToCommandResult(_modifierReleaseController.ClearModifiers(request.PeerId, request.CorrelationId));
+        }
+
+        if (_dispatcher is not null)
+        {
+            await _dispatcher.ClearModifiersAsync(context.CancellationToken);
+            return new CommandResult { Ok = true, Err = "0", Msg = "modifiers cleared" };
+        }
+
+        _logger.LogWarning("ClearModifiers failed: {ErrorCode}", AgentIpcUnavailable);
+        return UnavailableResult();
+    }
+
+    public override async Task CaptureScreenshot(
+        CaptureScreenshotRequest request,
+        IServerStreamWriter<ScreenshotChunk> responseStream,
+        ServerCallContext context)
+    {
+        _logger.LogInformation(
+            "CaptureScreenshot peerId={PeerId} target={Target} hwnd={Hwnd} correlationId={CorrelationId}",
+            request.PeerId,
+            request.Target,
+            request.Hwnd,
+            request.CorrelationId);
+
+        if (_screenshotCapture is null)
+        {
+            _logger.LogWarning("CaptureScreenshot failed: {ErrorCode}", AgentIpcUnavailable);
+            throw new RpcException(new Status(StatusCode.Unavailable, "Screenshot capture is not configured."));
+        }
+
+        var capture = _screenshotCapture.Capture(new ScreenshotCaptureRequest(
+            ToCommonScreenshotTarget(request.Target),
+            request.Hwnd,
+            string.IsNullOrWhiteSpace(request.CorrelationId) ? Guid.NewGuid().ToString("N") : request.CorrelationId,
+            request.IncludeCursor));
+
+        var metadata = ToWireMetadata(capture.Metadata);
+        var offset = 0;
+        var index = 0u;
+        while (offset < capture.Png.Length)
+        {
+            var count = Math.Min(ScreenshotChunkSize, capture.Png.Length - offset);
+            var chunk = new ScreenshotChunk
+            {
+                Index = index++,
+                Last = offset + count >= capture.Png.Length,
+                Metadata = offset == 0 ? metadata : null,
+                Data = Google.Protobuf.ByteString.CopyFrom(capture.Png, offset, count)
+            };
+            await responseStream.WriteAsync(chunk);
+            offset += count;
+        }
+
+        if (capture.Png.Length == 0)
+        {
+            await responseStream.WriteAsync(new ScreenshotChunk { Index = 0, Last = true, Metadata = metadata });
+        }
+    }
+
+    public override Task<CommandResult> EmergencyRelease(
+        EmergencyReleaseRequest request,
         ServerCallContext context)
     {
         _logger.LogWarning(
@@ -192,9 +286,9 @@ public class MouseKeyProxyImpl : MouseKeyProxy.Network.V1.MouseKeyProxy.MouseKey
         return Task.FromResult(ToCommandResult(result));
     }
 
-    private static global::MouseKeyProxy.Network.V1.CommandResult ToCommandResult(RemoteControlResult result)
+    private static CommandResult ToCommandResult(RemoteControlResult result)
     {
-        return new global::MouseKeyProxy.Network.V1.CommandResult
+        return new CommandResult
         {
             Ok = result.Ok,
             Err = result.ErrorCode,
@@ -202,9 +296,9 @@ public class MouseKeyProxyImpl : MouseKeyProxy.Network.V1.MouseKeyProxy.MouseKey
         };
     }
 
-    private static global::MouseKeyProxy.Network.V1.CommandResult UnavailableResult()
+    private static CommandResult UnavailableResult()
     {
-        return new global::MouseKeyProxy.Network.V1.CommandResult
+        return new CommandResult
         {
             Ok = false,
             Err = AgentIpcUnavailable,
@@ -212,9 +306,9 @@ public class MouseKeyProxyImpl : MouseKeyProxy.Network.V1.MouseKeyProxy.MouseKey
         };
     }
 
-    private static global::MouseKeyProxy.Network.V1.HwndNode ToHwndNode(RemoteWindowNode node)
+    private static HwndNode ToHwndNode(RemoteWindowNode node)
     {
-        var result = new global::MouseKeyProxy.Network.V1.HwndNode
+        var result = new HwndNode
         {
             Hwnd = node.Hwnd,
             Title = node.Title,
@@ -243,5 +337,40 @@ public class MouseKeyProxyImpl : MouseKeyProxy.Network.V1.MouseKeyProxy.MouseKey
             XButton: wireEvent.Xbutton,
             Text: wireEvent.Text,
             TsMs: wireEvent.TsMs);
+    }
+
+    private static global::MouseKeyProxy.Network.V1.ScreenshotMetadata ToWireMetadata(MouseKeyProxy.Common.ScreenshotMetadata metadata)
+    {
+        return new global::MouseKeyProxy.Network.V1.ScreenshotMetadata
+        {
+            CapturedAtUtc = metadata.CapturedAtUtc.UtcDateTime.ToString("O", CultureInfo.InvariantCulture),
+            SourceHost = metadata.SourceHost,
+            CorrelationId = metadata.CorrelationId,
+            Target = ToWireScreenshotTarget(metadata.Target),
+            Hwnd = metadata.Hwnd,
+            Width = (uint)metadata.Width,
+            Height = (uint)metadata.Height,
+            Sha256 = metadata.Sha256
+        };
+    }
+
+    private static CommonScreenshotTarget ToCommonScreenshotTarget(WireScreenshotTarget target)
+    {
+        return target switch
+        {
+            WireScreenshotTarget.Foreground => CommonScreenshotTarget.Foreground,
+            WireScreenshotTarget.Hwnd => CommonScreenshotTarget.Hwnd,
+            _ => CommonScreenshotTarget.Desktop
+        };
+    }
+
+    private static WireScreenshotTarget ToWireScreenshotTarget(CommonScreenshotTarget target)
+    {
+        return target switch
+        {
+            CommonScreenshotTarget.Foreground => WireScreenshotTarget.Foreground,
+            CommonScreenshotTarget.Hwnd => WireScreenshotTarget.Hwnd,
+            _ => WireScreenshotTarget.Desktop
+        };
     }
 }

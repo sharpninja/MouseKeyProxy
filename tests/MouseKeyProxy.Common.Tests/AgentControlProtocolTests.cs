@@ -59,4 +59,35 @@ public class AgentControlProtocolTests
         Assert.Equal("release-proof", request.CorrelationId);
         Assert.True(request.NotifyPeer);
     }
-}
+
+    [Fact]
+    [Trait("Category", "ModifierCleanup")]
+    public void AgentControlProtocol_Includes_Clear_Modifiers_And_Screenshot_Capture()
+    {
+        var request = new AgentControlRequest
+        {
+            Operation = AgentControlPipe.CaptureScreenshot,
+            ScreenshotTarget = "foreground",
+            Hwnd = 0x1234,
+            CorrelationId = "shot-proof",
+            IncludeCursor = true
+        };
+        var response = new AgentControlResponse
+        {
+            Ok = true,
+            ScreenshotPng = new byte[] { 1, 2, 3 },
+            SourceHost = "payton-desktop",
+            CorrelationId = "shot-proof",
+            Width = 640,
+            Height = 480,
+            Sha256 = "abc123"
+        };
+
+        Assert.Equal("clearModifiers", AgentControlPipe.ClearModifiers);
+        Assert.Equal("captureScreenshot", AgentControlPipe.CaptureScreenshot);
+        Assert.Equal("foreground", request.ScreenshotTarget);
+        Assert.Equal(0x1234UL, request.Hwnd);
+        Assert.Equal("shot-proof", response.CorrelationId);
+        Assert.Equal("abc123", response.Sha256);
+        Assert.Equal(3, response.ScreenshotPng.Length);
+    }}

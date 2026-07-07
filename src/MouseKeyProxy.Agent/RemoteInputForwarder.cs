@@ -6,6 +6,7 @@ using System.Net.Http;
 using System.Runtime.InteropServices;
 using System.Threading;
 using System.Threading.Tasks;
+using System.Windows.Forms;
 using Grpc.Net.Client;
 using MouseKeyProxy.Common;
 using Wire = MouseKeyProxy.Network.V1;
@@ -33,11 +34,9 @@ public sealed class RemoteInputForwarder : IDisposable
     private const int WM_MOUSEHWHEEL = 0x020E;
 
     private const uint VK_F1 = 0x70;
-    private const uint VK_SHIFT = 0x10;
+    private const uint VK_F2 = 0x71;
     private const uint VK_CONTROL = 0x11;
     private const uint VK_MENU = 0x12;
-    private const uint VK_LWIN = 0x5B;
-    private const uint VK_RWIN = 0x5C;
 
     private const uint MOUSEEVENTF_LEFTDOWN = 0x0002;
     private const uint MOUSEEVENTF_LEFTUP = 0x0004;
@@ -60,9 +59,8 @@ public sealed class RemoteInputForwarder : IDisposable
     private Task? _sender;
     private GrpcChannel? _channel;
     private Wire.MouseKeyProxy.MouseKeyProxyClient? _client;
+    private RawMouseInputWindow? _rawMouseWindow;
     private DateTimeOffset _passThroughUntilUtc;
-    private int? _lastMouseX;
-    private int? _lastMouseY;
     private bool _disposed;
 
     public RemoteInputForwarder()
@@ -100,7 +98,7 @@ public sealed class RemoteInputForwarder : IDisposable
             _client = new Wire.MouseKeyProxy.MouseKeyProxyClient(_channel);
             _sender = Task.Run(() => SendLoopAsync(_stop.Token));
 
-            InitializeLastMousePoint();
+            _rawMouseWindow = new RawMouseInputWindow(OnRawMouseDelta);
             _passThroughUntilUtc = DateTimeOffset.UtcNow.AddMilliseconds(300);
             _keyboardHook = SetHook(WH_KEYBOARD_LL, _keyboardProc);
             _mouseHook = SetHook(WH_MOUSE_LL, _mouseProc);
@@ -154,24 +152,18 @@ public sealed class RemoteInputForwarder : IDisposable
         return new InputEvent(kind.Value, Vk: vk, Scan: scan, Flags: flags, TsMs: NowMs());
     }
 
-    public static InputEvent? TranslateMouseMessage(int message, int x, int y, uint mouseData, ref int? lastX, ref int? lastY)
+    public static InputEvent? TranslateRawMouseDelta(int dx, int dy)
+    {
+        return dx == 0 && dy == 0
+            ? null
+            : new InputEvent(InputKind.MOUSE_MOVE, Dx: dx, Dy: dy, TsMs: NowMs());
+    }
+
+    public static InputEvent? TranslateMouseMessage(int message, uint mouseData)
     {
         if (message == WM_MOUSEMOVE)
         {
-            if (lastX is null || lastY is null)
-            {
-                lastX = x;
-                lastY = y;
-                return null;
-            }
-
-            var dx = x - lastX.Value;
-            var dy = y - lastY.Value;
-            lastX = x;
-            lastY = y;
-            return dx == 0 && dy == 0
-                ? null
-                : new InputEvent(InputKind.MOUSE_MOVE, Dx: dx, Dy: dy, TsMs: NowMs());
+            return null;
         }
 
         var flags = message switch
@@ -278,7 +270,7 @@ public sealed class RemoteInputForwarder : IDisposable
 
     private void StopCore(bool sendModifierRelease)
     {
-        if (!IsActive && _queue is null && _channel is null)
+        if (!IsActive && _queue is null && _channel is null && _rawMouseWindow is null)
         {
             return;
         }
@@ -297,6 +289,9 @@ public sealed class RemoteInputForwarder : IDisposable
             _mouseHook = IntPtr.Zero;
         }
 
+        _rawMouseWindow?.Dispose();
+        _rawMouseWindow = null;
+
         if (sendModifierRelease)
         {
             TrySendModifierRelease();
@@ -314,8 +309,6 @@ public sealed class RemoteInputForwarder : IDisposable
         _channel = null;
         _client = null;
         RemoteUrl = null;
-        _lastMouseX = null;
-        _lastMouseY = null;
     }
 
     private void TrySendModifierRelease()
@@ -325,17 +318,9 @@ public sealed class RemoteInputForwarder : IDisposable
             return;
         }
 
-        var releases = new[]
-        {
-            new InputEvent(InputKind.KEY_UP, Vk: VK_SHIFT, TsMs: NowMs()),
-            new InputEvent(InputKind.KEY_UP, Vk: VK_CONTROL, TsMs: NowMs()),
-            new InputEvent(InputKind.KEY_UP, Vk: VK_MENU, TsMs: NowMs()),
-            new InputEvent(InputKind.KEY_UP, Vk: VK_LWIN, TsMs: NowMs()),
-            new InputEvent(InputKind.KEY_UP, Vk: VK_RWIN, TsMs: NowMs())
-        };
         try
         {
-            SendBatchAsync(releases, CancellationToken.None).GetAwaiter().GetResult();
+            SendBatchAsync(ModifierReleasePolicy.CreateKeyUpEvents(), CancellationToken.None).GetAwaiter().GetResult();
         }
         catch (Exception ex)
         {
@@ -365,8 +350,13 @@ public sealed class RemoteInputForwarder : IDisposable
     {
         if (nCode >= 0 && IsActive && DateTimeOffset.UtcNow >= _passThroughUntilUtc)
         {
+            if (wParam.ToInt32() == WM_MOUSEMOVE)
+            {
+                return new IntPtr(1);
+            }
+
             var data = Marshal.PtrToStructure<MSLLHOOKSTRUCT>(lParam);
-            var input = TranslateMouseMessage(wParam.ToInt32(), data.pt.x, data.pt.y, data.mouseData, ref _lastMouseX, ref _lastMouseY);
+            var input = TranslateMouseMessage(wParam.ToInt32(), data.mouseData);
             if (input != null && TryEnqueue(input))
             {
                 return new IntPtr(1);
@@ -374,6 +364,20 @@ public sealed class RemoteInputForwarder : IDisposable
         }
 
         return CallNextHookEx(_mouseHook, nCode, wParam, lParam);
+    }
+
+    private void OnRawMouseDelta(int dx, int dy)
+    {
+        if (!IsActive || DateTimeOffset.UtcNow < _passThroughUntilUtc)
+        {
+            return;
+        }
+
+        var input = TranslateRawMouseDelta(dx, dy);
+        if (input != null)
+        {
+            TryEnqueue(input);
+        }
     }
 
     private bool TryEnqueue(InputEvent input)
@@ -384,7 +388,7 @@ public sealed class RemoteInputForwarder : IDisposable
 
     private static bool IsToggleChord(uint vk)
     {
-        return vk == VK_F1 && IsKeyDown(VK_CONTROL) && IsKeyDown(VK_MENU);
+        return (vk == VK_F1 || vk == VK_F2) && IsKeyDown(VK_CONTROL) && IsKeyDown(VK_MENU);
     }
 
     private static bool IsKeyDown(uint vk)
@@ -414,15 +418,6 @@ public sealed class RemoteInputForwarder : IDisposable
         return (ulong)DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
     }
 
-    private void InitializeLastMousePoint()
-    {
-        if (GetCursorPos(out var point))
-        {
-            _lastMouseX = point.x;
-            _lastMouseY = point.y;
-        }
-    }
-
     private static IntPtr SetHook(int hookId, Delegate proc)
     {
         using var currentProcess = Process.GetCurrentProcess();
@@ -440,6 +435,153 @@ public sealed class RemoteInputForwarder : IDisposable
         if (_disposed)
         {
             throw new ObjectDisposedException(nameof(RemoteInputForwarder));
+        }
+    }
+
+    private sealed class RawMouseInputWindow : NativeWindow, IDisposable
+    {
+        private const int WM_INPUT = 0x00FF;
+        private const uint RIDEV_INPUTSINK = 0x00000100;
+        private const uint RIDEV_REMOVE = 0x00000001;
+        private const uint RID_INPUT = 0x10000003;
+        private const uint RIM_TYPEMOUSE = 0;
+        private readonly Action<int, int> _onDelta;
+        private bool _disposed;
+
+        public RawMouseInputWindow(Action<int, int> onDelta)
+        {
+            _onDelta = onDelta;
+            CreateHandle(new CreateParams { Caption = "MouseKeyProxy.RawInput", Width = 1, Height = 1 });
+            RegisterMouse(Handle, RIDEV_INPUTSINK);
+        }
+
+        protected override void WndProc(ref Message m)
+        {
+            if (m.Msg == WM_INPUT && TryReadMouse(m.LParam, out var dx, out var dy))
+            {
+                _onDelta(dx, dy);
+            }
+
+            base.WndProc(ref m);
+        }
+
+        public void Dispose()
+        {
+            if (_disposed)
+            {
+                return;
+            }
+
+            TryUnregisterMouse();
+            DestroyHandle();
+            _disposed = true;
+        }
+
+        private static void RegisterMouse(IntPtr hwnd, uint flags)
+        {
+            var device = new RAWINPUTDEVICE
+            {
+                usUsagePage = 0x01,
+                usUsage = 0x02,
+                dwFlags = flags,
+                hwndTarget = hwnd
+            };
+
+            if (!RegisterRawInputDevices(new[] { device }, 1, (uint)Marshal.SizeOf<RAWINPUTDEVICE>()))
+            {
+                throw new InvalidOperationException($"RegisterRawInputDevices failed win32={Marshal.GetLastWin32Error()}");
+            }
+        }
+
+        private static bool TryReadMouse(IntPtr lParam, out int dx, out int dy)
+        {
+            dx = 0;
+            dy = 0;
+            var size = 0u;
+            var headerSize = (uint)Marshal.SizeOf<RAWINPUTHEADER>();
+            if (GetRawInputData(lParam, RID_INPUT, IntPtr.Zero, ref size, headerSize) == uint.MaxValue || size == 0)
+            {
+                return false;
+            }
+
+            var buffer = Marshal.AllocHGlobal((int)size);
+            try
+            {
+                if (GetRawInputData(lParam, RID_INPUT, buffer, ref size, headerSize) == uint.MaxValue)
+                {
+                    return false;
+                }
+
+                var input = Marshal.PtrToStructure<RAWINPUT>(buffer);
+                if (input.header.dwType != RIM_TYPEMOUSE)
+                {
+                    return false;
+                }
+
+                dx = input.mouse.lLastX;
+                dy = input.mouse.lLastY;
+                return true;
+            }
+            finally
+            {
+                Marshal.FreeHGlobal(buffer);
+            }
+        }
+
+        [DllImport("user32.dll", SetLastError = true)]
+        private static extern bool RegisterRawInputDevices(RAWINPUTDEVICE[] pRawInputDevices, uint uiNumDevices, uint cbSize);
+
+        [DllImport("user32.dll", SetLastError = true)]
+        private static extern uint GetRawInputData(IntPtr hRawInput, uint uiCommand, IntPtr pData, ref uint pcbSize, uint cbSizeHeader);
+
+        [StructLayout(LayoutKind.Sequential)]
+        private struct RAWINPUTDEVICE
+        {
+            public ushort usUsagePage;
+            public ushort usUsage;
+            public uint dwFlags;
+            public IntPtr hwndTarget;
+        }
+
+        [StructLayout(LayoutKind.Sequential)]
+        private struct RAWINPUTHEADER
+        {
+            public uint dwType;
+            public uint dwSize;
+            public IntPtr hDevice;
+            public IntPtr wParam;
+        }
+
+        private static void TryUnregisterMouse()
+        {
+            try
+            {
+                RegisterMouse(IntPtr.Zero, RIDEV_REMOVE);
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"MouseKeyProxy raw input unregister failed: {ex.Message}");
+            }
+        }
+
+        [StructLayout(LayoutKind.Explicit)]
+        private struct RAWMOUSE
+        {
+            [FieldOffset(0)] public ushort usFlags;
+            [FieldOffset(4)] public uint ulButtons;
+            [FieldOffset(4)] public ushort usButtonFlags;
+            [FieldOffset(6)] public ushort usButtonData;
+            [FieldOffset(8)] public uint ulRawButtons;
+            [FieldOffset(12)] public int lLastX;
+            [FieldOffset(16)] public int lLastY;
+            [FieldOffset(20)] public uint ulExtraInformation;
+        }
+
+        [StructLayout(LayoutKind.Sequential)]
+        private struct RAWINPUT
+        {
+            public RAWINPUTHEADER header;
+            public RAWMOUSE mouse;
         }
     }
 
@@ -490,7 +632,4 @@ public sealed class RemoteInputForwarder : IDisposable
 
     [DllImport("user32.dll")]
     private static extern short GetAsyncKeyState(int vKey);
-
-    [DllImport("user32.dll", SetLastError = true)]
-    private static extern bool GetCursorPos(out POINT lpPoint);
 }

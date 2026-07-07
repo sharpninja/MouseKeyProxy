@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 
 namespace MouseKeyProxy.Common;
@@ -10,6 +11,8 @@ public static class AgentControlPipe
     public const string LocateProcess = "locateProcess";
     public const string SetFocusByHwnd = "setFocusByHwnd";
     public const string InjectInput = "injectInput";
+    public const string ClearModifiers = "clearModifiers";
+    public const string CaptureScreenshot = "captureScreenshot";
     public const string NotifyPairingState = "notifyPairingState";
     public const string GetAgentStatus = "getAgentStatus";
     public const string EmergencyRelease = "emergencyRelease";
@@ -30,6 +33,8 @@ public sealed class AgentControlRequest
     public string PairingCode { get; set; } = string.Empty;
     public string CorrelationId { get; set; } = string.Empty;
     public bool NotifyPeer { get; set; }
+    public string ScreenshotTarget { get; set; } = "desktop";
+    public bool IncludeCursor { get; set; } = true;
     public List<InputEvent> Events { get; set; } = new();
 }
 
@@ -43,6 +48,15 @@ public sealed class AgentControlResponse
     public string RemoteState { get; set; } = string.Empty;
     public bool ForwardingActive { get; set; }
     public List<RemoteWindowNode> Nodes { get; set; } = new();
+    public byte[] ScreenshotPng { get; set; } = Array.Empty<byte>();
+    public DateTimeOffset CapturedAtUtc { get; set; }
+    public string SourceHost { get; set; } = string.Empty;
+    public string ScreenshotTarget { get; set; } = string.Empty;
+    public ulong Hwnd { get; set; }
+    public int Width { get; set; }
+    public int Height { get; set; }
+    public string Sha256 { get; set; } = string.Empty;
+    public string CorrelationId { get; set; } = string.Empty;
 
     public static AgentControlResponse Success(string message = "ok") => new()
     {

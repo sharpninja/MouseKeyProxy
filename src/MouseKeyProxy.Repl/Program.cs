@@ -4,6 +4,7 @@ using System.IO;
 using System.IO.Pipes;
 using System.Reflection;
 using System.Linq;
+using System.Runtime.InteropServices;
 using System.Security.AccessControl;
 using System.Security.Principal;
 using System.ServiceProcess;
@@ -46,6 +47,10 @@ Commands:
   mkp pair discover | pair <code> | pair status [--json]
   mkp toggle
   mkp emergency-release [--json]
+  mkp clear-modifiers
+  mkp capture-screenshot --remote <peer> --target desktop|foreground|hwnd --hwnd <hex> --clipboard --out <path>
+  mkp hid status | provision-check | clear-modifiers | test-key --chord alt+space|win+left|win+right | test-mouse --dx 40 --dy 0 | capture-proof --out <path>
+  mkp pi provision [--url URL] [--sha256 HASH] [--stage-root DIR] [--profile NAME] [--force] [--no-launch]
   mkp logs
   mkp clipboard list | clear
   mkp set-mouse --display X --x 100 --y 200
@@ -69,6 +74,14 @@ Explicit 'mkp service install' does NOT happen on 'dotnet tool install'.
 
         switch (cmd)
         {
+            case "clear-modifiers":
+                return DoClearModifiers(baseUrl);
+            case "capture-screenshot":
+                return DoCaptureScreenshot(args, baseUrl);
+            case "hid":
+                return DoHid(args);
+            case "pi":
+                return DoPi(args);
             case "status":
                 return DoStatus(args);
             case "agent":
@@ -239,6 +252,277 @@ Explicit 'mkp service install' does NOT happen on 'dotnet tool install'.
         }
     }
 
+    private static int DoClearModifiers(string baseUrl)
+    {
+        try
+        {
+            using var channel = GrpcChannel.ForAddress(baseUrl, new GrpcChannelOptions
+            {
+                HttpHandler = new System.Net.Http.SocketsHttpHandler { EnableMultipleHttp2Connections = true }
+            });
+            var client = new Wire.MouseKeyProxy.MouseKeyProxyClient(channel);
+            var response = client.ClearModifiers(new Wire.ClearModifiersRequest
+            {
+                ProtocolVersion = "v1",
+                PeerId = "repl-peer",
+                CorrelationId = Guid.NewGuid().ToString("N")
+            });
+
+            Console.WriteLine($"[REAL gRPC ClearModifiers] ok={response.Ok} err={response.Err} msg={response.Msg}");
+            return response.Ok ? 0 : 1;
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"[REAL gRPC ClearModifiers] {ex.Message}");
+            return 1;
+        }
+    }
+
+    private static int DoCaptureScreenshot(string[] args, string baseUrl)
+    {
+        var remote = GetOption(args, "--remote", string.Empty);
+        if (!string.IsNullOrWhiteSpace(remote))
+        {
+            baseUrl = remote.StartsWith("http://", StringComparison.OrdinalIgnoreCase) || remote.StartsWith("https://", StringComparison.OrdinalIgnoreCase)
+                ? remote
+                : Cmn.LabTopology.GrpcUrl(remote);
+        }
+
+        var target = ParseScreenshotTarget(GetOption(args, "--target", "desktop"));
+        var hwnd = ParseHwnd(GetOption(args, "--hwnd", "0"));
+        var outPath = GetOption(args, "--out", string.Empty);
+        var putClipboard = args.Any(static arg => arg.Equals("--clipboard", StringComparison.OrdinalIgnoreCase));
+        var correlationId = Guid.NewGuid().ToString("N");
+
+        try
+        {
+            using var channel = GrpcChannel.ForAddress(baseUrl, new GrpcChannelOptions
+            {
+                HttpHandler = new System.Net.Http.SocketsHttpHandler { EnableMultipleHttp2Connections = true }
+            });
+            var client = new Wire.MouseKeyProxy.MouseKeyProxyClient(channel);
+            using var call = client.CaptureScreenshot(new Wire.CaptureScreenshotRequest
+            {
+                ProtocolVersion = "v1",
+                PeerId = "repl-peer",
+                CorrelationId = correlationId,
+                Target = target,
+                Hwnd = hwnd,
+                IncludeCursor = true
+            });
+
+            Wire.ScreenshotMetadata? metadata = null;
+            using var png = new MemoryStream();
+            while (call.ResponseStream.MoveNext(System.Threading.CancellationToken.None).GetAwaiter().GetResult())
+            {
+                var chunk = call.ResponseStream.Current;
+                metadata ??= chunk.Metadata;
+                chunk.Data.WriteTo(png);
+            }
+
+            var bytes = png.ToArray();
+            if (!string.IsNullOrWhiteSpace(outPath))
+            {
+                var fullPath = Path.GetFullPath(outPath);
+                Directory.CreateDirectory(Path.GetDirectoryName(fullPath) ?? Directory.GetCurrentDirectory());
+                File.WriteAllBytes(fullPath, bytes);
+            }
+
+            if (putClipboard)
+            {
+                WindowsClipboard.SetPng(bytes);
+            }
+
+            Console.WriteLine($"[REAL gRPC CaptureScreenshot] bytes={bytes.Length} sha256={metadata?.Sha256 ?? string.Empty} capturedAtUtc={metadata?.CapturedAtUtc ?? string.Empty} sourceHost={metadata?.SourceHost ?? string.Empty} correlationId={metadata?.CorrelationId ?? correlationId}");
+            return bytes.Length > 0 ? 0 : 1;
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"[REAL gRPC CaptureScreenshot] {ex.Message}");
+            return 1;
+        }
+    }
+
+    private static int DoPi(string[] args)
+    {
+        var sub = args.Length > 1 ? args[1].ToLowerInvariant() : "provision";
+        if (sub != "provision")
+        {
+            Console.WriteLine($"unknown pi cmd: {sub}. Use mkp pi provision.");
+            return 1;
+        }
+
+        var sha = GetOption(args, "--sha256", PiProvisionOptions.DefaultSha256);
+        var options = new PiProvisionOptions
+        {
+            ImageUrl = new Uri(GetOption(args, "--url", PiProvisionOptions.DefaultImageUrl)),
+            ExpectedSha256 = string.Equals(sha, "skip", StringComparison.OrdinalIgnoreCase) ? null : sha,
+            StageRoot = GetOption(args, "--stage-root", PiProvisionOptions.DefaultStageRoot),
+            Profile = GetOption(args, "--profile", "default"),
+            Force = args.Any(static a => a.Equals("--force", StringComparison.OrdinalIgnoreCase)),
+            LaunchRufus = !args.Any(static a => a.Equals("--no-launch", StringComparison.OrdinalIgnoreCase))
+        };
+
+        try
+        {
+            Console.WriteLine($"Staging Raspberry Pi image from {options.ImageUrl} into {options.StageRoot} (this can take several minutes)...");
+            var provisioner = new PiImageProvisioner();
+            var result = provisioner.ProvisionAsync(options).GetAwaiter().GetResult();
+            Console.WriteLine($"[mkp pi provision] ok={result.Ok} image={result.ImagePath}");
+            Console.WriteLine($"  rufus={result.RufusPath}");
+            Console.WriteLine($"  args={string.Join(' ', result.LaunchArguments)}");
+            Console.WriteLine(result.Message);
+            if (result.Ok && options.LaunchRufus)
+            {
+                Console.WriteLine("Select the SD card in RUFUS For MouseKeyProxy, configure the Pi HID profile, then click START to write.");
+            }
+
+            return result.Ok ? 0 : 1;
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"[mkp pi provision] failed: {ex.Message}");
+            return 1;
+        }
+    }
+
+    private static int DoHid(string[] args)
+    {
+        var sub = args.Length > 1 ? args[1].ToLowerInvariant() : "status";
+        try
+        {
+            using var http = new HttpClient { Timeout = TimeSpan.FromSeconds(5) };
+            var options = PiHidClientOptions.FromEnvironment();
+            var client = new PiHidClient(http, options);
+            return sub switch
+            {
+                "status" => PrintHidStatus(client, options),
+                "provision-check" => DoHidProvisionCheck(client, options),
+                "clear-modifiers" => PrintHidResult(client.ClearModifiersAsync().GetAwaiter().GetResult(), "clear-modifiers"),
+                "reset" => PrintHidResult(client.ResetAsync().GetAwaiter().GetResult(), "reset"),
+                "test-key" => DoHidTestKey(args, client),
+                "test-mouse" => DoHidTestMouse(args, client),
+                "capture-proof" => DoHidCaptureProof(args, client, options),
+                _ => UnknownHidCommand(sub),
+            };
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"hid {sub} failed: {ex.Message}");
+            return 1;
+        }
+    }
+
+    private static int PrintHidStatus(PiHidClient client, PiHidClientOptions options)
+    {
+        var result = client.GetStatusAsync().GetAwaiter().GetResult();
+        Console.WriteLine($"pi-hid url={options.BaseUri} status={(int)result.StatusCode} ok={result.Ok}");
+        if (!string.IsNullOrWhiteSpace(result.Body))
+        {
+            Console.WriteLine(result.Body);
+        }
+
+        return result.Ok ? 0 : 1;
+    }
+
+    private static int DoHidProvisionCheck(PiHidClient client, PiHidClientOptions options)
+    {
+        var tokenPresent = !string.IsNullOrWhiteSpace(options.Token);
+        Console.WriteLine($"pi-hid provision-check sourceHost={Environment.MachineName.ToLowerInvariant()} targetHost={Environment.GetEnvironmentVariable("MKP_TARGET_HOST") ?? "payton-desktop"} url={options.BaseUri} tokenPresent={tokenPresent}");
+        if (!tokenPresent)
+        {
+            Console.WriteLine("missing MKP_HID_PI_TOKEN");
+            return 1;
+        }
+
+        return PrintHidStatus(client, options);
+    }
+
+    private static int DoHidTestKey(string[] args, PiHidClient client)
+    {
+        var chordText = GetOption(args, "--chord", args.Length > 2 ? args[2] : "alt+space");
+        if (!PiHidReports.TryParseChord(chordText, out var chord))
+        {
+            Console.WriteLine("unsupported HID chord. Use alt+space, win+left, or win+right.");
+            return 1;
+        }
+
+        var results = client.TestChordAsync(chord).GetAwaiter().GetResult();
+        return PrintHidResults(results, $"test-key {chord}");
+    }
+
+    private static int DoHidTestMouse(string[] args, PiHidClient client)
+    {
+        var dx = GetIntOption(args, "--dx", 0);
+        var dy = GetIntOption(args, "--dy", 0);
+        var wheel = GetIntOption(args, "--wheel", 0);
+        var results = client.TestMouseAsync(dx, dy, wheel).GetAwaiter().GetResult();
+        return PrintHidResults(results, $"test-mouse dx={dx} dy={dy} wheel={wheel}");
+    }
+
+    private static int DoHidCaptureProof(string[] args, PiHidClient client, PiHidClientOptions options)
+    {
+        var utc = DateTimeOffset.UtcNow;
+        var stamp = utc.ToString("yyyyMMddTHHmmssZ");
+        var outPath = GetOption(args, "--out", Path.Combine(Environment.CurrentDirectory, "docs", $"receipts-hid-provision-{stamp}.txt"));
+        Directory.CreateDirectory(Path.GetDirectoryName(Path.GetFullPath(outPath))!);
+        var status = client.GetStatusAsync().GetAwaiter().GetResult();
+        var lines = new[]
+        {
+            "MouseKeyProxy Pi HID proof receipt",
+            $"capturedAtUtc={utc:O}",
+            $"sourceHost={Environment.MachineName.ToLowerInvariant()}",
+            $"targetHost={Environment.GetEnvironmentVariable("MKP_TARGET_HOST") ?? "payton-desktop"}",
+            $"piUrl={options.BaseUri}",
+            $"tokenPresent={!string.IsNullOrWhiteSpace(options.Token)}",
+            $"statusCode={(int)status.StatusCode}",
+            $"statusOk={status.Ok}",
+            $"statusBody={status.Body}",
+        };
+        File.WriteAllLines(outPath, lines);
+        Console.WriteLine($"hid proof receipt: {outPath}");
+        return status.Ok ? 0 : 1;
+    }
+
+    private static int PrintHidResult(PiHidHttpResult result, string operation)
+    {
+        Console.WriteLine($"pi-hid {operation} status={(int)result.StatusCode} ok={result.Ok}");
+        if (!string.IsNullOrWhiteSpace(result.Body))
+        {
+            Console.WriteLine(result.Body);
+        }
+
+        return result.Ok ? 0 : 1;
+    }
+
+    private static int PrintHidResults(IReadOnlyList<PiHidHttpResult> results, string operation)
+    {
+        var failed = results.FirstOrDefault(static r => !r.Ok);
+        Console.WriteLine($"pi-hid {operation} reports={results.Count} ok={failed is null}");
+        if (failed != null)
+        {
+            Console.WriteLine($"first failure: status={(int)failed.StatusCode} body={failed.Body}");
+            return 1;
+        }
+
+        return 0;
+    }
+
+    private static int UnknownHidCommand(string sub)
+    {
+        Console.WriteLine($"unknown hid cmd: {sub}. Use mkp hid status, provision-check, clear-modifiers, test-key, test-mouse, or capture-proof.");
+        return 1;
+    }
+
+    private static Wire.ScreenshotTarget ParseScreenshotTarget(string value)
+    {
+        return value.ToLowerInvariant() switch
+        {
+            "foreground" => Wire.ScreenshotTarget.Foreground,
+            "hwnd" => Wire.ScreenshotTarget.Hwnd,
+            _ => Wire.ScreenshotTarget.Desktop
+        };
+    }
     private static string GetVersionText()
     {
         var assembly = typeof(Program).Assembly;
@@ -635,6 +919,97 @@ Explicit 'mkp service install' does NOT happen on 'dotnet tool install'.
         return 1;
     }
 
+    private static class WindowsClipboard
+    {
+        private const uint GMEM_MOVEABLE = 0x0002;
+
+        public static void SetPng(byte[] png)
+        {
+            if (png.Length == 0)
+            {
+                throw new ArgumentException("PNG clipboard data is empty.", nameof(png));
+            }
+
+            if (!OpenClipboard(IntPtr.Zero))
+            {
+                throw new InvalidOperationException($"OpenClipboard failed win32={Marshal.GetLastWin32Error()}");
+            }
+
+            var handle = IntPtr.Zero;
+            try
+            {
+                EmptyClipboard();
+                var format = RegisterClipboardFormat("PNG");
+                if (format == 0)
+                {
+                    throw new InvalidOperationException($"RegisterClipboardFormat(PNG) failed win32={Marshal.GetLastWin32Error()}");
+                }
+
+                handle = GlobalAlloc(GMEM_MOVEABLE, (UIntPtr)png.Length);
+                if (handle == IntPtr.Zero)
+                {
+                    throw new InvalidOperationException($"GlobalAlloc failed win32={Marshal.GetLastWin32Error()}");
+                }
+
+                var target = GlobalLock(handle);
+                if (target == IntPtr.Zero)
+                {
+                    throw new InvalidOperationException($"GlobalLock failed win32={Marshal.GetLastWin32Error()}");
+                }
+
+                try
+                {
+                    Marshal.Copy(png, 0, target, png.Length);
+                }
+                finally
+                {
+                    GlobalUnlock(handle);
+                }
+
+                if (SetClipboardData(format, handle) == IntPtr.Zero)
+                {
+                    throw new InvalidOperationException($"SetClipboardData(PNG) failed win32={Marshal.GetLastWin32Error()}");
+                }
+
+                handle = IntPtr.Zero;
+            }
+            finally
+            {
+                CloseClipboard();
+                if (handle != IntPtr.Zero)
+                {
+                    GlobalFree(handle);
+                }
+            }
+        }
+
+        [DllImport("user32.dll", SetLastError = true)]
+        private static extern bool OpenClipboard(IntPtr hWndNewOwner);
+
+        [DllImport("user32.dll", SetLastError = true)]
+        private static extern bool EmptyClipboard();
+
+        [DllImport("user32.dll", SetLastError = true)]
+        private static extern IntPtr SetClipboardData(uint uFormat, IntPtr hMem);
+
+        [DllImport("user32.dll", SetLastError = true)]
+        private static extern bool CloseClipboard();
+
+        [DllImport("user32.dll", SetLastError = true, CharSet = CharSet.Unicode)]
+        private static extern uint RegisterClipboardFormat(string lpszFormat);
+
+        [DllImport("kernel32.dll", SetLastError = true)]
+        private static extern IntPtr GlobalAlloc(uint uFlags, UIntPtr dwBytes);
+
+        [DllImport("kernel32.dll", SetLastError = true)]
+        private static extern IntPtr GlobalLock(IntPtr hMem);
+
+        [DllImport("kernel32.dll", SetLastError = true)]
+        private static extern bool GlobalUnlock(IntPtr hMem);
+
+        [DllImport("kernel32.dll", SetLastError = true)]
+        private static extern IntPtr GlobalFree(IntPtr hMem);
+    }
     private sealed class ServiceStatusSnapshot
     {
         public bool Ok { get; set; }

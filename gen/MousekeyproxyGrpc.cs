@@ -64,6 +64,12 @@ namespace MouseKeyProxy.Network.V1 {
     [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
     static readonly grpc::Marshaller<global::MouseKeyProxy.Network.V1.InjectInputRequest> __Marshaller_mousekeyproxy_v1_InjectInputRequest = grpc::Marshallers.Create(__Helper_SerializeMessage, context => __Helper_DeserializeMessage(context, global::MouseKeyProxy.Network.V1.InjectInputRequest.Parser));
     [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
+    static readonly grpc::Marshaller<global::MouseKeyProxy.Network.V1.ClearModifiersRequest> __Marshaller_mousekeyproxy_v1_ClearModifiersRequest = grpc::Marshallers.Create(__Helper_SerializeMessage, context => __Helper_DeserializeMessage(context, global::MouseKeyProxy.Network.V1.ClearModifiersRequest.Parser));
+    [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
+    static readonly grpc::Marshaller<global::MouseKeyProxy.Network.V1.CaptureScreenshotRequest> __Marshaller_mousekeyproxy_v1_CaptureScreenshotRequest = grpc::Marshallers.Create(__Helper_SerializeMessage, context => __Helper_DeserializeMessage(context, global::MouseKeyProxy.Network.V1.CaptureScreenshotRequest.Parser));
+    [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
+    static readonly grpc::Marshaller<global::MouseKeyProxy.Network.V1.ScreenshotChunk> __Marshaller_mousekeyproxy_v1_ScreenshotChunk = grpc::Marshallers.Create(__Helper_SerializeMessage, context => __Helper_DeserializeMessage(context, global::MouseKeyProxy.Network.V1.ScreenshotChunk.Parser));
+    [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
     static readonly grpc::Marshaller<global::MouseKeyProxy.Network.V1.EmergencyReleaseRequest> __Marshaller_mousekeyproxy_v1_EmergencyReleaseRequest = grpc::Marshallers.Create(__Helper_SerializeMessage, context => __Helper_DeserializeMessage(context, global::MouseKeyProxy.Network.V1.EmergencyReleaseRequest.Parser));
 
     [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
@@ -113,6 +119,22 @@ namespace MouseKeyProxy.Network.V1 {
         "InjectInput",
         __Marshaller_mousekeyproxy_v1_InjectInputRequest,
         __Marshaller_mousekeyproxy_v1_CommandResult);
+
+    [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
+    static readonly grpc::Method<global::MouseKeyProxy.Network.V1.ClearModifiersRequest, global::MouseKeyProxy.Network.V1.CommandResult> __Method_ClearModifiers = new grpc::Method<global::MouseKeyProxy.Network.V1.ClearModifiersRequest, global::MouseKeyProxy.Network.V1.CommandResult>(
+        grpc::MethodType.Unary,
+        __ServiceName,
+        "ClearModifiers",
+        __Marshaller_mousekeyproxy_v1_ClearModifiersRequest,
+        __Marshaller_mousekeyproxy_v1_CommandResult);
+
+    [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
+    static readonly grpc::Method<global::MouseKeyProxy.Network.V1.CaptureScreenshotRequest, global::MouseKeyProxy.Network.V1.ScreenshotChunk> __Method_CaptureScreenshot = new grpc::Method<global::MouseKeyProxy.Network.V1.CaptureScreenshotRequest, global::MouseKeyProxy.Network.V1.ScreenshotChunk>(
+        grpc::MethodType.ServerStreaming,
+        __ServiceName,
+        "CaptureScreenshot",
+        __Marshaller_mousekeyproxy_v1_CaptureScreenshotRequest,
+        __Marshaller_mousekeyproxy_v1_ScreenshotChunk);
 
     [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
     static readonly grpc::Method<global::MouseKeyProxy.Network.V1.EmergencyReleaseRequest, global::MouseKeyProxy.Network.V1.CommandResult> __Method_EmergencyRelease = new grpc::Method<global::MouseKeyProxy.Network.V1.EmergencyReleaseRequest, global::MouseKeyProxy.Network.V1.CommandResult>(
@@ -183,6 +205,18 @@ namespace MouseKeyProxy.Network.V1 {
 
       [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
       public virtual global::System.Threading.Tasks.Task<global::MouseKeyProxy.Network.V1.CommandResult> InjectInput(global::MouseKeyProxy.Network.V1.InjectInputRequest request, grpc::ServerCallContext context)
+      {
+        throw new grpc::RpcException(new grpc::Status(grpc::StatusCode.Unimplemented, ""));
+      }
+
+      [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
+      public virtual global::System.Threading.Tasks.Task<global::MouseKeyProxy.Network.V1.CommandResult> ClearModifiers(global::MouseKeyProxy.Network.V1.ClearModifiersRequest request, grpc::ServerCallContext context)
+      {
+        throw new grpc::RpcException(new grpc::Status(grpc::StatusCode.Unimplemented, ""));
+      }
+
+      [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
+      public virtual global::System.Threading.Tasks.Task CaptureScreenshot(global::MouseKeyProxy.Network.V1.CaptureScreenshotRequest request, grpc::IServerStreamWriter<global::MouseKeyProxy.Network.V1.ScreenshotChunk> responseStream, grpc::ServerCallContext context)
       {
         throw new grpc::RpcException(new grpc::Status(grpc::StatusCode.Unimplemented, ""));
       }
@@ -401,6 +435,36 @@ namespace MouseKeyProxy.Network.V1 {
         return CallInvoker.AsyncUnaryCall(__Method_InjectInput, null, options, request);
       }
       [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
+      public virtual global::MouseKeyProxy.Network.V1.CommandResult ClearModifiers(global::MouseKeyProxy.Network.V1.ClearModifiersRequest request, grpc::Metadata headers = null, global::System.DateTime? deadline = null, global::System.Threading.CancellationToken cancellationToken = default(global::System.Threading.CancellationToken))
+      {
+        return ClearModifiers(request, new grpc::CallOptions(headers, deadline, cancellationToken));
+      }
+      [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
+      public virtual global::MouseKeyProxy.Network.V1.CommandResult ClearModifiers(global::MouseKeyProxy.Network.V1.ClearModifiersRequest request, grpc::CallOptions options)
+      {
+        return CallInvoker.BlockingUnaryCall(__Method_ClearModifiers, null, options, request);
+      }
+      [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
+      public virtual grpc::AsyncUnaryCall<global::MouseKeyProxy.Network.V1.CommandResult> ClearModifiersAsync(global::MouseKeyProxy.Network.V1.ClearModifiersRequest request, grpc::Metadata headers = null, global::System.DateTime? deadline = null, global::System.Threading.CancellationToken cancellationToken = default(global::System.Threading.CancellationToken))
+      {
+        return ClearModifiersAsync(request, new grpc::CallOptions(headers, deadline, cancellationToken));
+      }
+      [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
+      public virtual grpc::AsyncUnaryCall<global::MouseKeyProxy.Network.V1.CommandResult> ClearModifiersAsync(global::MouseKeyProxy.Network.V1.ClearModifiersRequest request, grpc::CallOptions options)
+      {
+        return CallInvoker.AsyncUnaryCall(__Method_ClearModifiers, null, options, request);
+      }
+      [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
+      public virtual grpc::AsyncServerStreamingCall<global::MouseKeyProxy.Network.V1.ScreenshotChunk> CaptureScreenshot(global::MouseKeyProxy.Network.V1.CaptureScreenshotRequest request, grpc::Metadata headers = null, global::System.DateTime? deadline = null, global::System.Threading.CancellationToken cancellationToken = default(global::System.Threading.CancellationToken))
+      {
+        return CaptureScreenshot(request, new grpc::CallOptions(headers, deadline, cancellationToken));
+      }
+      [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
+      public virtual grpc::AsyncServerStreamingCall<global::MouseKeyProxy.Network.V1.ScreenshotChunk> CaptureScreenshot(global::MouseKeyProxy.Network.V1.CaptureScreenshotRequest request, grpc::CallOptions options)
+      {
+        return CallInvoker.AsyncServerStreamingCall(__Method_CaptureScreenshot, null, options, request);
+      }
+      [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
       public virtual global::MouseKeyProxy.Network.V1.CommandResult EmergencyRelease(global::MouseKeyProxy.Network.V1.EmergencyReleaseRequest request, grpc::Metadata headers = null, global::System.DateTime? deadline = null, global::System.Threading.CancellationToken cancellationToken = default(global::System.Threading.CancellationToken))
       {
         return EmergencyRelease(request, new grpc::CallOptions(headers, deadline, cancellationToken));
@@ -440,6 +504,8 @@ namespace MouseKeyProxy.Network.V1 {
           .AddMethod(__Method_LocateProcess, serviceImpl.LocateProcess)
           .AddMethod(__Method_SetFocusByHwnd, serviceImpl.SetFocusByHwnd)
           .AddMethod(__Method_InjectInput, serviceImpl.InjectInput)
+          .AddMethod(__Method_ClearModifiers, serviceImpl.ClearModifiers)
+          .AddMethod(__Method_CaptureScreenshot, serviceImpl.CaptureScreenshot)
           .AddMethod(__Method_EmergencyRelease, serviceImpl.EmergencyRelease).Build();
     }
 
@@ -456,6 +522,8 @@ namespace MouseKeyProxy.Network.V1 {
       serviceBinder.AddMethod(__Method_LocateProcess, serviceImpl == null ? null : new grpc::UnaryServerMethod<global::MouseKeyProxy.Network.V1.LocateProcessRequest, global::MouseKeyProxy.Network.V1.LocateProcessResponse>(serviceImpl.LocateProcess));
       serviceBinder.AddMethod(__Method_SetFocusByHwnd, serviceImpl == null ? null : new grpc::UnaryServerMethod<global::MouseKeyProxy.Network.V1.SetFocusByHwndRequest, global::MouseKeyProxy.Network.V1.CommandResult>(serviceImpl.SetFocusByHwnd));
       serviceBinder.AddMethod(__Method_InjectInput, serviceImpl == null ? null : new grpc::UnaryServerMethod<global::MouseKeyProxy.Network.V1.InjectInputRequest, global::MouseKeyProxy.Network.V1.CommandResult>(serviceImpl.InjectInput));
+      serviceBinder.AddMethod(__Method_ClearModifiers, serviceImpl == null ? null : new grpc::UnaryServerMethod<global::MouseKeyProxy.Network.V1.ClearModifiersRequest, global::MouseKeyProxy.Network.V1.CommandResult>(serviceImpl.ClearModifiers));
+      serviceBinder.AddMethod(__Method_CaptureScreenshot, serviceImpl == null ? null : new grpc::ServerStreamingServerMethod<global::MouseKeyProxy.Network.V1.CaptureScreenshotRequest, global::MouseKeyProxy.Network.V1.ScreenshotChunk>(serviceImpl.CaptureScreenshot));
       serviceBinder.AddMethod(__Method_EmergencyRelease, serviceImpl == null ? null : new grpc::UnaryServerMethod<global::MouseKeyProxy.Network.V1.EmergencyReleaseRequest, global::MouseKeyProxy.Network.V1.CommandResult>(serviceImpl.EmergencyRelease));
     }
 

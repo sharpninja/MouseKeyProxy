@@ -29,31 +29,33 @@ public class RemoteInputForwarderTests
     }
 
     [Fact]
-    [Trait("Category", "Hotkey")]
-    public void TranslateMouseMessage_Maps_Move_To_Relative_Delta()
+    [Trait("Category", "RawMouseCapture")]
+    [Trait("Category", "InputRegression")]
+    public void TranslateRawMouseDelta_Maps_Relative_Delta_Without_Screen_Coordinates()
     {
-        int? lastX = null;
-        int? lastY = null;
+        var zero = RemoteInputForwarder.TranslateRawMouseDelta(0, 0);
+        var move = RemoteInputForwarder.TranslateRawMouseDelta(12, -4);
 
-        var first = RemoteInputForwarder.TranslateMouseMessage(WM_MOUSEMOVE, 100, 200, 0, ref lastX, ref lastY);
-        var second = RemoteInputForwarder.TranslateMouseMessage(WM_MOUSEMOVE, 112, 196, 0, ref lastX, ref lastY);
+        Assert.Null(zero);
+        Assert.NotNull(move);
+        Assert.Equal(InputKind.MOUSE_MOVE, move.Kind);
+        Assert.Equal(12, move.Dx);
+        Assert.Equal(-4, move.Dy);
+    }
 
-        Assert.Null(first);
-        Assert.NotNull(second);
-        Assert.Equal(InputKind.MOUSE_MOVE, second.Kind);
-        Assert.Equal(12, second.Dx);
-        Assert.Equal(-4, second.Dy);
+    [Fact]
+    [Trait("Category", "RawMouseCapture")]
+    public void TranslateMouseMessage_Does_Not_Forward_Screen_Coordinate_Mouse_Move()
+    {
+        Assert.Null(RemoteInputForwarder.TranslateMouseMessage(WM_MOUSEMOVE, 0));
     }
 
     [Fact]
     [Trait("Category", "Hotkey")]
     public void TranslateMouseMessage_Maps_Button_Down_And_Up()
     {
-        int? lastX = 10;
-        int? lastY = 10;
-
-        var down = RemoteInputForwarder.TranslateMouseMessage(WM_LBUTTONDOWN, 10, 10, 0, ref lastX, ref lastY);
-        var up = RemoteInputForwarder.TranslateMouseMessage(WM_LBUTTONUP, 10, 10, 0, ref lastX, ref lastY);
+        var down = RemoteInputForwarder.TranslateMouseMessage(WM_LBUTTONDOWN, 0);
+        var up = RemoteInputForwarder.TranslateMouseMessage(WM_LBUTTONUP, 0);
 
         Assert.NotNull(down);
         Assert.NotNull(up);
@@ -67,11 +69,9 @@ public class RemoteInputForwarderTests
     [Trait("Category", "Hotkey")]
     public void TranslateMouseMessage_Maps_Wheel_Delta()
     {
-        int? lastX = 0;
-        int? lastY = 0;
         const uint wheelData = 120u << 16;
 
-        var wheel = RemoteInputForwarder.TranslateMouseMessage(WM_MOUSEWHEEL, 0, 0, wheelData, ref lastX, ref lastY);
+        var wheel = RemoteInputForwarder.TranslateMouseMessage(WM_MOUSEWHEEL, wheelData);
 
         Assert.NotNull(wheel);
         Assert.Equal(InputKind.MOUSE_WHEEL, wheel.Kind);

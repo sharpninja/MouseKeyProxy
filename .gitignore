@@ -49,6 +49,9 @@ Thumbs.db
 *.mdb
 # Keep source only; installed service handled by REPL
 
+# Bundled "RUFUS For MouseKeyProxy" writer shipped in the mkp dotnet tool
+!assets/rufus/rufus.exe
+
 # Test and harness scratch
 TestResults/
 output/

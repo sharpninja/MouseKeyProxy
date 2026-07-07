@@ -19,6 +19,11 @@ Acceptance Criteria:
 - No automatic edge crossing or edge mouse detection exists in this product.
 - Configuration is persisted and can be read back by the REPL and tray UI.
 Scope: layer-1+
+**Acceptance Criteria:**
+- [ ] Hotkey switches focus and proxy direction on both paired hosts.
+- [x] No automatic edge crossing or edge mouse detection exists in this product. (evidence: F:\GitHub\MouseKeyProxy\docs\Project\Functional-Requirements.md; AGENTS.md Byrd scope)
+- [ ] Configuration is persisted and can be read back by the REPL and tray UI.
+- [x] Toggle and release paths clear left/right Shift, Ctrl, Alt, and Win on both peers. (evidence: dotnet test tests\MouseKeyProxy.Agent.Tests -c Release --filter Category=InputRegression; dotnet test tests\MouseKeyProxy.Common.Tests -c Release --filter Category=ModifierCleanup)
 
 ## FR-MKP-002 Keyboard focus follows
 
@@ -29,6 +34,11 @@ Acceptance Criteria:
 - Toggle transitions synthesize safe modifier key-up events.
 - Unsupported focus transitions fail observably and leave local control available.
 Scope: layer-1+
+**Acceptance Criteria:**
+- [ ] Focus state is observable through REPL/tray status.
+- [x] Toggle transitions synthesize safe modifier key-up events locally and remotely. (evidence: dotnet test tests\MouseKeyProxy.Common.Tests -c Release --filter Category=ModifierCleanup)
+- [ ] Unsupported focus transitions fail observably and leave local control available.
+- [x] Mouse capture release restores local mouse control without requiring Alt-Tab. (evidence: dotnet test tests\MouseKeyProxy.Agent.Tests -c Release --filter Category=InputRegression)
 
 ## FR-MKP-003 Full proxy input
 
@@ -39,6 +49,11 @@ Acceptance Criteria:
 - Unsupported inputs fail observably and never hang or claim success.
 - Input behavior is covered by unit tests and at least one paired-machine smoke receipt.
 Scope: layer-1+
+**Acceptance Criteria:**
+- [ ] Supported key, modifier, pointer, wheel, media, and permitted Windows key combinations work against a paired remote session.
+- [ ] Unsupported inputs fail observably and never hang or claim success.
+- [ ] Input behavior is covered by unit tests and at least one paired-machine smoke receipt.
+- [ ] Physical HID backend uses a standard USB HID keyboard/mouse appliance path and requires no custom Windows driver.
 
 ## FR-MKP-004 Real-time clipboard LIFO sync
 
@@ -62,6 +77,14 @@ Acceptance Criteria:
 - The lab topology uses payton-legion2 plus payton-desktop on the agreed gRPC service port, currently 50051 unless changed by configuration.
 - Final proof includes real paired control evidence: cursor movement and a sentinel text/input action on payton-desktop initiated from payton-legion2.
 Scope: layer-1+
+**Acceptance Criteria:**
+- [ ] InjectInput can target a paired remote by peer id.
+- [ ] SetMousePosition accepts display plus x/y without changing focus unless requested.
+- [ ] LocateProcess can return process and window handle tree data by name or PID.
+- [ ] SetFocusByHwnd can focus and optionally bring a target window forward.
+- [ ] Lab topology uses payton-legion2 plus payton-desktop on the configured gRPC service port.
+- [ ] Final proof includes real paired control evidence including cursor movement and a sentinel input action on payton-desktop initiated from payton-legion2.
+- [x] CaptureScreenshot can return timestamped metadata and image bytes for WindowProbe E2E proof. (evidence: dotnet test tests\MouseKeyProxy.Service.Tests -c Release --filter Category=WindowProbeE2E)
 
 ## FR-MKP-006 Setup, REPL, service lifecycle, and agent UI
 
@@ -133,6 +156,17 @@ Acceptance Criteria:
 - CI or local validation includes a scan that fails if Moq is introduced.
 - Existing Fresh documentation that already says "never Moq" is preserved only as historical context; Product requirements are the active rule.
 Scope: layer-1+
+
+## FR-MKP-012 Physical Raspberry Pi Zero 2 HID appliance backend
+
+MouseKeyProxy must support an optional physical Raspberry Pi Zero 2 appliance backend implemented in C#/.NET 10. The appliance presents standard USB HID keyboard and mouse interfaces to the target Windows host while receiving authenticated control commands over the lab network.
+Scope: layer-1+
+**Acceptance Criteria:**
+- [ ] The Pi Zero 2 is provisioned as mkp-hid-pi and is reachable from payton-legion2 over the lab network. (evidence: docs\receipts-hid-provision-20260707T103933Z.txt shows DNS unresolved for mkp-hid-pi.)
+- [ ] The controlled Windows host enumerates the Pi as standard HID keyboard and relative mouse devices without vendor Windows drivers.
+- [x] The Pi HID appliance service is implemented in C# targeting .NET 10 and published self-contained for linux-arm64. (evidence: src\MouseKeyProxy.PiHid; dotnet publish src\MouseKeyProxy.PiHid\MouseKeyProxy.PiHid.csproj -c Release -r linux-arm64 --self-contained true)
+- [x] The HID appliance implementation and provisioning path contain no Python code, Python scripts, or Python runtime dependency. (evidence: dotnet test tests\MouseKeyProxy.Compliance.Tests -c Release --filter Category=HardwareHID)
+- [ ] Alt-Space, Win-Arrow, and relative mouse movement through the Pi are proven by WindowProbe JSON and timestamped screenshot evidence.
 
 ## FR-OWNERSHIP-001 Ownership boundary contracts
 

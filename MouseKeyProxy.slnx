@@ -4,6 +4,7 @@
     <Project Path="src/MouseKeyProxy.Commands/MouseKeyProxy.Commands.csproj" />
     <Project Path="src/MouseKeyProxy.Common/MouseKeyProxy.Common.csproj" />
     <Project Path="src/MouseKeyProxy.Network/MouseKeyProxy.Network.csproj" />
+    <Project Path="src/MouseKeyProxy.PiHid/MouseKeyProxy.PiHid.csproj" />
     <Project Path="src/MouseKeyProxy.Repl/MouseKeyProxy.Repl.csproj" />
     <Project Path="src/MouseKeyProxy.Service/MouseKeyProxy.Service.csproj" />
   </Folder>
@@ -15,5 +16,7 @@
     <Project Path="tests/MouseKeyProxy.Service.Tests/MouseKeyProxy.Service.Tests.csproj" />
     <Project Path="tests/MouseKeyProxy.Compliance.Tests/MouseKeyProxy.Compliance.Tests.csproj" />
     <Project Path="tests/MouseKeyProxy.Integration/MouseKeyProxy.Integration.csproj" />
+    <Project Path="tests/MouseKeyProxy.PiHid.Tests/MouseKeyProxy.PiHid.Tests.csproj" />
+    <Project Path="tests/MouseKeyProxy.WindowProbe/MouseKeyProxy.WindowProbe.csproj" />
   </Folder>
 </Solution>

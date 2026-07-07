@@ -30,10 +30,26 @@ Scope: layer-1+
 **Clipboard LIFO model and persistence** — Define entry schema, format support, dedupe, loop prevention, receive-time and sequence ordering, max 50 entries, per-item size limits, total storage cap, and CurrentUser DPAPI persistence under LocalAppData. Supported formats include Unicode text, CF_HTML, and image formats agreed by implementation; file drop is deferred unless explicitly added later.
 Scope: layer-1+
 
+## TR-MKP-HID-001
+
+**Pi Zero 2 .NET USB gadget HID backend** — The hardware backend must use Raspberry Pi OS Lite plus Linux configfs/libcomposite to expose keyboard and relative mouse HID gadget functions at /dev/hidg0 and /dev/hidg1, controlled by a minimal authenticated C#/.NET 10 HTTP service published for linux-arm64.
+Scope: layer-1+
+**Acceptance Criteria:**
+- [ ] Provisioning creates a configfs composite gadget with keyboard and relative mouse HID functions and binds it to an available UDC. (evidence: scripts\pi\setup-configfs-gadget.sh added but not executed on discoverable Pi hardware.)
+- [x] The Pi service is a C#/.NET 10 HTTP service exposing GET /status and POST /keyboard/report, /mouse/report, /clear-modifiers, and /reset. (evidence: src\MouseKeyProxy.PiHid; tests\MouseKeyProxy.PiHid.Tests)
+- [x] Requests missing or using the wrong bearer token receive an authorization failure and do not write HID reports. (evidence: dotnet test tests\MouseKeyProxy.PiHid.Tests -c Release --filter Category=HardwareHID)
+- [x] clear-modifiers sends all-up keyboard reports and zero-button mouse reports. (evidence: dotnet test tests\MouseKeyProxy.PiHid.Tests -c Release --filter Category=HardwareHID)
+- [x] HID appliance source, docs, and provisioning assets do not depend on Python. (evidence: tests\MouseKeyProxy.Compliance.Tests\HardwareHidComplianceTests.cs)
+
 ## TR-MKP-INPUT-001
 
 **Input support matrix and limits** — Document and enforce supported keyboard, mouse, focus, and window-control inputs. Exclude SAS/Ctrl+Alt+Del, secure desktop, lock/login screens, and UIPI-blocked scenarios. Unsupported operations must return observable failures and release any captured local state.
 Scope: layer-1+
+**Acceptance Criteria:**
+- [ ] Keyboard, modifier, pointer, wheel, media, permitted Windows chords, and explicit exclusions are documented and enforced.
+- [x] Alt-Space and Win-Arrow preserve modifier ordering, key-up, scan, and extended-key semantics. (evidence: dotnet test tests\MouseKeyProxy.Agent.Tests -c Release --filter Category=InputRegression)
+- [x] Mouse forwarding uses raw relative deltas rather than clipped cursor screen coordinates. (evidence: dotnet test tests\MouseKeyProxy.Agent.Tests -c Release --filter Category=RawMouseCapture)
+- [ ] The optional pi-hid backend maps MouseKeyProxy input batches into fixed-size keyboard and mouse HID reports.
 
 ## TR-MKP-LOG-001
 
@@ -44,11 +60,21 @@ Scope: layer-1+
 
 **Paired lab orchestration** — Provide repeatable scripts/commands and receipts for pairing payton-legion2 with payton-desktop, starting services, verifying port reachability, running gRPC calls, and proving visible remote control from Legion2 to Desktop.
 Scope: layer-1+
+**Acceptance Criteria:**
+- [ ] Scripts or CLI commands can pair hosts, start services, check ports, run gRPC calls, and prove visible remote control.
+- [x] WindowProbe JSON and timestamped screenshot metadata are collected for key-effect proof. (evidence: dotnet test tests\MouseKeyProxy.Service.Tests -c Release --filter Category=WindowProbeE2E)
+- [ ] Orchestration can check Pi network reachability, token auth, and target-host HID evidence without mutating target state.
+- [ ] Transition hardware runs write receipts with source host, target host, Pi host, correlation id, and UTC timestamps.
 
 ## TR-MKP-RELI-001
 
 **Event reliability and failsafes** — Input events require sequence/ack handling, stuck-key cleanup, disconnect cleanup, emergency unclip hotkey, auto-release on exit, and local-only fallback. Safety deadlines: ClipCursor release within 2 seconds and reconnect give-up within 5 seconds unless configuration says otherwise.
 Scope: layer-1+
+**Acceptance Criteria:**
+- [ ] Input events use sequence or ack handling where remote delivery can fail.
+- [x] Toggle, disconnect, emergency release, and local regain clear left/right Shift, Ctrl, Alt, and Win locally and remotely. (evidence: dotnet test tests\MouseKeyProxy.Common.Tests -c Release --filter Category=ModifierCleanup)
+- [ ] Captured local mouse state and ClipCursor are released within the configured safety deadline.
+- [ ] Pi HID reset and clear-modifiers leave keyboard and mouse reports in neutral state.
 
 ## TR-MKP-REPL-001
 

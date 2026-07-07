@@ -1,0 +1,17 @@
+[Unit]
+Description=MouseKeyProxy Pi HID service
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+EnvironmentFile=-/etc/mousekeyproxy/pi-hid.env
+WorkingDirectory=/opt/mousekeyproxy/pi-hid
+ExecStart=/opt/mousekeyproxy/pi-hid/MouseKeyProxy.PiHid
+Restart=on-failure
+RestartSec=2
+User=root
+Group=root
+
+[Install]
+WantedBy=multi-user.target

@@ -29,12 +29,19 @@
     <None Include="..\..\README.md" Pack="true" PackagePath="\" />
   </ItemGroup>
 
+  <!-- Bundle the "RUFUS For MouseKeyProxy" writer next to the tool for local build/publish/test. -->
+  <ItemGroup>
+    <None Include="..\..\assets\rufus\rufus.exe" Link="payloads\rufus\rufus.exe" CopyToOutputDirectory="PreserveNewest" Pack="false" />
+  </ItemGroup>
+
   <Target Name="PublishPayloadsForPackage">
     <RemoveDir Directories="$(OutputPath)payloads" />
     <Exec Command="dotnet publish ../MouseKeyProxy.Service/MouseKeyProxy.Service.csproj -c $(Configuration) -o $(OutputPath)payloads/service -r win-x64 --self-contained true -p:PublishSingleFile=true $(PayloadVersionProperties)" />
     <Exec Command="dotnet publish ../MouseKeyProxy.Agent/MouseKeyProxy.Agent.csproj -c $(Configuration) -o $(OutputPath)payloads/agent -r win-x64 --self-contained true -p:PublishSingleFile=true $(PayloadVersionProperties)" />
     <MakeDir Directories="$(OutputPath)payloads\agent" Condition="!Exists('$(OutputPath)payloads\agent')" />
     <Copy SourceFiles="$(MSBuildThisFileDirectory)..\..\assets\logo.png" DestinationFolder="$(OutputPath)payloads\agent" SkipUnchangedFiles="true" Condition="Exists('$(MSBuildThisFileDirectory)..\..\assets\logo.png')" />
+    <MakeDir Directories="$(OutputPath)payloads\rufus" />
+    <Copy SourceFiles="$(MSBuildThisFileDirectory)..\..\assets\rufus\rufus.exe" DestinationFolder="$(OutputPath)payloads\rufus" SkipUnchangedFiles="true" Condition="Exists('$(MSBuildThisFileDirectory)..\..\assets\rufus\rufus.exe')" />
     <ItemGroup>
       <TfmSpecificPackageFile Include="$(OutputPath)payloads\**\*" PackagePath="tools/$(TargetFramework)/any/payloads/%(RecursiveDir)%(Filename)%(Extension)" />
     </ItemGroup>

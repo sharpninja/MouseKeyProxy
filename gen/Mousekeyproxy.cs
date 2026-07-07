@@ -71,31 +71,50 @@ namespace MouseKeyProxy.Network.V1 {
             "dBIXCg9wcm90b2NvbFZlcnNpb24YASABKAkSDgoGcGVlcklkGAIgASgJEhUK",
             "DXRhcmdldFJlbW90ZXMYAyADKAkSLAoGZXZlbnRzGAQgAygLMhwubW91c2Vr",
             "ZXlwcm94eS52MS5JbnB1dEV2ZW50EhUKDWNvcnJlbGF0aW9uSWQYBSABKAki",
-            "WQoXRW1lcmdlbmN5UmVsZWFzZVJlcXVlc3QSFwoPcHJvdG9jb2xWZXJzaW9u",
-            "GAEgASgJEg4KBnBlZXJJZBgCIAEoCRIVCg1jb3JyZWxhdGlvbklkGAMgASgJ",
-            "KrUBCglJbnB1dEtpbmQSGgoWSU5QVVRfS0lORF9VTlNQRUNJRklFRBAAEgwK",
-            "CEtFWV9ET1dOEAESCgoGS0VZX1VQEAISDgoKTU9VU0VfTU9WRRADEg4KCk1P",
-            "VVNFX0RPV04QBBIMCghNT1VTRV9VUBAFEg8KC01PVVNFX1dIRUVMEAYSEAoM",
-            "TU9VU0VfSFdIRUVMEAkSEQoNTU9VU0VfWEJVVFRPThAHEg4KClRFWFRfSU5Q",
-            "VVQQCDL9BAoNTW91c2VLZXlQcm94eRJRCgtPcGVuU2Vzc2lvbhIeLm1vdXNl",
-            "a2V5cHJveHkudjEuU2Vzc2lvbkZyYW1lGh4ubW91c2VrZXlwcm94eS52MS5T",
-            "ZXNzaW9uRnJhbWUoATABEkUKBFBhaXISHS5tb3VzZWtleXByb3h5LnYxLlBh",
-            "aXJSZXF1ZXN0Gh4ubW91c2VrZXlwcm94eS52MS5QYWlyUmVzcG9uc2USXgoQ",
-            "U2V0TW91c2VQb3NpdGlvbhIpLm1vdXNla2V5cHJveHkudjEuU2V0TW91c2VQ",
-            "b3NpdGlvblJlcXVlc3QaHy5tb3VzZWtleXByb3h5LnYxLkNvbW1hbmRSZXN1",
-            "bHQSYAoNTG9jYXRlUHJvY2VzcxImLm1vdXNla2V5cHJveHkudjEuTG9jYXRl",
-            "UHJvY2Vzc1JlcXVlc3QaJy5tb3VzZWtleXByb3h5LnYxLkxvY2F0ZVByb2Nl",
-            "c3NSZXNwb25zZRJaCg5TZXRGb2N1c0J5SHduZBInLm1vdXNla2V5cHJveHku",
-            "djEuU2V0Rm9jdXNCeUh3bmRSZXF1ZXN0Gh8ubW91c2VrZXlwcm94eS52MS5D",
-            "b21tYW5kUmVzdWx0ElQKC0luamVjdElucHV0EiQubW91c2VrZXlwcm94eS52",
-            "MS5JbmplY3RJbnB1dFJlcXVlc3QaHy5tb3VzZWtleXByb3h5LnYxLkNvbW1h",
-            "bmRSZXN1bHQSXgoQRW1lcmdlbmN5UmVsZWFzZRIpLm1vdXNla2V5cHJveHku",
-            "djEuRW1lcmdlbmN5UmVsZWFzZVJlcXVlc3QaHy5tb3VzZWtleXByb3h5LnYx",
-            "LkNvbW1hbmRSZXN1bHRCG6oCGE1vdXNlS2V5UHJveHkuTmV0d29yay5WMWIG",
-            "cHJvdG8z"));
+            "VwoVQ2xlYXJNb2RpZmllcnNSZXF1ZXN0EhcKD3Byb3RvY29sVmVyc2lvbhgB",
+            "IAEoCRIOCgZwZWVySWQYAiABKAkSFQoNY29ycmVsYXRpb25JZBgDIAEoCSKz",
+            "AQoYQ2FwdHVyZVNjcmVlbnNob3RSZXF1ZXN0EhcKD3Byb3RvY29sVmVyc2lv",
+            "bhgBIAEoCRIOCgZwZWVySWQYAiABKAkSFQoNY29ycmVsYXRpb25JZBgDIAEo",
+            "CRIyCgZ0YXJnZXQYBCABKA4yIi5tb3VzZWtleXByb3h5LnYxLlNjcmVlbnNo",
+            "b3RUYXJnZXQSDAoEaHduZBgFIAEoBBIVCg1pbmNsdWRlQ3Vyc29yGAYgASgI",
+            "InQKD1NjcmVlbnNob3RDaHVuaxI2CghtZXRhZGF0YRgBIAEoCzIkLm1vdXNl",
+            "a2V5cHJveHkudjEuU2NyZWVuc2hvdE1ldGFkYXRhEgwKBGRhdGEYAiABKAwS",
+            "DQoFaW5kZXgYAyABKA0SDAoEbGFzdBgEIAEoCCLHAQoSU2NyZWVuc2hvdE1l",
+            "dGFkYXRhEhUKDWNhcHR1cmVkQXRVdGMYASABKAkSEgoKc291cmNlSG9zdBgC",
+            "IAEoCRIVCg1jb3JyZWxhdGlvbklkGAMgASgJEjIKBnRhcmdldBgEIAEoDjIi",
+            "Lm1vdXNla2V5cHJveHkudjEuU2NyZWVuc2hvdFRhcmdldBIMCgRod25kGAUg",
+            "ASgEEg0KBXdpZHRoGAYgASgNEg4KBmhlaWdodBgHIAEoDRIOCgZzaGEyNTYY",
+            "CCABKAkiWQoXRW1lcmdlbmN5UmVsZWFzZVJlcXVlc3QSFwoPcHJvdG9jb2xW",
+            "ZXJzaW9uGAEgASgJEg4KBnBlZXJJZBgCIAEoCRIVCg1jb3JyZWxhdGlvbklk",
+            "GAMgASgJKrUBCglJbnB1dEtpbmQSGgoWSU5QVVRfS0lORF9VTlNQRUNJRklF",
+            "RBAAEgwKCEtFWV9ET1dOEAESCgoGS0VZX1VQEAISDgoKTU9VU0VfTU9WRRAD",
+            "Eg4KCk1PVVNFX0RPV04QBBIMCghNT1VTRV9VUBAFEg8KC01PVVNFX1dIRUVM",
+            "EAYSEAoMTU9VU0VfSFdIRUVMEAkSEQoNTU9VU0VfWEJVVFRPThAHEg4KClRF",
+            "WFRfSU5QVVQQCCpcChBTY3JlZW5zaG90VGFyZ2V0EiEKHVNDUkVFTlNIT1Rf",
+            "VEFSR0VUX1VOU1BFQ0lGSUVEEAASCwoHREVTS1RPUBABEg4KCkZPUkVHUk9V",
+            "TkQQAhIICgRIV05EEAMyvwYKDU1vdXNlS2V5UHJveHkSUQoLT3BlblNlc3Np",
+            "b24SHi5tb3VzZWtleXByb3h5LnYxLlNlc3Npb25GcmFtZRoeLm1vdXNla2V5",
+            "cHJveHkudjEuU2Vzc2lvbkZyYW1lKAEwARJFCgRQYWlyEh0ubW91c2VrZXlw",
+            "cm94eS52MS5QYWlyUmVxdWVzdBoeLm1vdXNla2V5cHJveHkudjEuUGFpclJl",
+            "c3BvbnNlEl4KEFNldE1vdXNlUG9zaXRpb24SKS5tb3VzZWtleXByb3h5LnYx",
+            "LlNldE1vdXNlUG9zaXRpb25SZXF1ZXN0Gh8ubW91c2VrZXlwcm94eS52MS5D",
+            "b21tYW5kUmVzdWx0EmAKDUxvY2F0ZVByb2Nlc3MSJi5tb3VzZWtleXByb3h5",
+            "LnYxLkxvY2F0ZVByb2Nlc3NSZXF1ZXN0GicubW91c2VrZXlwcm94eS52MS5M",
+            "b2NhdGVQcm9jZXNzUmVzcG9uc2USWgoOU2V0Rm9jdXNCeUh3bmQSJy5tb3Vz",
+            "ZWtleXByb3h5LnYxLlNldEZvY3VzQnlId25kUmVxdWVzdBofLm1vdXNla2V5",
+            "cHJveHkudjEuQ29tbWFuZFJlc3VsdBJUCgtJbmplY3RJbnB1dBIkLm1vdXNl",
+            "a2V5cHJveHkudjEuSW5qZWN0SW5wdXRSZXF1ZXN0Gh8ubW91c2VrZXlwcm94",
+            "eS52MS5Db21tYW5kUmVzdWx0EloKDkNsZWFyTW9kaWZpZXJzEicubW91c2Vr",
+            "ZXlwcm94eS52MS5DbGVhck1vZGlmaWVyc1JlcXVlc3QaHy5tb3VzZWtleXBy",
+            "b3h5LnYxLkNvbW1hbmRSZXN1bHQSZAoRQ2FwdHVyZVNjcmVlbnNob3QSKi5t",
+            "b3VzZWtleXByb3h5LnYxLkNhcHR1cmVTY3JlZW5zaG90UmVxdWVzdBohLm1v",
+            "dXNla2V5cHJveHkudjEuU2NyZWVuc2hvdENodW5rMAESXgoQRW1lcmdlbmN5",
+            "UmVsZWFzZRIpLm1vdXNla2V5cHJveHkudjEuRW1lcmdlbmN5UmVsZWFzZVJl",
+            "cXVlc3QaHy5tb3VzZWtleXByb3h5LnYxLkNvbW1hbmRSZXN1bHRCG6oCGE1v",
+            "dXNlS2V5UHJveHkuTmV0d29yay5WMWIGcHJvdG8z"));
       descriptor = pbr::FileDescriptor.FromGeneratedCode(descriptorData,
           new pbr::FileDescriptor[] { },
-          new pbr::GeneratedClrTypeInfo(new[] {typeof(global::MouseKeyProxy.Network.V1.InputKind), }, null, new pbr::GeneratedClrTypeInfo[] {
+          new pbr::GeneratedClrTypeInfo(new[] {typeof(global::MouseKeyProxy.Network.V1.InputKind), typeof(global::MouseKeyProxy.Network.V1.ScreenshotTarget), }, null, new pbr::GeneratedClrTypeInfo[] {
             new pbr::GeneratedClrTypeInfo(typeof(global::MouseKeyProxy.Network.V1.PairRequest), global::MouseKeyProxy.Network.V1.PairRequest.Parser, new[]{ "ProtocolVersion", "PeerId", "PublicInfo", "PairingCode" }, null, null, null, null),
             new pbr::GeneratedClrTypeInfo(typeof(global::MouseKeyProxy.Network.V1.PairResponse), global::MouseKeyProxy.Network.V1.PairResponse.Parser, new[]{ "Success", "PeerCert", "Error" }, null, null, null, null),
             new pbr::GeneratedClrTypeInfo(typeof(global::MouseKeyProxy.Network.V1.SessionFrame), global::MouseKeyProxy.Network.V1.SessionFrame.Parser, new[]{ "Seq", "Input", "Clipboard", "Control", "Heartbeat", "Ack" }, new[]{ "Frame" }, null, null, null),
@@ -117,6 +136,10 @@ namespace MouseKeyProxy.Network.V1 {
             new pbr::GeneratedClrTypeInfo(typeof(global::MouseKeyProxy.Network.V1.HwndNode), global::MouseKeyProxy.Network.V1.HwndNode.Parser, new[]{ "Hwnd", "Title", "ClassName", "ProcessId", "Children" }, null, null, null, null),
             new pbr::GeneratedClrTypeInfo(typeof(global::MouseKeyProxy.Network.V1.SetFocusByHwndRequest), global::MouseKeyProxy.Network.V1.SetFocusByHwndRequest.Parser, new[]{ "ProtocolVersion", "PeerId", "Hwnd", "BringToFront", "CorrelationId" }, null, null, null, null),
             new pbr::GeneratedClrTypeInfo(typeof(global::MouseKeyProxy.Network.V1.InjectInputRequest), global::MouseKeyProxy.Network.V1.InjectInputRequest.Parser, new[]{ "ProtocolVersion", "PeerId", "TargetRemotes", "Events", "CorrelationId" }, null, null, null, null),
+            new pbr::GeneratedClrTypeInfo(typeof(global::MouseKeyProxy.Network.V1.ClearModifiersRequest), global::MouseKeyProxy.Network.V1.ClearModifiersRequest.Parser, new[]{ "ProtocolVersion", "PeerId", "CorrelationId" }, null, null, null, null),
+            new pbr::GeneratedClrTypeInfo(typeof(global::MouseKeyProxy.Network.V1.CaptureScreenshotRequest), global::MouseKeyProxy.Network.V1.CaptureScreenshotRequest.Parser, new[]{ "ProtocolVersion", "PeerId", "CorrelationId", "Target", "Hwnd", "IncludeCursor" }, null, null, null, null),
+            new pbr::GeneratedClrTypeInfo(typeof(global::MouseKeyProxy.Network.V1.ScreenshotChunk), global::MouseKeyProxy.Network.V1.ScreenshotChunk.Parser, new[]{ "Metadata", "Data", "Index", "Last" }, null, null, null, null),
+            new pbr::GeneratedClrTypeInfo(typeof(global::MouseKeyProxy.Network.V1.ScreenshotMetadata), global::MouseKeyProxy.Network.V1.ScreenshotMetadata.Parser, new[]{ "CapturedAtUtc", "SourceHost", "CorrelationId", "Target", "Hwnd", "Width", "Height", "Sha256" }, null, null, null, null),
             new pbr::GeneratedClrTypeInfo(typeof(global::MouseKeyProxy.Network.V1.EmergencyReleaseRequest), global::MouseKeyProxy.Network.V1.EmergencyReleaseRequest.Parser, new[]{ "ProtocolVersion", "PeerId", "CorrelationId" }, null, null, null, null)
           }));
     }
@@ -135,6 +158,13 @@ namespace MouseKeyProxy.Network.V1 {
     [pbr::OriginalName("MOUSE_HWHEEL")] MouseHwheel = 9,
     [pbr::OriginalName("MOUSE_XBUTTON")] MouseXbutton = 7,
     [pbr::OriginalName("TEXT_INPUT")] TextInput = 8,
+  }
+
+  public enum ScreenshotTarget {
+    [pbr::OriginalName("SCREENSHOT_TARGET_UNSPECIFIED")] Unspecified = 0,
+    [pbr::OriginalName("DESKTOP")] Desktop = 1,
+    [pbr::OriginalName("FOREGROUND")] Foreground = 2,
+    [pbr::OriginalName("HWND")] Hwnd = 3,
   }
 
   #endregion
@@ -6422,6 +6452,1436 @@ namespace MouseKeyProxy.Network.V1 {
   }
 
   [global::System.Diagnostics.DebuggerDisplayAttribute("{ToString(),nq}")]
+  public sealed partial class ClearModifiersRequest : pb::IMessage<ClearModifiersRequest>
+  #if !GOOGLE_PROTOBUF_REFSTRUCT_COMPATIBILITY_MODE
+      , pb::IBufferMessage
+  #endif
+  {
+    private static readonly pb::MessageParser<ClearModifiersRequest> _parser = new pb::MessageParser<ClearModifiersRequest>(() => new ClearModifiersRequest());
+    private pb::UnknownFieldSet _unknownFields;
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public static pb::MessageParser<ClearModifiersRequest> Parser { get { return _parser; } }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public static pbr::MessageDescriptor Descriptor {
+      get { return global::MouseKeyProxy.Network.V1.MousekeyproxyReflection.Descriptor.MessageTypes[21]; }
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    pbr::MessageDescriptor pb::IMessage.Descriptor {
+      get { return Descriptor; }
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public ClearModifiersRequest() {
+      OnConstruction();
+    }
+
+    partial void OnConstruction();
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public ClearModifiersRequest(ClearModifiersRequest other) : this() {
+      protocolVersion_ = other.protocolVersion_;
+      peerId_ = other.peerId_;
+      correlationId_ = other.correlationId_;
+      _unknownFields = pb::UnknownFieldSet.Clone(other._unknownFields);
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public ClearModifiersRequest Clone() {
+      return new ClearModifiersRequest(this);
+    }
+
+    /// <summary>Field number for the "protocolVersion" field.</summary>
+    public const int ProtocolVersionFieldNumber = 1;
+    private string protocolVersion_ = "";
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public string ProtocolVersion {
+      get { return protocolVersion_; }
+      set {
+        protocolVersion_ = pb::ProtoPreconditions.CheckNotNull(value, "value");
+      }
+    }
+
+    /// <summary>Field number for the "peerId" field.</summary>
+    public const int PeerIdFieldNumber = 2;
+    private string peerId_ = "";
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public string PeerId {
+      get { return peerId_; }
+      set {
+        peerId_ = pb::ProtoPreconditions.CheckNotNull(value, "value");
+      }
+    }
+
+    /// <summary>Field number for the "correlationId" field.</summary>
+    public const int CorrelationIdFieldNumber = 3;
+    private string correlationId_ = "";
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public string CorrelationId {
+      get { return correlationId_; }
+      set {
+        correlationId_ = pb::ProtoPreconditions.CheckNotNull(value, "value");
+      }
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public override bool Equals(object other) {
+      return Equals(other as ClearModifiersRequest);
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public bool Equals(ClearModifiersRequest other) {
+      if (ReferenceEquals(other, null)) {
+        return false;
+      }
+      if (ReferenceEquals(other, this)) {
+        return true;
+      }
+      if (ProtocolVersion != other.ProtocolVersion) return false;
+      if (PeerId != other.PeerId) return false;
+      if (CorrelationId != other.CorrelationId) return false;
+      return Equals(_unknownFields, other._unknownFields);
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public override int GetHashCode() {
+      int hash = 1;
+      if (ProtocolVersion.Length != 0) hash ^= ProtocolVersion.GetHashCode();
+      if (PeerId.Length != 0) hash ^= PeerId.GetHashCode();
+      if (CorrelationId.Length != 0) hash ^= CorrelationId.GetHashCode();
+      if (_unknownFields != null) {
+        hash ^= _unknownFields.GetHashCode();
+      }
+      return hash;
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public override string ToString() {
+      return pb::JsonFormatter.ToDiagnosticString(this);
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public void WriteTo(pb::CodedOutputStream output) {
+    #if !GOOGLE_PROTOBUF_REFSTRUCT_COMPATIBILITY_MODE
+      output.WriteRawMessage(this);
+    #else
+      if (ProtocolVersion.Length != 0) {
+        output.WriteRawTag(10);
+        output.WriteString(ProtocolVersion);
+      }
+      if (PeerId.Length != 0) {
+        output.WriteRawTag(18);
+        output.WriteString(PeerId);
+      }
+      if (CorrelationId.Length != 0) {
+        output.WriteRawTag(26);
+        output.WriteString(CorrelationId);
+      }
+      if (_unknownFields != null) {
+        _unknownFields.WriteTo(output);
+      }
+    #endif
+    }
+
+    #if !GOOGLE_PROTOBUF_REFSTRUCT_COMPATIBILITY_MODE
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    void pb::IBufferMessage.InternalWriteTo(ref pb::WriteContext output) {
+      if (ProtocolVersion.Length != 0) {
+        output.WriteRawTag(10);
+        output.WriteString(ProtocolVersion);
+      }
+      if (PeerId.Length != 0) {
+        output.WriteRawTag(18);
+        output.WriteString(PeerId);
+      }
+      if (CorrelationId.Length != 0) {
+        output.WriteRawTag(26);
+        output.WriteString(CorrelationId);
+      }
+      if (_unknownFields != null) {
+        _unknownFields.WriteTo(ref output);
+      }
+    }
+    #endif
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public int CalculateSize() {
+      int size = 0;
+      if (ProtocolVersion.Length != 0) {
+        size += 1 + pb::CodedOutputStream.ComputeStringSize(ProtocolVersion);
+      }
+      if (PeerId.Length != 0) {
+        size += 1 + pb::CodedOutputStream.ComputeStringSize(PeerId);
+      }
+      if (CorrelationId.Length != 0) {
+        size += 1 + pb::CodedOutputStream.ComputeStringSize(CorrelationId);
+      }
+      if (_unknownFields != null) {
+        size += _unknownFields.CalculateSize();
+      }
+      return size;
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public void MergeFrom(ClearModifiersRequest other) {
+      if (other == null) {
+        return;
+      }
+      if (other.ProtocolVersion.Length != 0) {
+        ProtocolVersion = other.ProtocolVersion;
+      }
+      if (other.PeerId.Length != 0) {
+        PeerId = other.PeerId;
+      }
+      if (other.CorrelationId.Length != 0) {
+        CorrelationId = other.CorrelationId;
+      }
+      _unknownFields = pb::UnknownFieldSet.MergeFrom(_unknownFields, other._unknownFields);
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public void MergeFrom(pb::CodedInputStream input) {
+    #if !GOOGLE_PROTOBUF_REFSTRUCT_COMPATIBILITY_MODE
+      input.ReadRawMessage(this);
+    #else
+      uint tag;
+      while ((tag = input.ReadTag()) != 0) {
+      if ((tag & 7) == 4) {
+        // Abort on any end group tag.
+        return;
+      }
+      switch(tag) {
+          default:
+            _unknownFields = pb::UnknownFieldSet.MergeFieldFrom(_unknownFields, input);
+            break;
+          case 10: {
+            ProtocolVersion = input.ReadString();
+            break;
+          }
+          case 18: {
+            PeerId = input.ReadString();
+            break;
+          }
+          case 26: {
+            CorrelationId = input.ReadString();
+            break;
+          }
+        }
+      }
+    #endif
+    }
+
+    #if !GOOGLE_PROTOBUF_REFSTRUCT_COMPATIBILITY_MODE
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    void pb::IBufferMessage.InternalMergeFrom(ref pb::ParseContext input) {
+      uint tag;
+      while ((tag = input.ReadTag()) != 0) {
+      if ((tag & 7) == 4) {
+        // Abort on any end group tag.
+        return;
+      }
+      switch(tag) {
+          default:
+            _unknownFields = pb::UnknownFieldSet.MergeFieldFrom(_unknownFields, ref input);
+            break;
+          case 10: {
+            ProtocolVersion = input.ReadString();
+            break;
+          }
+          case 18: {
+            PeerId = input.ReadString();
+            break;
+          }
+          case 26: {
+            CorrelationId = input.ReadString();
+            break;
+          }
+        }
+      }
+    }
+    #endif
+
+  }
+
+  [global::System.Diagnostics.DebuggerDisplayAttribute("{ToString(),nq}")]
+  public sealed partial class CaptureScreenshotRequest : pb::IMessage<CaptureScreenshotRequest>
+  #if !GOOGLE_PROTOBUF_REFSTRUCT_COMPATIBILITY_MODE
+      , pb::IBufferMessage
+  #endif
+  {
+    private static readonly pb::MessageParser<CaptureScreenshotRequest> _parser = new pb::MessageParser<CaptureScreenshotRequest>(() => new CaptureScreenshotRequest());
+    private pb::UnknownFieldSet _unknownFields;
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public static pb::MessageParser<CaptureScreenshotRequest> Parser { get { return _parser; } }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public static pbr::MessageDescriptor Descriptor {
+      get { return global::MouseKeyProxy.Network.V1.MousekeyproxyReflection.Descriptor.MessageTypes[22]; }
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    pbr::MessageDescriptor pb::IMessage.Descriptor {
+      get { return Descriptor; }
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public CaptureScreenshotRequest() {
+      OnConstruction();
+    }
+
+    partial void OnConstruction();
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public CaptureScreenshotRequest(CaptureScreenshotRequest other) : this() {
+      protocolVersion_ = other.protocolVersion_;
+      peerId_ = other.peerId_;
+      correlationId_ = other.correlationId_;
+      target_ = other.target_;
+      hwnd_ = other.hwnd_;
+      includeCursor_ = other.includeCursor_;
+      _unknownFields = pb::UnknownFieldSet.Clone(other._unknownFields);
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public CaptureScreenshotRequest Clone() {
+      return new CaptureScreenshotRequest(this);
+    }
+
+    /// <summary>Field number for the "protocolVersion" field.</summary>
+    public const int ProtocolVersionFieldNumber = 1;
+    private string protocolVersion_ = "";
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public string ProtocolVersion {
+      get { return protocolVersion_; }
+      set {
+        protocolVersion_ = pb::ProtoPreconditions.CheckNotNull(value, "value");
+      }
+    }
+
+    /// <summary>Field number for the "peerId" field.</summary>
+    public const int PeerIdFieldNumber = 2;
+    private string peerId_ = "";
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public string PeerId {
+      get { return peerId_; }
+      set {
+        peerId_ = pb::ProtoPreconditions.CheckNotNull(value, "value");
+      }
+    }
+
+    /// <summary>Field number for the "correlationId" field.</summary>
+    public const int CorrelationIdFieldNumber = 3;
+    private string correlationId_ = "";
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public string CorrelationId {
+      get { return correlationId_; }
+      set {
+        correlationId_ = pb::ProtoPreconditions.CheckNotNull(value, "value");
+      }
+    }
+
+    /// <summary>Field number for the "target" field.</summary>
+    public const int TargetFieldNumber = 4;
+    private global::MouseKeyProxy.Network.V1.ScreenshotTarget target_ = global::MouseKeyProxy.Network.V1.ScreenshotTarget.Unspecified;
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public global::MouseKeyProxy.Network.V1.ScreenshotTarget Target {
+      get { return target_; }
+      set {
+        target_ = value;
+      }
+    }
+
+    /// <summary>Field number for the "hwnd" field.</summary>
+    public const int HwndFieldNumber = 5;
+    private ulong hwnd_;
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public ulong Hwnd {
+      get { return hwnd_; }
+      set {
+        hwnd_ = value;
+      }
+    }
+
+    /// <summary>Field number for the "includeCursor" field.</summary>
+    public const int IncludeCursorFieldNumber = 6;
+    private bool includeCursor_;
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public bool IncludeCursor {
+      get { return includeCursor_; }
+      set {
+        includeCursor_ = value;
+      }
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public override bool Equals(object other) {
+      return Equals(other as CaptureScreenshotRequest);
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public bool Equals(CaptureScreenshotRequest other) {
+      if (ReferenceEquals(other, null)) {
+        return false;
+      }
+      if (ReferenceEquals(other, this)) {
+        return true;
+      }
+      if (ProtocolVersion != other.ProtocolVersion) return false;
+      if (PeerId != other.PeerId) return false;
+      if (CorrelationId != other.CorrelationId) return false;
+      if (Target != other.Target) return false;
+      if (Hwnd != other.Hwnd) return false;
+      if (IncludeCursor != other.IncludeCursor) return false;
+      return Equals(_unknownFields, other._unknownFields);
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public override int GetHashCode() {
+      int hash = 1;
+      if (ProtocolVersion.Length != 0) hash ^= ProtocolVersion.GetHashCode();
+      if (PeerId.Length != 0) hash ^= PeerId.GetHashCode();
+      if (CorrelationId.Length != 0) hash ^= CorrelationId.GetHashCode();
+      if (Target != global::MouseKeyProxy.Network.V1.ScreenshotTarget.Unspecified) hash ^= Target.GetHashCode();
+      if (Hwnd != 0UL) hash ^= Hwnd.GetHashCode();
+      if (IncludeCursor != false) hash ^= IncludeCursor.GetHashCode();
+      if (_unknownFields != null) {
+        hash ^= _unknownFields.GetHashCode();
+      }
+      return hash;
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public override string ToString() {
+      return pb::JsonFormatter.ToDiagnosticString(this);
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public void WriteTo(pb::CodedOutputStream output) {
+    #if !GOOGLE_PROTOBUF_REFSTRUCT_COMPATIBILITY_MODE
+      output.WriteRawMessage(this);
+    #else
+      if (ProtocolVersion.Length != 0) {
+        output.WriteRawTag(10);
+        output.WriteString(ProtocolVersion);
+      }
+      if (PeerId.Length != 0) {
+        output.WriteRawTag(18);
+        output.WriteString(PeerId);
+      }
+      if (CorrelationId.Length != 0) {
+        output.WriteRawTag(26);
+        output.WriteString(CorrelationId);
+      }
+      if (Target != global::MouseKeyProxy.Network.V1.ScreenshotTarget.Unspecified) {
+        output.WriteRawTag(32);
+        output.WriteEnum((int) Target);
+      }
+      if (Hwnd != 0UL) {
+        output.WriteRawTag(40);
+        output.WriteUInt64(Hwnd);
+      }
+      if (IncludeCursor != false) {
+        output.WriteRawTag(48);
+        output.WriteBool(IncludeCursor);
+      }
+      if (_unknownFields != null) {
+        _unknownFields.WriteTo(output);
+      }
+    #endif
+    }
+
+    #if !GOOGLE_PROTOBUF_REFSTRUCT_COMPATIBILITY_MODE
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    void pb::IBufferMessage.InternalWriteTo(ref pb::WriteContext output) {
+      if (ProtocolVersion.Length != 0) {
+        output.WriteRawTag(10);
+        output.WriteString(ProtocolVersion);
+      }
+      if (PeerId.Length != 0) {
+        output.WriteRawTag(18);
+        output.WriteString(PeerId);
+      }
+      if (CorrelationId.Length != 0) {
+        output.WriteRawTag(26);
+        output.WriteString(CorrelationId);
+      }
+      if (Target != global::MouseKeyProxy.Network.V1.ScreenshotTarget.Unspecified) {
+        output.WriteRawTag(32);
+        output.WriteEnum((int) Target);
+      }
+      if (Hwnd != 0UL) {
+        output.WriteRawTag(40);
+        output.WriteUInt64(Hwnd);
+      }
+      if (IncludeCursor != false) {
+        output.WriteRawTag(48);
+        output.WriteBool(IncludeCursor);
+      }
+      if (_unknownFields != null) {
+        _unknownFields.WriteTo(ref output);
+      }
+    }
+    #endif
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public int CalculateSize() {
+      int size = 0;
+      if (ProtocolVersion.Length != 0) {
+        size += 1 + pb::CodedOutputStream.ComputeStringSize(ProtocolVersion);
+      }
+      if (PeerId.Length != 0) {
+        size += 1 + pb::CodedOutputStream.ComputeStringSize(PeerId);
+      }
+      if (CorrelationId.Length != 0) {
+        size += 1 + pb::CodedOutputStream.ComputeStringSize(CorrelationId);
+      }
+      if (Target != global::MouseKeyProxy.Network.V1.ScreenshotTarget.Unspecified) {
+        size += 1 + pb::CodedOutputStream.ComputeEnumSize((int) Target);
+      }
+      if (Hwnd != 0UL) {
+        size += 1 + pb::CodedOutputStream.ComputeUInt64Size(Hwnd);
+      }
+      if (IncludeCursor != false) {
+        size += 1 + 1;
+      }
+      if (_unknownFields != null) {
+        size += _unknownFields.CalculateSize();
+      }
+      return size;
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public void MergeFrom(CaptureScreenshotRequest other) {
+      if (other == null) {
+        return;
+      }
+      if (other.ProtocolVersion.Length != 0) {
+        ProtocolVersion = other.ProtocolVersion;
+      }
+      if (other.PeerId.Length != 0) {
+        PeerId = other.PeerId;
+      }
+      if (other.CorrelationId.Length != 0) {
+        CorrelationId = other.CorrelationId;
+      }
+      if (other.Target != global::MouseKeyProxy.Network.V1.ScreenshotTarget.Unspecified) {
+        Target = other.Target;
+      }
+      if (other.Hwnd != 0UL) {
+        Hwnd = other.Hwnd;
+      }
+      if (other.IncludeCursor != false) {
+        IncludeCursor = other.IncludeCursor;
+      }
+      _unknownFields = pb::UnknownFieldSet.MergeFrom(_unknownFields, other._unknownFields);
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public void MergeFrom(pb::CodedInputStream input) {
+    #if !GOOGLE_PROTOBUF_REFSTRUCT_COMPATIBILITY_MODE
+      input.ReadRawMessage(this);
+    #else
+      uint tag;
+      while ((tag = input.ReadTag()) != 0) {
+      if ((tag & 7) == 4) {
+        // Abort on any end group tag.
+        return;
+      }
+      switch(tag) {
+          default:
+            _unknownFields = pb::UnknownFieldSet.MergeFieldFrom(_unknownFields, input);
+            break;
+          case 10: {
+            ProtocolVersion = input.ReadString();
+            break;
+          }
+          case 18: {
+            PeerId = input.ReadString();
+            break;
+          }
+          case 26: {
+            CorrelationId = input.ReadString();
+            break;
+          }
+          case 32: {
+            Target = (global::MouseKeyProxy.Network.V1.ScreenshotTarget) input.ReadEnum();
+            break;
+          }
+          case 40: {
+            Hwnd = input.ReadUInt64();
+            break;
+          }
+          case 48: {
+            IncludeCursor = input.ReadBool();
+            break;
+          }
+        }
+      }
+    #endif
+    }
+
+    #if !GOOGLE_PROTOBUF_REFSTRUCT_COMPATIBILITY_MODE
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    void pb::IBufferMessage.InternalMergeFrom(ref pb::ParseContext input) {
+      uint tag;
+      while ((tag = input.ReadTag()) != 0) {
+      if ((tag & 7) == 4) {
+        // Abort on any end group tag.
+        return;
+      }
+      switch(tag) {
+          default:
+            _unknownFields = pb::UnknownFieldSet.MergeFieldFrom(_unknownFields, ref input);
+            break;
+          case 10: {
+            ProtocolVersion = input.ReadString();
+            break;
+          }
+          case 18: {
+            PeerId = input.ReadString();
+            break;
+          }
+          case 26: {
+            CorrelationId = input.ReadString();
+            break;
+          }
+          case 32: {
+            Target = (global::MouseKeyProxy.Network.V1.ScreenshotTarget) input.ReadEnum();
+            break;
+          }
+          case 40: {
+            Hwnd = input.ReadUInt64();
+            break;
+          }
+          case 48: {
+            IncludeCursor = input.ReadBool();
+            break;
+          }
+        }
+      }
+    }
+    #endif
+
+  }
+
+  [global::System.Diagnostics.DebuggerDisplayAttribute("{ToString(),nq}")]
+  public sealed partial class ScreenshotChunk : pb::IMessage<ScreenshotChunk>
+  #if !GOOGLE_PROTOBUF_REFSTRUCT_COMPATIBILITY_MODE
+      , pb::IBufferMessage
+  #endif
+  {
+    private static readonly pb::MessageParser<ScreenshotChunk> _parser = new pb::MessageParser<ScreenshotChunk>(() => new ScreenshotChunk());
+    private pb::UnknownFieldSet _unknownFields;
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public static pb::MessageParser<ScreenshotChunk> Parser { get { return _parser; } }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public static pbr::MessageDescriptor Descriptor {
+      get { return global::MouseKeyProxy.Network.V1.MousekeyproxyReflection.Descriptor.MessageTypes[23]; }
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    pbr::MessageDescriptor pb::IMessage.Descriptor {
+      get { return Descriptor; }
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public ScreenshotChunk() {
+      OnConstruction();
+    }
+
+    partial void OnConstruction();
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public ScreenshotChunk(ScreenshotChunk other) : this() {
+      metadata_ = other.metadata_ != null ? other.metadata_.Clone() : null;
+      data_ = other.data_;
+      index_ = other.index_;
+      last_ = other.last_;
+      _unknownFields = pb::UnknownFieldSet.Clone(other._unknownFields);
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public ScreenshotChunk Clone() {
+      return new ScreenshotChunk(this);
+    }
+
+    /// <summary>Field number for the "metadata" field.</summary>
+    public const int MetadataFieldNumber = 1;
+    private global::MouseKeyProxy.Network.V1.ScreenshotMetadata metadata_;
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public global::MouseKeyProxy.Network.V1.ScreenshotMetadata Metadata {
+      get { return metadata_; }
+      set {
+        metadata_ = value;
+      }
+    }
+
+    /// <summary>Field number for the "data" field.</summary>
+    public const int DataFieldNumber = 2;
+    private pb::ByteString data_ = pb::ByteString.Empty;
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public pb::ByteString Data {
+      get { return data_; }
+      set {
+        data_ = pb::ProtoPreconditions.CheckNotNull(value, "value");
+      }
+    }
+
+    /// <summary>Field number for the "index" field.</summary>
+    public const int IndexFieldNumber = 3;
+    private uint index_;
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public uint Index {
+      get { return index_; }
+      set {
+        index_ = value;
+      }
+    }
+
+    /// <summary>Field number for the "last" field.</summary>
+    public const int LastFieldNumber = 4;
+    private bool last_;
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public bool Last {
+      get { return last_; }
+      set {
+        last_ = value;
+      }
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public override bool Equals(object other) {
+      return Equals(other as ScreenshotChunk);
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public bool Equals(ScreenshotChunk other) {
+      if (ReferenceEquals(other, null)) {
+        return false;
+      }
+      if (ReferenceEquals(other, this)) {
+        return true;
+      }
+      if (!object.Equals(Metadata, other.Metadata)) return false;
+      if (Data != other.Data) return false;
+      if (Index != other.Index) return false;
+      if (Last != other.Last) return false;
+      return Equals(_unknownFields, other._unknownFields);
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public override int GetHashCode() {
+      int hash = 1;
+      if (metadata_ != null) hash ^= Metadata.GetHashCode();
+      if (Data.Length != 0) hash ^= Data.GetHashCode();
+      if (Index != 0) hash ^= Index.GetHashCode();
+      if (Last != false) hash ^= Last.GetHashCode();
+      if (_unknownFields != null) {
+        hash ^= _unknownFields.GetHashCode();
+      }
+      return hash;
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public override string ToString() {
+      return pb::JsonFormatter.ToDiagnosticString(this);
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public void WriteTo(pb::CodedOutputStream output) {
+    #if !GOOGLE_PROTOBUF_REFSTRUCT_COMPATIBILITY_MODE
+      output.WriteRawMessage(this);
+    #else
+      if (metadata_ != null) {
+        output.WriteRawTag(10);
+        output.WriteMessage(Metadata);
+      }
+      if (Data.Length != 0) {
+        output.WriteRawTag(18);
+        output.WriteBytes(Data);
+      }
+      if (Index != 0) {
+        output.WriteRawTag(24);
+        output.WriteUInt32(Index);
+      }
+      if (Last != false) {
+        output.WriteRawTag(32);
+        output.WriteBool(Last);
+      }
+      if (_unknownFields != null) {
+        _unknownFields.WriteTo(output);
+      }
+    #endif
+    }
+
+    #if !GOOGLE_PROTOBUF_REFSTRUCT_COMPATIBILITY_MODE
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    void pb::IBufferMessage.InternalWriteTo(ref pb::WriteContext output) {
+      if (metadata_ != null) {
+        output.WriteRawTag(10);
+        output.WriteMessage(Metadata);
+      }
+      if (Data.Length != 0) {
+        output.WriteRawTag(18);
+        output.WriteBytes(Data);
+      }
+      if (Index != 0) {
+        output.WriteRawTag(24);
+        output.WriteUInt32(Index);
+      }
+      if (Last != false) {
+        output.WriteRawTag(32);
+        output.WriteBool(Last);
+      }
+      if (_unknownFields != null) {
+        _unknownFields.WriteTo(ref output);
+      }
+    }
+    #endif
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public int CalculateSize() {
+      int size = 0;
+      if (metadata_ != null) {
+        size += 1 + pb::CodedOutputStream.ComputeMessageSize(Metadata);
+      }
+      if (Data.Length != 0) {
+        size += 1 + pb::CodedOutputStream.ComputeBytesSize(Data);
+      }
+      if (Index != 0) {
+        size += 1 + pb::CodedOutputStream.ComputeUInt32Size(Index);
+      }
+      if (Last != false) {
+        size += 1 + 1;
+      }
+      if (_unknownFields != null) {
+        size += _unknownFields.CalculateSize();
+      }
+      return size;
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public void MergeFrom(ScreenshotChunk other) {
+      if (other == null) {
+        return;
+      }
+      if (other.metadata_ != null) {
+        if (metadata_ == null) {
+          Metadata = new global::MouseKeyProxy.Network.V1.ScreenshotMetadata();
+        }
+        Metadata.MergeFrom(other.Metadata);
+      }
+      if (other.Data.Length != 0) {
+        Data = other.Data;
+      }
+      if (other.Index != 0) {
+        Index = other.Index;
+      }
+      if (other.Last != false) {
+        Last = other.Last;
+      }
+      _unknownFields = pb::UnknownFieldSet.MergeFrom(_unknownFields, other._unknownFields);
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public void MergeFrom(pb::CodedInputStream input) {
+    #if !GOOGLE_PROTOBUF_REFSTRUCT_COMPATIBILITY_MODE
+      input.ReadRawMessage(this);
+    #else
+      uint tag;
+      while ((tag = input.ReadTag()) != 0) {
+      if ((tag & 7) == 4) {
+        // Abort on any end group tag.
+        return;
+      }
+      switch(tag) {
+          default:
+            _unknownFields = pb::UnknownFieldSet.MergeFieldFrom(_unknownFields, input);
+            break;
+          case 10: {
+            if (metadata_ == null) {
+              Metadata = new global::MouseKeyProxy.Network.V1.ScreenshotMetadata();
+            }
+            input.ReadMessage(Metadata);
+            break;
+          }
+          case 18: {
+            Data = input.ReadBytes();
+            break;
+          }
+          case 24: {
+            Index = input.ReadUInt32();
+            break;
+          }
+          case 32: {
+            Last = input.ReadBool();
+            break;
+          }
+        }
+      }
+    #endif
+    }
+
+    #if !GOOGLE_PROTOBUF_REFSTRUCT_COMPATIBILITY_MODE
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    void pb::IBufferMessage.InternalMergeFrom(ref pb::ParseContext input) {
+      uint tag;
+      while ((tag = input.ReadTag()) != 0) {
+      if ((tag & 7) == 4) {
+        // Abort on any end group tag.
+        return;
+      }
+      switch(tag) {
+          default:
+            _unknownFields = pb::UnknownFieldSet.MergeFieldFrom(_unknownFields, ref input);
+            break;
+          case 10: {
+            if (metadata_ == null) {
+              Metadata = new global::MouseKeyProxy.Network.V1.ScreenshotMetadata();
+            }
+            input.ReadMessage(Metadata);
+            break;
+          }
+          case 18: {
+            Data = input.ReadBytes();
+            break;
+          }
+          case 24: {
+            Index = input.ReadUInt32();
+            break;
+          }
+          case 32: {
+            Last = input.ReadBool();
+            break;
+          }
+        }
+      }
+    }
+    #endif
+
+  }
+
+  [global::System.Diagnostics.DebuggerDisplayAttribute("{ToString(),nq}")]
+  public sealed partial class ScreenshotMetadata : pb::IMessage<ScreenshotMetadata>
+  #if !GOOGLE_PROTOBUF_REFSTRUCT_COMPATIBILITY_MODE
+      , pb::IBufferMessage
+  #endif
+  {
+    private static readonly pb::MessageParser<ScreenshotMetadata> _parser = new pb::MessageParser<ScreenshotMetadata>(() => new ScreenshotMetadata());
+    private pb::UnknownFieldSet _unknownFields;
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public static pb::MessageParser<ScreenshotMetadata> Parser { get { return _parser; } }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public static pbr::MessageDescriptor Descriptor {
+      get { return global::MouseKeyProxy.Network.V1.MousekeyproxyReflection.Descriptor.MessageTypes[24]; }
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    pbr::MessageDescriptor pb::IMessage.Descriptor {
+      get { return Descriptor; }
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public ScreenshotMetadata() {
+      OnConstruction();
+    }
+
+    partial void OnConstruction();
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public ScreenshotMetadata(ScreenshotMetadata other) : this() {
+      capturedAtUtc_ = other.capturedAtUtc_;
+      sourceHost_ = other.sourceHost_;
+      correlationId_ = other.correlationId_;
+      target_ = other.target_;
+      hwnd_ = other.hwnd_;
+      width_ = other.width_;
+      height_ = other.height_;
+      sha256_ = other.sha256_;
+      _unknownFields = pb::UnknownFieldSet.Clone(other._unknownFields);
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public ScreenshotMetadata Clone() {
+      return new ScreenshotMetadata(this);
+    }
+
+    /// <summary>Field number for the "capturedAtUtc" field.</summary>
+    public const int CapturedAtUtcFieldNumber = 1;
+    private string capturedAtUtc_ = "";
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public string CapturedAtUtc {
+      get { return capturedAtUtc_; }
+      set {
+        capturedAtUtc_ = pb::ProtoPreconditions.CheckNotNull(value, "value");
+      }
+    }
+
+    /// <summary>Field number for the "sourceHost" field.</summary>
+    public const int SourceHostFieldNumber = 2;
+    private string sourceHost_ = "";
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public string SourceHost {
+      get { return sourceHost_; }
+      set {
+        sourceHost_ = pb::ProtoPreconditions.CheckNotNull(value, "value");
+      }
+    }
+
+    /// <summary>Field number for the "correlationId" field.</summary>
+    public const int CorrelationIdFieldNumber = 3;
+    private string correlationId_ = "";
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public string CorrelationId {
+      get { return correlationId_; }
+      set {
+        correlationId_ = pb::ProtoPreconditions.CheckNotNull(value, "value");
+      }
+    }
+
+    /// <summary>Field number for the "target" field.</summary>
+    public const int TargetFieldNumber = 4;
+    private global::MouseKeyProxy.Network.V1.ScreenshotTarget target_ = global::MouseKeyProxy.Network.V1.ScreenshotTarget.Unspecified;
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public global::MouseKeyProxy.Network.V1.ScreenshotTarget Target {
+      get { return target_; }
+      set {
+        target_ = value;
+      }
+    }
+
+    /// <summary>Field number for the "hwnd" field.</summary>
+    public const int HwndFieldNumber = 5;
+    private ulong hwnd_;
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public ulong Hwnd {
+      get { return hwnd_; }
+      set {
+        hwnd_ = value;
+      }
+    }
+
+    /// <summary>Field number for the "width" field.</summary>
+    public const int WidthFieldNumber = 6;
+    private uint width_;
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public uint Width {
+      get { return width_; }
+      set {
+        width_ = value;
+      }
+    }
+
+    /// <summary>Field number for the "height" field.</summary>
+    public const int HeightFieldNumber = 7;
+    private uint height_;
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public uint Height {
+      get { return height_; }
+      set {
+        height_ = value;
+      }
+    }
+
+    /// <summary>Field number for the "sha256" field.</summary>
+    public const int Sha256FieldNumber = 8;
+    private string sha256_ = "";
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public string Sha256 {
+      get { return sha256_; }
+      set {
+        sha256_ = pb::ProtoPreconditions.CheckNotNull(value, "value");
+      }
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public override bool Equals(object other) {
+      return Equals(other as ScreenshotMetadata);
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public bool Equals(ScreenshotMetadata other) {
+      if (ReferenceEquals(other, null)) {
+        return false;
+      }
+      if (ReferenceEquals(other, this)) {
+        return true;
+      }
+      if (CapturedAtUtc != other.CapturedAtUtc) return false;
+      if (SourceHost != other.SourceHost) return false;
+      if (CorrelationId != other.CorrelationId) return false;
+      if (Target != other.Target) return false;
+      if (Hwnd != other.Hwnd) return false;
+      if (Width != other.Width) return false;
+      if (Height != other.Height) return false;
+      if (Sha256 != other.Sha256) return false;
+      return Equals(_unknownFields, other._unknownFields);
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public override int GetHashCode() {
+      int hash = 1;
+      if (CapturedAtUtc.Length != 0) hash ^= CapturedAtUtc.GetHashCode();
+      if (SourceHost.Length != 0) hash ^= SourceHost.GetHashCode();
+      if (CorrelationId.Length != 0) hash ^= CorrelationId.GetHashCode();
+      if (Target != global::MouseKeyProxy.Network.V1.ScreenshotTarget.Unspecified) hash ^= Target.GetHashCode();
+      if (Hwnd != 0UL) hash ^= Hwnd.GetHashCode();
+      if (Width != 0) hash ^= Width.GetHashCode();
+      if (Height != 0) hash ^= Height.GetHashCode();
+      if (Sha256.Length != 0) hash ^= Sha256.GetHashCode();
+      if (_unknownFields != null) {
+        hash ^= _unknownFields.GetHashCode();
+      }
+      return hash;
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public override string ToString() {
+      return pb::JsonFormatter.ToDiagnosticString(this);
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public void WriteTo(pb::CodedOutputStream output) {
+    #if !GOOGLE_PROTOBUF_REFSTRUCT_COMPATIBILITY_MODE
+      output.WriteRawMessage(this);
+    #else
+      if (CapturedAtUtc.Length != 0) {
+        output.WriteRawTag(10);
+        output.WriteString(CapturedAtUtc);
+      }
+      if (SourceHost.Length != 0) {
+        output.WriteRawTag(18);
+        output.WriteString(SourceHost);
+      }
+      if (CorrelationId.Length != 0) {
+        output.WriteRawTag(26);
+        output.WriteString(CorrelationId);
+      }
+      if (Target != global::MouseKeyProxy.Network.V1.ScreenshotTarget.Unspecified) {
+        output.WriteRawTag(32);
+        output.WriteEnum((int) Target);
+      }
+      if (Hwnd != 0UL) {
+        output.WriteRawTag(40);
+        output.WriteUInt64(Hwnd);
+      }
+      if (Width != 0) {
+        output.WriteRawTag(48);
+        output.WriteUInt32(Width);
+      }
+      if (Height != 0) {
+        output.WriteRawTag(56);
+        output.WriteUInt32(Height);
+      }
+      if (Sha256.Length != 0) {
+        output.WriteRawTag(66);
+        output.WriteString(Sha256);
+      }
+      if (_unknownFields != null) {
+        _unknownFields.WriteTo(output);
+      }
+    #endif
+    }
+
+    #if !GOOGLE_PROTOBUF_REFSTRUCT_COMPATIBILITY_MODE
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    void pb::IBufferMessage.InternalWriteTo(ref pb::WriteContext output) {
+      if (CapturedAtUtc.Length != 0) {
+        output.WriteRawTag(10);
+        output.WriteString(CapturedAtUtc);
+      }
+      if (SourceHost.Length != 0) {
+        output.WriteRawTag(18);
+        output.WriteString(SourceHost);
+      }
+      if (CorrelationId.Length != 0) {
+        output.WriteRawTag(26);
+        output.WriteString(CorrelationId);
+      }
+      if (Target != global::MouseKeyProxy.Network.V1.ScreenshotTarget.Unspecified) {
+        output.WriteRawTag(32);
+        output.WriteEnum((int) Target);
+      }
+      if (Hwnd != 0UL) {
+        output.WriteRawTag(40);
+        output.WriteUInt64(Hwnd);
+      }
+      if (Width != 0) {
+        output.WriteRawTag(48);
+        output.WriteUInt32(Width);
+      }
+      if (Height != 0) {
+        output.WriteRawTag(56);
+        output.WriteUInt32(Height);
+      }
+      if (Sha256.Length != 0) {
+        output.WriteRawTag(66);
+        output.WriteString(Sha256);
+      }
+      if (_unknownFields != null) {
+        _unknownFields.WriteTo(ref output);
+      }
+    }
+    #endif
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public int CalculateSize() {
+      int size = 0;
+      if (CapturedAtUtc.Length != 0) {
+        size += 1 + pb::CodedOutputStream.ComputeStringSize(CapturedAtUtc);
+      }
+      if (SourceHost.Length != 0) {
+        size += 1 + pb::CodedOutputStream.ComputeStringSize(SourceHost);
+      }
+      if (CorrelationId.Length != 0) {
+        size += 1 + pb::CodedOutputStream.ComputeStringSize(CorrelationId);
+      }
+      if (Target != global::MouseKeyProxy.Network.V1.ScreenshotTarget.Unspecified) {
+        size += 1 + pb::CodedOutputStream.ComputeEnumSize((int) Target);
+      }
+      if (Hwnd != 0UL) {
+        size += 1 + pb::CodedOutputStream.ComputeUInt64Size(Hwnd);
+      }
+      if (Width != 0) {
+        size += 1 + pb::CodedOutputStream.ComputeUInt32Size(Width);
+      }
+      if (Height != 0) {
+        size += 1 + pb::CodedOutputStream.ComputeUInt32Size(Height);
+      }
+      if (Sha256.Length != 0) {
+        size += 1 + pb::CodedOutputStream.ComputeStringSize(Sha256);
+      }
+      if (_unknownFields != null) {
+        size += _unknownFields.CalculateSize();
+      }
+      return size;
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public void MergeFrom(ScreenshotMetadata other) {
+      if (other == null) {
+        return;
+      }
+      if (other.CapturedAtUtc.Length != 0) {
+        CapturedAtUtc = other.CapturedAtUtc;
+      }
+      if (other.SourceHost.Length != 0) {
+        SourceHost = other.SourceHost;
+      }
+      if (other.CorrelationId.Length != 0) {
+        CorrelationId = other.CorrelationId;
+      }
+      if (other.Target != global::MouseKeyProxy.Network.V1.ScreenshotTarget.Unspecified) {
+        Target = other.Target;
+      }
+      if (other.Hwnd != 0UL) {
+        Hwnd = other.Hwnd;
+      }
+      if (other.Width != 0) {
+        Width = other.Width;
+      }
+      if (other.Height != 0) {
+        Height = other.Height;
+      }
+      if (other.Sha256.Length != 0) {
+        Sha256 = other.Sha256;
+      }
+      _unknownFields = pb::UnknownFieldSet.MergeFrom(_unknownFields, other._unknownFields);
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public void MergeFrom(pb::CodedInputStream input) {
+    #if !GOOGLE_PROTOBUF_REFSTRUCT_COMPATIBILITY_MODE
+      input.ReadRawMessage(this);
+    #else
+      uint tag;
+      while ((tag = input.ReadTag()) != 0) {
+      if ((tag & 7) == 4) {
+        // Abort on any end group tag.
+        return;
+      }
+      switch(tag) {
+          default:
+            _unknownFields = pb::UnknownFieldSet.MergeFieldFrom(_unknownFields, input);
+            break;
+          case 10: {
+            CapturedAtUtc = input.ReadString();
+            break;
+          }
+          case 18: {
+            SourceHost = input.ReadString();
+            break;
+          }
+          case 26: {
+            CorrelationId = input.ReadString();
+            break;
+          }
+          case 32: {
+            Target = (global::MouseKeyProxy.Network.V1.ScreenshotTarget) input.ReadEnum();
+            break;
+          }
+          case 40: {
+            Hwnd = input.ReadUInt64();
+            break;
+          }
+          case 48: {
+            Width = input.ReadUInt32();
+            break;
+          }
+          case 56: {
+            Height = input.ReadUInt32();
+            break;
+          }
+          case 66: {
+            Sha256 = input.ReadString();
+            break;
+          }
+        }
+      }
+    #endif
+    }
+
+    #if !GOOGLE_PROTOBUF_REFSTRUCT_COMPATIBILITY_MODE
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    void pb::IBufferMessage.InternalMergeFrom(ref pb::ParseContext input) {
+      uint tag;
+      while ((tag = input.ReadTag()) != 0) {
+      if ((tag & 7) == 4) {
+        // Abort on any end group tag.
+        return;
+      }
+      switch(tag) {
+          default:
+            _unknownFields = pb::UnknownFieldSet.MergeFieldFrom(_unknownFields, ref input);
+            break;
+          case 10: {
+            CapturedAtUtc = input.ReadString();
+            break;
+          }
+          case 18: {
+            SourceHost = input.ReadString();
+            break;
+          }
+          case 26: {
+            CorrelationId = input.ReadString();
+            break;
+          }
+          case 32: {
+            Target = (global::MouseKeyProxy.Network.V1.ScreenshotTarget) input.ReadEnum();
+            break;
+          }
+          case 40: {
+            Hwnd = input.ReadUInt64();
+            break;
+          }
+          case 48: {
+            Width = input.ReadUInt32();
+            break;
+          }
+          case 56: {
+            Height = input.ReadUInt32();
+            break;
+          }
+          case 66: {
+            Sha256 = input.ReadString();
+            break;
+          }
+        }
+      }
+    }
+    #endif
+
+  }
+
+  [global::System.Diagnostics.DebuggerDisplayAttribute("{ToString(),nq}")]
   public sealed partial class EmergencyReleaseRequest : pb::IMessage<EmergencyReleaseRequest>
   #if !GOOGLE_PROTOBUF_REFSTRUCT_COMPATIBILITY_MODE
       , pb::IBufferMessage
@@ -6436,7 +7896,7 @@ namespace MouseKeyProxy.Network.V1 {
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public static pbr::MessageDescriptor Descriptor {
-      get { return global::MouseKeyProxy.Network.V1.MousekeyproxyReflection.Descriptor.MessageTypes[21]; }
+      get { return global::MouseKeyProxy.Network.V1.MousekeyproxyReflection.Descriptor.MessageTypes[25]; }
     }
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]

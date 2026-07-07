@@ -19,6 +19,8 @@ service MouseKeyProxy {
   rpc LocateProcess (LocateProcessRequest) returns (LocateProcessResponse);
   rpc SetFocusByHwnd (SetFocusByHwndRequest) returns (CommandResult);
   rpc InjectInput (InjectInputRequest) returns (CommandResult);
+  rpc ClearModifiers (ClearModifiersRequest) returns (CommandResult);
+  rpc CaptureScreenshot (CaptureScreenshotRequest) returns (stream ScreenshotChunk);
   rpc EmergencyRelease (EmergencyReleaseRequest) returns (CommandResult);
 }
 
@@ -161,6 +163,46 @@ message InjectInputRequest {
   repeated string targetRemotes = 3;
   repeated InputEvent events = 4;
   string correlationId = 5;
+}
+
+message ClearModifiersRequest {
+  string protocolVersion = 1;
+  string peerId = 2;
+  string correlationId = 3;
+}
+
+message CaptureScreenshotRequest {
+  string protocolVersion = 1;
+  string peerId = 2;
+  string correlationId = 3;
+  ScreenshotTarget target = 4;
+  uint64 hwnd = 5;
+  bool includeCursor = 6;
+}
+
+message ScreenshotChunk {
+  ScreenshotMetadata metadata = 1;
+  bytes data = 2;
+  uint32 index = 3;
+  bool last = 4;
+}
+
+message ScreenshotMetadata {
+  string capturedAtUtc = 1;
+  string sourceHost = 2;
+  string correlationId = 3;
+  ScreenshotTarget target = 4;
+  uint64 hwnd = 5;
+  uint32 width = 6;
+  uint32 height = 7;
+  string sha256 = 8;
+}
+
+enum ScreenshotTarget {
+  SCREENSHOT_TARGET_UNSPECIFIED = 0;
+  DESKTOP = 1;
+  FOREGROUND = 2;
+  HWND = 3;
 }
 
 message EmergencyReleaseRequest {

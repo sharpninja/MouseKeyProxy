@@ -4,9 +4,8 @@ using System.Threading.Tasks;
 using Grpc.Core;
 using Grpc.Core.Testing;
 using Microsoft.Extensions.Logging;
-using MouseKeyProxy.Network;
+using MouseKeyProxy.Commands;
 using MouseKeyProxy.Network.V1;
-using MouseKeyProxy.Commands; // Bidi moved to Commands lib
 using MouseKeyProxy.Service;
 using NSubstitute;
 using Xunit;
@@ -22,38 +21,44 @@ public class BidiRoundtripTests
     [Fact]
     public async Task InMemory_Duplex_Roundtrip_Against_Real_OpenSession_Asserts_AckSeq()
     {
-        // Arrange: real service impl with dispatcher + spy injector to drive real receive->inject dispatch (shipped path for AC4)
         var logger = Substitute.For<ILogger<MouseKeyProxyImpl>>();
-        var injector = Substitute.For<Cmn.IInputInjector>();
+        var injector = new RecordingInjector();
         var dispatcher = new Cmn.SessionFrameDispatcher(injector, new Cmn.ToggleStateMachine());
         var impl = new MouseKeyProxyImpl(logger, dispatcher);
 
-        // in-memory request stream with one input batch frame (sim client send)
         var sentFrame = new SessionFrame
         {
             Seq = 7,
             Input = new InputBatch { BaseSeq = 7, Events = { new InputEvent { Kind = InputKind.KeyDown, Vk = 65 } } }
         };
         var requestStream = new TestAsyncStreamReader<SessionFrame>(new[] { sentFrame });
-
-        // response stream we can inspect
         var responseStream = new TestServerStreamWriter<SessionFrame>();
-
         var ctx = TestServerCallContext.Create("OpenSession", null, System.DateTime.UtcNow.AddSeconds(10),
             new Metadata(), CancellationToken.None, "127.0.0.1", null, null, null, null, null);
 
-        // Act: call the real shipped OpenSession impl
         await impl.OpenSession(requestStream, responseStream, ctx);
 
-        // Assert: ack seq matches sent frame (real roundtrip)
         Assert.NotEmpty(responseStream.Responses);
         Assert.Equal(7u, responseStream.Responses[0].Ack.Last);
-
-        // Drive real dispatch: received frame was passed to injector.Send (real path, not mock of UUT)
-        injector.Received().Send(Arg.Any<Cmn.InputEvent>());
+        var eventFromBatch = Assert.Single(injector.LastBatch);
+        Assert.Equal(Cmn.InputKind.KEY_DOWN, eventFromBatch.Kind);
+        Assert.Equal(65u, eventFromBatch.Vk);
     }
 
-    // Simple test helpers (copied pattern from Service tests for red/green)
+    private sealed class RecordingInjector : Cmn.IInputInjector
+    {
+        public IReadOnlyList<Cmn.InputEvent> LastBatch { get; private set; } = Array.Empty<Cmn.InputEvent>();
+
+        public void Send(Cmn.InputEvent evt) => LastBatch = new[] { evt };
+
+        public bool TryInjectBatch(IEnumerable<Cmn.InputEvent> events, out string? error)
+        {
+            LastBatch = events.ToArray();
+            error = null;
+            return true;
+        }
+    }
+
     internal class TestAsyncStreamReader<T> : IAsyncStreamReader<T> where T : class
     {
         private readonly IEnumerator<T> _e;
@@ -72,15 +77,12 @@ public class BidiRoundtripTests
     [Fact]
     public async Task InjectHandler_Calls_Transport_With_Real_SessionFrame_Containing_InputBatch()
     {
-        // Red/green for shared handler: call SendInputAsync directly on RecordingTransport (null client, NO Send override).
-        // This drives the REAL production BidiSessionTransport.SendInputBatchAsync (builds Wire frame from events, sets LastSentFrame using shipped code).
-        // AC4: assert on the frame produced by the real shipped build path (not test override or re-impl).
         var spy = new RecordingTransport();
         await InputCommandHandler.SendInputAsync(spy, Cmn.InputKind.TEXT_INPUT, "test");
+
         Assert.NotNull(spy.LastSentFrame);
         Assert.NotNull(spy.LastSentFrame.Input);
         Assert.Single(spy.LastSentFrame.Input.Events);
-        // real build output for this call (seq from _nextSeq=1 in spy Send path)
         Assert.Equal(1u, spy.LastSentFrame.Seq);
         var evt = spy.LastSentFrame.Input.Events[0];
         Assert.Equal("test", evt.Text);
@@ -88,24 +90,23 @@ public class BidiRoundtripTests
 
     private class RecordingTransport : BidiSessionTransport
     {
-        public RecordingTransport() : base( (MouseKeyProxy.Network.V1.MouseKeyProxy.MouseKeyProxyClient)null! ) { }
-        // NO override of SendInputBatchAsync: call on this instance drives the REAL production BidiSessionTransport.SendInputBatchAsync (which does the frame build and appends to SentFrames)
-        // This ensures the test exercises the shipped code path for AC4, not a simulating override.
+        public RecordingTransport() : base((MouseKeyProxy.Network.V1.MouseKeyProxy.MouseKeyProxyClient)null!) { }
     }
 
     [Fact]
-    public async Task ToggleAsync_Emits_ModResync_Frames_Via_Real_Transport_When_Changed()
+    [Trait("Category", "ModifierCleanup")]
+    public async Task ToggleAsync_Emits_ModResync_Control_Frame_With_Modifier_Ups_When_Changed()
     {
-        // Drives SHIPPED ToggleAsync + real BidiSessionTransport (plain RecordingTransport, NO override). // re-touched via agent (C: plain dir, uncommitted for harness) for visibility - plain Recording + SentFrames assert
-        // Build/append to SentFrames happens in shipped before any deliver. Assert count + empty on last to prove Emit branch + multi-frame probe.
         var sm = new Cmn.ToggleStateMachine();
         var spy = new RecordingTransport();
+
         bool active = await InputCommandHandler.ToggleAsync(sm, spy, "peer1");
+
         Assert.True(active);
-        Assert.True(spy.SentFrames.Count >= 2, "Expected at least initial + resync send for Emit");
+        Assert.Equal(2, spy.SentFrames.Count);
+        Assert.NotNull(spy.SentFrames[0].Control?.Toggle);
         var last = spy.SentFrames.Last();
-        Assert.NotNull(last);
-        Assert.NotNull(last.Input);
-        Assert.Empty(last.Input.Events); // resync emission is empty batch
+        Assert.NotNull(last.Control?.Mods);
+        Assert.Equal(Cmn.ModifierReleasePolicy.ModifierVirtualKeys, last.Control.Mods.Ups);
     }
 }
