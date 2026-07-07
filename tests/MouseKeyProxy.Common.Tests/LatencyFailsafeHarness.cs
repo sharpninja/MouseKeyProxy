@@ -32,7 +32,7 @@ public class LatencyFailsafeHarness
 
         double ms = sw.Elapsed.TotalMilliseconds;
         // save evidence
-        var scratch = Environment.GetEnvironmentVariable("SCRATCH") ?? @"C:\Users\kingd\AppData\Local\Temp\grok-goal-8dcf4780924b\implementer";
+        var scratch = Environment.GetEnvironmentVariable("SCRATCH") ?? Path.Combine(Path.GetTempPath(), "MouseKeyProxy.Tests");
         Directory.CreateDirectory(scratch);
         try { File.AppendAllText(Path.Combine(scratch, "latency-harness.log"), $"4hop ms={ms:F3} budget={BudgetMs} active={sm.IsActive} hist={m.History.Count}\n"); } catch { }
         try { File.AppendAllText(Path.Combine(scratch, "latency-harness.log"), $"ASSERT-CHECK: 4hop {ms:F1}ms vs {BudgetMs} (adjusted or env)\n"); } catch { }
@@ -49,7 +49,9 @@ public class LatencyFailsafeHarness
         sm.Reset(); // release path (mod resync + clip release in real seam)
         sw.Stop();
         var ms = sw.Elapsed.TotalMilliseconds;
-        File.AppendAllText(@"C:\Users\kingd\AppData\Local\Temp\grok-goal-8dcf4780924b\implementer\failsafe-harness.log", $"failsafe release sim ms={ms:F3} (target <2000 for 2s)\n");
+        var scratch = Environment.GetEnvironmentVariable("SCRATCH") ?? Path.Combine(Path.GetTempPath(), "MouseKeyProxy.Tests");
+        Directory.CreateDirectory(scratch);
+        File.AppendAllText(Path.Combine(scratch, "failsafe-harness.log"), $"failsafe release sim ms={ms:F3} (target <2000 for 2s)\n");
         Assert.True(ms < 2000);
     }
 }
