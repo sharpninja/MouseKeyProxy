@@ -180,6 +180,59 @@ If the toggle hotkey fails:
 
 If input is forwarded but local applications still receive it, stop using the session and trigger emergency release. That behavior violates the exclusive-control model and should be treated as a bug.
 
+## Raspberry Pi HID Appliance (Optional)
+
+MouseKeyProxy can optionally drive a physical Raspberry Pi Zero 2 W that presents
+itself to a target PC as a standard USB HID keyboard and mouse. The `mkp` tool
+bundles a writer to provision the Pi's SD card in one step.
+
+Provision the SD card:
+
+```powershell
+mkp pi provision
+```
+
+This downloads and checksum-verifies the Raspberry Pi OS image, stages it, then
+launches the bundled "RUFUS For MouseKeyProxy" writer. In Rufus, open
+"Configure Pi HID...", set the SSH key, Wi-Fi, hostname, user, and token (or load
+a saved profile), select the SD card, and click START to write.
+
+Options:
+
+```powershell
+mkp pi provision --url <IMAGE_URL> --sha256 <HASH|skip> --stage-root <DIR> --profile <NAME> --force --no-launch
+```
+
+- `--url` overrides the image URL; pass `--sha256 <hash>` for the new image, or `--sha256 skip` to disable verification.
+- `--stage-root` sets the staging directory (default `%LOCALAPPDATA%\MouseKeyProxy\pi-stage`).
+- `--profile` selects the named Pi HID profile passed to the writer.
+- `--force` re-downloads even if a staged copy exists.
+- `--no-launch` stages the image without launching the writer.
+
+### Operating System Deployed to the Pi
+
+The provisioned card runs:
+
+- Raspberry Pi OS Lite, 64-bit (arm64), based on Debian 13 "trixie" (13.5).
+- Linux kernel `6.18.34+rpt-rpi-v8` (aarch64).
+- Default image `2026-06-18-raspios-trixie-arm64-lite.img.xz` (Raspberry Pi OS Lite arm64); override with `--url` and `--sha256`.
+- Target board: Raspberry Pi Zero 2 W.
+
+First boot is unattended and self-healing. It sets the hostname (default
+`mkp-hid-pi`), creates the user (default `mkp`) with key-only SSH, joins Wi-Fi via
+a NetworkManager connection, enables SSH, and stages the USB HID gadget. It writes
+`mkp-firstboot.log` to the boot partition and always reboots even if a step fails,
+so the board never bricks or loops. After first boot the Pi is reachable by
+hostname over the lab network, for example:
+
+```powershell
+ssh -i <path-to-private-key> mkp@mkp-hid-pi
+```
+
+The Raspberry Pi OS image does not include a .NET runtime; the HID appliance
+service is published self-contained for `linux-arm64` and deployed separately.
+See `docs/hardware/pi-zero-2-hid.md` for the appliance build and setup details.
+
 ## Uninstall
 
 Stop forwarding first, then remove the service from an elevated shell:

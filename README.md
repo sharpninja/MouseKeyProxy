@@ -33,6 +33,18 @@ Default hotkey: Ctrl+Alt+F1.
 - Windows Event Log diagnostics.
 - LIFO clipboard sync with bounded history and privacy skips.
 
+## Known Compatible Hardware
+
+Verified configurations:
+
+- **Control and target hosts:** Windows 11 x64. MouseKeyProxy pairs exactly two Windows 11 machines.
+- **Raspberry Pi HID appliance:** Raspberry Pi Zero 2 W (Rev 1.0). Provisioned by `mkp pi provision` with Raspberry Pi OS Lite 64-bit (Debian 13 "trixie", 13.5; kernel `6.18.34+rpt-rpi-v8`). First boot, Wi-Fi join, and key-only SSH are verified; the USB HID gadget (keyboard and mouse via configfs, dwc2 peripheral mode) is configured at provision time.
+- **SD media:** microSD card (4 GB or larger) written with the bundled "RUFUS For MouseKeyProxy" writer.
+
+Notes:
+
+- The Pi HID appliance is headless by design; local HDMI is optional. The Pi Zero 2 W outputs at most ~1080p and cannot drive 1440p or ultrawide monitors at native resolution. If you need a local console, use a solid mini-HDMI adapter and cable (a marginal link can flap EDID and fail to sync).
+
 ## Build
 
 ```powershell

@@ -10,6 +10,23 @@ MouseKeyProxy supports a physical Raspberry Pi Zero 2 HID appliance path for lab
 - Control channel: Wi-Fi HTTP to the .NET service
 - Input channel: Pi USB data port enumerating as standard HID keyboard and relative mouse
 
+## Operating System
+
+The appliance runs Raspberry Pi OS Lite provisioned by `mkp pi provision`:
+
+- Distribution: Raspberry Pi OS Lite, 64-bit (arm64), based on Debian 13 "trixie" (13.5).
+- Kernel: `6.18.34+rpt-rpi-v8` (aarch64).
+- Default image: `2026-06-18-raspios-trixie-arm64-lite.img.xz`.
+- Board: Raspberry Pi Zero 2 W (Rev 1.0 verified).
+- Networking: NetworkManager (Wi-Fi keyfile written at first boot).
+- Access: SSH enabled, key-only; default hostname `mkp-hid-pi`, default user `mkp`.
+- The image ships no .NET runtime; the HID service is published self-contained for `linux-arm64` and deployed separately (below).
+
+First boot is unattended and self-healing: it configures hostname, user,
+authorized SSH key, Wi-Fi, sudo policy, and the USB HID gadget, logs to
+`mkp-firstboot.log` on the boot partition, and always reboots (even on a failed
+step) so the board never bricks or loops.
+
 ## Build
 
 ```powershell
@@ -24,7 +41,11 @@ pwsh -ExecutionPolicy Bypass -File scripts/pi/publish-pi-hid.ps1
 
 ## Pi Setup
 
-1. Install Raspberry Pi OS Lite 64-bit and set hostname `mkp-hid-pi`.
+The recommended path is `mkp pi provision` (see the User Guide), which writes the
+image and applies the first-boot configuration in step 1 automatically. The manual
+steps below remain valid if you provision the card yourself.
+
+1. Install Raspberry Pi OS Lite 64-bit (Debian 13 trixie, arm64) and set hostname `mkp-hid-pi`. `mkp pi provision` does this and the SSH/Wi-Fi/user setup for you.
 2. Copy the published `linux-arm64` output to `/opt/mousekeyproxy/pi-hid`.
 3. Copy `scripts/pi/pi-hid.env.sample` to `/etc/mousekeyproxy/pi-hid.env` and set `MKP_HID_PI_TOKEN`.
 4. Run `scripts/pi/setup-configfs-gadget.sh` as root to create `/dev/hidg0` and `/dev/hidg1`.
