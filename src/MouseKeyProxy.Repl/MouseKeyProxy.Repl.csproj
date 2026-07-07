@@ -27,14 +27,19 @@
 
   <ItemGroup>
     <None Include="..\..\README.md" Pack="true" PackagePath="\" />
+    <None Include="..\..\THIRD-PARTY-NOTICES.md" Pack="true" PackagePath="\" />
   </ItemGroup>
 
-  <!-- Bundle the "RUFUS For MouseKeyProxy" writer next to the tool for local build/test.
+  <!-- Bundle the "RUFUS For MouseKeyProxy" writer (GPLv3) next to the tool for local
+       build/test, together with its GPLv3 license text and third-party notice so the
+       binary is never distributed without its attribution and license.
        Kept out of publish output (and thus out of auto tool-package inclusion) so the
-       PublishPayloadsForPackage target is the single source that adds it to the .nupkg,
+       PublishPayloadsForPackage target is the single source that adds them to the .nupkg,
        avoiding the NU5118 duplicate-file error. -->
   <ItemGroup>
     <None Include="..\..\assets\rufus\rufus.exe" Link="payloads\rufus\rufus.exe" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="Never" Pack="false" />
+    <None Include="..\..\assets\rufus\COPYING" Link="payloads\rufus\COPYING" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="Never" Pack="false" />
+    <None Include="..\..\assets\rufus\THIRD-PARTY-NOTICES.md" Link="payloads\rufus\THIRD-PARTY-NOTICES.md" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="Never" Pack="false" />
   </ItemGroup>
 
   <Target Name="PublishPayloadsForPackage">
@@ -45,6 +50,8 @@
     <Copy SourceFiles="$(MSBuildThisFileDirectory)..\..\assets\logo.png" DestinationFolder="$(OutputPath)payloads\agent" SkipUnchangedFiles="true" Condition="Exists('$(MSBuildThisFileDirectory)..\..\assets\logo.png')" />
     <MakeDir Directories="$(OutputPath)payloads\rufus" />
     <Copy SourceFiles="$(MSBuildThisFileDirectory)..\..\assets\rufus\rufus.exe" DestinationFolder="$(OutputPath)payloads\rufus" SkipUnchangedFiles="true" Condition="Exists('$(MSBuildThisFileDirectory)..\..\assets\rufus\rufus.exe')" />
+    <Copy SourceFiles="$(MSBuildThisFileDirectory)..\..\assets\rufus\COPYING" DestinationFolder="$(OutputPath)payloads\rufus" SkipUnchangedFiles="true" Condition="Exists('$(MSBuildThisFileDirectory)..\..\assets\rufus\COPYING')" />
+    <Copy SourceFiles="$(MSBuildThisFileDirectory)..\..\assets\rufus\THIRD-PARTY-NOTICES.md" DestinationFolder="$(OutputPath)payloads\rufus" SkipUnchangedFiles="true" Condition="Exists('$(MSBuildThisFileDirectory)..\..\assets\rufus\THIRD-PARTY-NOTICES.md')" />
     <ItemGroup>
       <TfmSpecificPackageFile Include="$(OutputPath)payloads\**\*" PackagePath="tools/$(TargetFramework)/any/payloads/%(RecursiveDir)%(Filename)%(Extension)" />
     </ItemGroup>

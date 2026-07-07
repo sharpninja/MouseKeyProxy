@@ -52,4 +52,11 @@ Versions are produced by GitVersion. NuGet publishing requires the current commi
 
 ## License
 
-Apache-2.0. See [LICENSE](LICENSE).
+MouseKeyProxy's own code is Apache-2.0. See [LICENSE](LICENSE).
+
+The `mkp` tool bundles a modified build of **Rufus** ("RUFUS For MouseKeyProxy"),
+used by `mkp pi provision` to write the Pi HID image to SD media. Rufus is
+Copyright (C) 2011-2026 Pete Batard / Akeo Consulting and is licensed under
+**GPLv3** (mere aggregation - it does not relicense MouseKeyProxy). Corresponding
+source: https://github.com/sharpninja/rufus-mkp. See
+[THIRD-PARTY-NOTICES.md](THIRD-PARTY-NOTICES.md).
