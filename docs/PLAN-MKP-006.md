@@ -48,7 +48,7 @@ All PLAN-MKP-004 decisions preserved (Round 2-4 reviews, proto, FR/TR/TEST mappi
 - **REV-006-007 REPL deployment locked**: Bundled self-contained `payloads/` in nupkg; C# install path (copy, ACLs, `sc.exe`, firewall, `MouseKeyProxyTray` ONLOGON scheduled task for Session 1 tray visibility).
 - **REV-006-008 Process hygiene**: `verify-goal.ps1` sole entrypoint; MCP-only TODO/session; receipts before claims; no self-claims in plan text.
 
-Prior review artifacts remain valid: docs/PLAN-MKP-003-Claude-Review.md, docs/PLAN-MKP-004-Codex-Final-Approval.md. Post-completion successor: docs/PLAN-MKP-004-Release.md (or PLAN-MKP-REL-001).
+Prior review findings have been incorporated. Standalone review and approval artifacts have been removed. Post-completion successor: docs/PLAN-MKP-004-Release.md (or PLAN-MKP-REL-001).
 
 Wireframes (01-tray-icon-menu.svg etc.) are Inception/Elaboration deliverables that block tray ACs and tests (see docs/wireframes/ to be populated; specs in original PLAN-MKP-001).
 
@@ -598,7 +598,7 @@ Phases updated to v1 two-node first, explicit IPC in elaboration, REPL contract 
 
 **Path of this plan**: `f:\github\MouseKeyProxy\docs\PLAN-MKP-006.md`
 
-**Review history**: PLAN-MKP-001..004 review artifacts + `docs/PLAN-MKP-004-Codex-Final-Approval.md` (GO for Elaboration). PLAN-REV-006-001 (this document) incorporates harness evidence, artifact contract, error-path matrix, and inception blocker enforcement. Successor: docs/PLAN-MKP-004-Release.md.
+**Review history**: PLAN-MKP-001..004 review findings were incorporated into the active plan series. PLAN-REV-006-001 (this document) incorporates harness evidence, artifact contract, error-path matrix, and inception blocker enforcement. Successor: docs/PLAN-MKP-004-Release.md.
 
 **MCP TODO tracking**: PLAN-SUBAGENT-001 (subagent MCP TODO + session logging rule) + other gated TODOs. Active working plan. Elaboration and Harness Evidence Iteration may proceed; Construction slices gated on `TEST-MKP-012` green.
 

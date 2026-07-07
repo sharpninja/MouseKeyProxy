@@ -1,23 +1,21 @@
-# PLAN-MKP-006 to Done Diff
+# PLAN-MKP-006 to Current State Diff
 
-Date: 2026-07-04
+Date: 2026-07-07
 Baseline: `docs/PLAN-MKP-006.md`
-Done evidence: `docs/PLAN-GATES.md`, `docs/receipts-transition-e2e.txt`, `docs/receipts-plan-readiness-20260704T144720Z.txt`, `docs/Project/wiki/github/*.md`
-Local completion commits: `5008f0e` and `7554434`
+Current pushed head: `564cfd3 feat: expose canonical CLI controls`
+Remote sync: `origin/master` verified to match local `HEAD` at `564cfd38aed951eefe9f09d669579afd2fe17249`
 
-This document is the transition diff for moving PLAN-MKP-006 from an elaboration/construction plan to a done-state claim. It does not replace the original plan. It identifies what changed, which requirements expanded after 006, and which evidence must be present before another agent can call the project done.
+This document updates the prior 006-to-done diff to the current project state. It does not replace `docs/PLAN-MKP-006.md`; it records what changed after that plan, what is implemented now, what evidence exists, and what must still be live-validated before a final "done" claim is defensible.
 
-Remote synchronization is intentionally separated from implementation completion. The local repository contains the completion commits listed above. A final wrap-up still needs a verified `git push origin master` result if remote sync is required for the handoff.
+## Current Summary
 
-## Executive Diff
+PLAN-MKP-006 began as an implementation plan for paired MouseKeyProxy control. The repository has since moved beyond the original six FRs: it now includes service/agent control paths, WinForms tray/dashboard UI, hacker mouse workstation branding, Event Viewer logging, Fresh sunset artifacts, MCP requirements exports, exclusive remote-control semantics, emergency release over local pipe and gRPC, global CA1416 suppression, AGENTS/CLAUDE workspace instructions, and a canonical CLI control surface.
 
-PLAN-MKP-006 started as a combined plan with construction gated on harness evidence. The done state is no longer just a plan or harness target: the product workspace now contains implemented service/agent control paths, REPL and cmdlet surfaces, UI/branding requirements, consolidated Fresh sunset artifacts, MCP requirements exports, and a real two-host paired-control receipt.
+The code, docs, tests, and GitHub state are current at `564cfd3`. The latest full Release test run passed 73 tests with zero warnings. Local deployment on `PAYTON-LEGION2` succeeded and the installed `mkp.exe` exposes the current CLI commands.
 
-The strict done condition from the user is satisfied by the paired-control evidence: `payton-legion2` paired with `payton-desktop`, moved the Desktop cursor, focused a Desktop Notepad window, injected sentinel text, and passed the transition smoke gate.
+The live two-host done claim still needs one current end-to-end validation: `mkp emergency-release --json` performed local cleanup on `PAYTON-LEGION2` but returned `EMERGENCY_RELEASE_PARTIAL` because the Desktop peer agent pipe timed out. That means the repository is current, but Desktop-side interactive agent availability must be restored and revalidated before claiming "legion2 is controlling desktop now" as current runtime fact.
 
 ## Baseline 006 Scope
-
-PLAN-MKP-006 covered these core requirements:
 
 | Plan 006 item | Baseline intent |
 | --- | --- |
@@ -28,137 +26,143 @@ PLAN-MKP-006 covered these core requirements:
 | `FR-MKP-005` | Advanced gRPC controls: `InjectInput`, `SetMousePosition`, `LocateProcess`, and `SetFocusByHwnd`. |
 | `FR-MKP-006` | Setup, REPL, service lifecycle, LocalAppData state, and explicit service management. |
 
-PLAN-MKP-006 also required these process and evidence gates:
-
-| Gate | Baseline intent |
-| --- | --- |
-| Visibility gate | Completion claims require observable behavior and durable receipts, not just code shape. |
-| Artifact contract | `verify-env` and post-run scratch artifacts must have exact contracts. |
-| Error-path matrix | gRPC `Unavailable` and related setup failures must be observable and actionable. |
-| Shipped-code test contract | Tests must exercise shipped command code, not duplicate-only test logic. |
-| Wireframe-driven tray UI | UI had to be deliberate and validated, not a throwaway diagnostic window. |
-| MCP compliance | TODOs, requirements, logs, and exports must remain traceable through MCP. |
+PLAN-MKP-006 also required observable behavior, exact artifact contracts, actionable error paths, shipped-code tests, deliberate tray UI, and MCP traceability.
 
 ## Requirements Diff After 006
 
-The current requirements export expands the done definition beyond the original six FRs. The added requirements below are not optional embellishments; they reflect explicit user requirements added during completion work.
-
-| Current requirement | Delta from PLAN-MKP-006 | Done evidence |
+| Current requirement | Delta from PLAN-MKP-006 | Current evidence |
 | --- | --- | --- |
-| `FR-MKP-005` | Strengthened from advanced gRPC contract to real paired-control proof. | `docs/receipts-transition-e2e.txt`, `scripts/assert-paired-control-proof.ps1`, `docs/PLAN-GATES.md`. |
-| `FR-MKP-006` | Expanded setup/REPL/service lifecycle to include usable agent dashboard UI. | `docs/PLAN-GATES.md`, `tests/MouseKeyProxy.Compliance.Tests/AgentUiBrandingComplianceTests.cs`, readiness receipt. |
-| `FR-MKP-007` | Added full logging requirement through `ILogger` and Windows Event Viewer. | Current requirements matrix and test requirements export. |
-| `FR-MKP-008` | Added required hacker mouse workstation branding. | `docs/PLAN-GATES.md`, `AgentUiBrandingComplianceTests`, readiness receipt. |
-| `FR-MKP-009` | Added Codex-design/testing and Claude-implementation workflow requirement. | Current requirements export, handoff prompts, docs, and session receipts. |
-| `FR-MKP-010` | Added agent invocation observability: parameter summary, full call signature, free stdout/stderr flow. | Current requirements export and cmdlet implementation tests. |
-| `FR-MKP-011` | Added hard Moq ban and NSubstitute-only test-double rule. | `tests/MouseKeyProxy.Compliance.Tests/TestDoubleComplianceTests.cs`, readiness receipt. |
-| `FR-HOTKEY-001` | Added compile-time hotkey contract requirement for red-first behavior. | Current requirements matrix and `tests/MouseKeyProxy.Common.Tests/ToggleStateTests.cs`. |
-| `FR-OWNERSHIP-001` | Added explicit service-vs-agent ownership boundary. | Current requirements matrix and ownership tests. |
+| `FR-MKP-005` | Strengthened from advanced gRPC contract to real paired-control proof. | `docs/receipts-transition-e2e.txt`, `scripts/assert-paired-control-proof.ps1`, gRPC service tests. |
+| `FR-MKP-006` | Expanded setup/REPL/service lifecycle to a usable agent dashboard and a canonical CLI control surface. | `src/MouseKeyProxy.Repl/Program.cs`, `tests/MouseKeyProxy.Repl.Tests/ReplBidiConstructionTests.cs`, local `mkp status --json` smoke. |
+| `FR-MKP-007` | Added Windows Event Viewer logging requirement. | `mkp logs`, tray/dashboard `Open logs`, EventLog source setup, logging tests. |
+| `FR-MKP-008` | Added required hacker mouse workstation branding. | `assets/logo.branding.md`, UI/branding compliance tests, wireframes. |
+| `FR-MKP-009` | Added Codex-design/testing and Claude-implementation workflow requirement. | `AGENTS.md`, `CLAUDE.md`, session/handoff docs. |
+| `FR-MKP-010` | Added agent invocation observability: parameter summary, full call signature, free stdout/stderr flow. | Requirements docs, cmdlet guidance, prompts. |
+| `FR-MKP-011` | Added hard Moq ban and NSubstitute-only test-double rule. | `TestDoubleComplianceTests`, Moq source/package scans, NSubstitute tests. |
+| `FR-HOTKEY-001` | Added compile-time hotkey contract and fallback-hook expectations. | `Win32HotkeyMonitor` tests, Ctrl+Alt+F1 fixes. |
+| `FR-OWNERSHIP-001` | Added explicit service-vs-agent ownership boundary. | Service-to-agent pipe seams and ownership tests. |
 
 ## Implementation Diff
 
-| Area | 006 target | Done-state delta | Evidence |
+| Area | 006 target | Current-state delta | Evidence |
 | --- | --- | --- | --- |
-| Advanced control service | Define and test gRPC advanced controls. | Implemented service-to-agent control path for set mouse, locate process, focus HWND, and inject text/input. | `FR-MKP-005`, `TEST-MKP-009` through `TEST-MKP-011`, `docs/receipts-transition-e2e.txt`. |
-| Real paired control | Completion requires actual visible remote control. | `payton-legion2` controlled `payton-desktop`: pairing, cursor movement, Notepad focus, sentinel text injection. | `PAIRING: PASS`, `CURSOR_CONTROL: PASS`, `SENTINEL_INPUT: PASS`, `SMOKE: PASS`. |
-| Service/agent split | Service must not perform direct desktop input. | Desktop-affecting input is routed through the user-session agent and named-pipe/control seams. | Ownership and service tests; readiness receipt. |
-| REPL/service lifecycle | REPL manages pairing/settings/service lifecycle and status. | REPL and scripts participate in transition E2E, goal verification, service checks, and paired-control smoke. | `scripts/run-transition-e2e.ps1`, `scripts/verify-goal.ps1`, readiness receipt. |
-| UI | 006 required tray UI and wireframe-driven design. | Agent dashboard and tray branding were implemented and made testable. | `AgentUiBrandingComplianceTests`, `docs/PLAN-GATES.md`, readiness receipt. |
-| Branding | Not originally the central 006 theme. | Branding now centers on a hacker mouse typing at a keyboard at a desk surrounded by monitors. | `FR-MKP-008`, branding tests, requirements export. |
-| Agent cmdlets | Not a baseline 006 requirement. | Codex/Claude agent cmdlets must print parameter summaries, echo full call signatures, and let output flow to host. | `FR-MKP-010`, current requirements matrix, cmdlet tests. |
-| Clipboard | 006 required LIFO clipboard sync and persistence. | Requirements and tests track LIFO merge, bounded history, DPAPI persistence, and reload behavior. | `FR-MKP-004`, `TEST-MKP-004`, `TEST-MKP-006`, `tests/MouseKeyProxy.Common.Tests/LifoClipboardTests.cs`. |
-| Fresh sunset | 006 referenced Fresh migration as project context. | Product workspace now contains migrated Fresh docs, artifacts, scripts, requirements, and sunset records. | `docs/sunset-fresh/`, `docs/PLAN-GATES.md`. |
-| Test doubles | 006 did not ban Moq by itself. | Moq is banned; NSubstitute is the accepted test-double framework. | `FR-MKP-011`, `TestDoubleComplianceTests`, readiness receipt. |
-| Requirements export | 006 required MCP traceability. | Current wiki exports exist under `docs/Project/wiki`, plus ZIP export under `docs/requirements/requirements-wiki-documents.zip`. | `7554434 docs: export MCP requirements wrap-up`. |
+| Advanced control service | Define and test gRPC advanced controls. | Implemented service-to-agent control path for set mouse, locate process, focus HWND, inject input, and emergency release. | `MouseKeyProxyImpl`, `AgentControlPipeClient`, service tests. |
+| Exclusive input forwarding | Proxy active-machine input. | Mirror Mode removed; forwarding now consumes local keyboard/mouse events while active, except explicit control chords. | `RemoteInputForwarder`, hotkey/forwarding tests. |
+| Emergency release | Restore local control. | Local UI/CLI release stops forwarding and can notify peer; peer gRPC release routes to the agent pipe and avoids recursive peer notification unless requested. | `EmergencyRelease` RPC, `NotifyPeer`, agent/service/common tests. |
+| Canonical CLI | REPL manages setup/control. | CLI is now the canonical control surface: `status`, `agent status`, `pair status`, `emergency-release`, `release`, `logs`, service lifecycle, remote-control commands. UI must not expose CLI-missing controls. | `564cfd3`, REPL tests, requirements docs. |
+| Service/agent split | Service must not perform direct desktop input. | Desktop-affecting operations route through the user-session agent and named-pipe/control seams. | Common/service/agent tests. |
+| UI and branding | Wireframe-driven tray UI. | Dashboard/tray controls were implemented, actions gated by pairing/connection, Event Viewer opens to MKP log, icon uses MKP branding. | UI source/tests and wireframes. |
+| Logging | Not fully specified in 006. | Logs go to Windows Event Viewer via dedicated MouseKeyProxy log/source instead of arbitrary folders. | RePL install setup and UI log launcher. |
+| Warnings policy | Warnings must be fixed. | `TreatWarningsAsErrors=true`; CA1416 is globally suppressed by approval, and latest Release test run emitted zero warnings. | `Directory.Build.props`, full test output. |
+| Fresh sunset | Migration context. | Fresh docs, artifacts, scripts, and requirement exports are migrated under `docs/sunset-fresh/`. | `docs/sunset-fresh/`. |
+| Workspace instructions | Not part of 006. | `AGENTS.md` and `CLAUDE.md` are committed workspace contract documents. | `3d9b831`. |
+
+## Current Evidence Snapshot
+
+| Evidence | Current result |
+| --- | --- |
+| Local/remote git head | Local `HEAD` and `origin/master` match `564cfd38aed951eefe9f09d669579afd2fe17249`. |
+| Full Release tests | `dotnet test MouseKeyProxy.slnx -c Release --no-restore` passed 73 tests, zero warnings. |
+| Local deploy | `scripts/install-lab-service.ps1` completed on `PAYTON-LEGION2`; service reachable at `payton-legion2:50051`. |
+| Installed CLI help | Installed temp `mkp.exe` shows `status`, `agent status`, `pair status`, `emergency-release`, `release`, and `logs`. |
+| Local status | `mkp status --json` reports service `Running`, agent connected to `payton-desktop`, `forwardingActive=false`. |
+| Emergency release smoke | `mkp emergency-release --json` cleaned local state but returned `EMERGENCY_RELEASE_PARTIAL` due Desktop peer agent pipe timeout. |
 
 ## Done Gate To Reproduce
 
-A follow-on agent can move from 006 to done only when all checks below are true.
+Run these from `F:\GitHub\MouseKeyProxy`.
 
-1. Verify the local source contains the completion commits:
+1. Verify current source and GitHub sync:
 
 ```powershell
-git log --oneline -5
+git log --oneline -8
+git rev-parse HEAD
+git ls-remote origin refs/heads/master
 ```
 
-Required local commits:
+Expected head:
 
 ```text
-7554434 docs: export MCP requirements wrap-up
-5008f0e feat: complete MouseKeyProxy paired-control proof
+564cfd38aed951eefe9f09d669579afd2fe17249
 ```
 
-2. Run the readiness gate:
+2. Run the full Release suite:
 
 ```powershell
-pwsh -NoProfile -ExecutionPolicy Bypass -File scripts/check-plan-readiness.ps1
+dotnet test MouseKeyProxy.slnx -c Release --no-restore --logger "console;verbosity=minimal"
 ```
 
-Expected result:
+Expected result: all test projects pass, total 73 tests, zero warnings other than globally suppressed CA1416.
+
+3. Confirm canonical CLI surface:
+
+```powershell
+$mkp = 'C:\Users\kingd\AppData\Local\Temp\mkp-lab-install\tool\mkp.exe'
+& $mkp --help
+& $mkp status --json
+& $mkp pair status --json
+& $mkp emergency-release --json
+```
+
+Expected local status facts:
 
 ```text
-PLAN READINESS: PASS
+service.status=Running
+agent.remotePeer=payton-desktop
+agent.remoteState=Connected
+agent.forwardingActive=false after release
 ```
 
-3. Confirm paired-control proof remains present:
+4. Re-run live paired-control proof with all required parameters:
 
 ```powershell
-pwsh -NoProfile -ExecutionPolicy Bypass -File scripts/assert-paired-control-proof.ps1
+$receipt = 'docs\receipts-transition-e2e.txt'
+pwsh -NoProfile -ExecutionPolicy Bypass -File scripts\assert-paired-control-proof.ps1 -ReceiptPath $receipt -LocalHost 'payton-legion2' -RemoteHost 'payton-desktop' -Sentinel 'MKP-CONTROL-PROOF' -RequireSmokePass
 ```
 
-Expected receipt facts:
-
-```text
-PAIRING: PASS local=payton-legion2 remote=payton-desktop
-CURSOR_CONTROL: PASS from=payton-legion2 to=payton-desktop
-SENTINEL_INPUT: PASS from=payton-legion2 to=payton-desktop text=MKP-CONTROL-PROOF
-SMOKE: PASS
-```
-
-4. If the lab proof is stale or contested, rerun the full transition flow with WSMan credentials from `~/.creds`:
+If the receipt is stale or contested, run the full transition flow with valid WSMan access and then re-run the proof:
 
 ```powershell
-pwsh -NoProfile -ExecutionPolicy Bypass -File scripts/run-transition-e2e.ps1
-pwsh -NoProfile -ExecutionPolicy Bypass -File scripts/verify-goal.ps1
+pwsh -NoProfile -ExecutionPolicy Bypass -File scripts\run-transition-e2e.ps1
+pwsh -NoProfile -ExecutionPolicy Bypass -File scripts\verify-goal.ps1
 ```
 
-5. Confirm the MCP requirements matrix has current mappings for `FR-MKP-001` through `FR-MKP-011`, `FR-HOTKEY-001`, and `FR-OWNERSHIP-001`:
-
-```powershell
-rg -n '^\| (FR-MKP|FR-HOTKEY|FR-OWNERSHIP)-' docs/Project/wiki/github/Requirements-Matrix.md docs/Project/wiki/github/TR-per-FR-Mapping.md
-```
-
-6. Confirm there are no remaining implementation TODO gates under the MKP workstream. Historical plan/process TODOs are not implementation blockers unless they reference an unverified product requirement.
-
-7. Validate workspace hygiene:
+5. Validate workspace hygiene:
 
 ```powershell
 git diff --check
 git status --short
 ```
 
-8. If remote completion is required, push and verify remote head:
+## Current Done-State Decision
 
-```powershell
-git push origin master
-git ls-remote origin refs/heads/master
+The repository implementation is current and pushed, but the live runtime done claim is conditional.
+
+Implemented and current:
+
+- Mirror Mode is removed from product behavior, UI, tests, and current wireframes.
+- Keyboard/mouse forwarding is exclusive to one machine while remote control is active.
+- Emergency Release exists locally, over the agent pipe, over gRPC, and through the canonical CLI.
+- CLI/REPL is the canonical control surface.
+- UI and CLI both expose status/logs/release paths.
+- CA1416 is globally suppressed by approval; all other warnings are treated as errors.
+- Moq remains banned.
+- `AGENTS.md` and `CLAUDE.md` are committed.
+- GitHub is synchronized to the current head.
+
+Current live caveat:
+
+- Desktop-side agent availability is not currently proven. The latest `mkp emergency-release --json` on `PAYTON-LEGION2` returned partial failure because the peer release path timed out reaching the Desktop agent pipe. Before declaring the project done in the user's strict sense, `PAYTON-DESKTOP` must have an interactive agent session available and `payton-legion2` must be revalidated controlling `payton-desktop`.
+
+## Commit Timeline Since 006
+
+```text
+564cfd3 feat: expose canonical CLI controls
+3d9b831 docs: add agent workspace instructions
+2aedf65 fix: enforce exclusive remote control
+411471d fix: make ctrl-alt-f1 hotkey reliable
+61b4536 fix: sync repl pairing state to agent
+9d20978 fix: clarify unpaired endpoint state
+d5a7ce9 fix: open dedicated mkp event log
+3e89668 fix: gate remote dashboard actions
 ```
-
-The done claim is not remote-synced until the remote head matches the local completion commit.
-
-## Done-State Decision
-
-PLAN-MKP-006 can be marked done when these conditions are simultaneously true:
-
-- `scripts/check-plan-readiness.ps1` passes.
-- Real paired-control evidence still shows `payton-legion2 -> payton-desktop` control.
-- Requirements exports include all current FR/TR/TEST mappings introduced during the project.
-- The Moq ban scan passes and active tests use NSubstitute or purpose-built fakes/stubs.
-- Hacker mouse workstation branding is present and covered by tests/receipts.
-- Fresh sunset artifacts and requirements are migrated into the Product workspace.
-- The repository is committed locally.
-- Remote sync is verified separately if the handoff requires GitHub state to match local state.
-
-## Open Caveat
-
-The prior wrap-up produced local commit `7554434`, but the runtime blocked `git push origin master` during that turn. Do not state that GitHub is current until a later push succeeds and `git ls-remote origin refs/heads/master` matches local `HEAD`.

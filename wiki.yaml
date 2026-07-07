@@ -1,0 +1,9 @@
+version: 1
+wiki:
+  pages:
+    - title: Logo Branding Contract
+      source: assets/logo.branding.md
+      output: Logo-Branding-Contract.md
+      destinations:
+        - github
+        - azure

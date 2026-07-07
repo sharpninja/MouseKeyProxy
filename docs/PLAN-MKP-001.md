@@ -31,7 +31,7 @@ This follows the Byrd Development Process V4 strictly (tests first with mocks/st
 **Source control note**: GitHub repo added explicitly as `origin` per user instruction (https://github.com/sharpninja/MouseKeyProxy.git). This project treats GitHub as the working origin for this repository. (Global rules note AzDO as primary for other repos; this one follows the explicit add-github-repo directive.)
 
 ## Codex + Claude Round 2 Review Processing Summary
-All required fixes from PLAN-MKP-001-Codex-Review.md and PLAN-MKP-001-Claude-Review.md (R2-BLK-1/2/3, R2-MAJ-1-6, minors) have been incorporated in this pass:
+All required Round 2 fixes (R2-BLK-1/2/3, R2-MAJ-1-6, minors) have been incorporated in this pass:
 - R2-BLK-1: Stale duplicate Recommended Approach deleted; single-voice document.
 - R2-BLK-2: Identity table added; pairing secrets/settings ownership consistent with agent (CurrentUser DPAPI); service non-secret only.
 - R2-BLK-3: Test projects + xUnit v3 + NSubstitute (never Moq) + seams (IInputSource etc.) added to Critical Files; red/green for additional TESTs; full inline mappings; evidence export in docs/requirements-matrix.yaml; TODO contradiction resolved in text.
@@ -461,8 +461,6 @@ Critical files updated in ownership:
 Phases updated to v1 two-node first, explicit IPC in elaboration, REPL contract commands, full gates with commands before each construction slice.
 
 **Path of this plan**: `f:\github\MouseKeyProxy\docs\PLAN-MKP-001.md`
-
-**Codex review file**: `docs/PLAN-MKP-001-Codex-Review.md`
 
 **MCP TODO tracking**: PLAN-CODEX-001 (plan revision per Codex) + future gated TODOs (e.g. PLAN-ARCH-*, PLAN-INPUT-*) to be created via client.Todo.* once payload shape confirmed. Traceability lives in workflow.requirements (FR/TR/TEST/mappings).
 

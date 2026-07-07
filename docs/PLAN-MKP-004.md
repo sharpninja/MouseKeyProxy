@@ -1,6 +1,6 @@
 # PLAN-MKP-004: MouseKeyProxy - Free Hotkey-Only Alternative to PowerToys Mouse Without Borders
 
-**Status**: Combined Round 4 plan. Incorporates all prior + fixes from Codex review. Final approval artifact: docs/PLAN-MKP-004-Codex-Final-Approval.md (GO for Elaboration). Receipts appended. All prior blockers closed. Construction on hold pending Elaboration gates.
+**Status**: Combined Round 4 plan. Incorporates all prior review findings. Receipts appended. All prior blockers closed. Construction on hold pending Elaboration gates.
 
 **Workspace root**: `f:\github\MouseKeyProxy`
 
@@ -31,7 +31,7 @@ This follows the Byrd Development Process V4 strictly (tests first with mocks/st
 **Source control note**: GitHub repo added explicitly as `origin` per user instruction (https://github.com/sharpninja/MouseKeyProxy.git). This project treats GitHub as the working origin for this repository. (Global rules note AzDO as primary for other repos; this one follows the explicit add-github-repo directive.)
 
 ## Review Processing Summary
-All prior incorporated. **Claude Round-4 for PLAN-MKP-003** (see docs/PLAN-MKP-003-Claude-Review.md) addressed in this update to PLAN-MKP-004 (PLAN-REV-004-001):
+All prior findings were incorporated. Claude Round-4 findings for PLAN-MKP-003 were addressed in this update to PLAN-MKP-004 (PLAN-REV-004-001):
 - Header updated to PLAN-MKP-004.
 - Embedded proto fence closed with proper ``` .
 - TR-per-FR-Mapping.md updated to map all 6 FRs (store mappings added via MCP, doc synced).
@@ -529,7 +529,7 @@ Phases updated to v1 two-node first, explicit IPC in elaboration, REPL contract 
 
 **Path of this plan**: `f:\github\MouseKeyProxy\docs\PLAN-MKP-004.md`
 
-**Review history**: ... + Codex Final Approval in `docs/PLAN-MKP-004-Codex-Final-Approval.md` (GO for Elaboration; receipts appended to approval). Successor: docs/PLAN-MKP-004-Release.md.
+**Review history**: Prior Codex and Claude review/approval findings were incorporated into this plan. Standalone review and approval artifacts have been removed. Successor: docs/PLAN-MKP-004-Release.md.
 
 **MCP TODO tracking**: PLAN-SUBAGENT-001 (subagent MCP TODO + session logging rule) + other gated TODOs. This is now the active working plan. Construction remains on hold pending final peer reviews / Byrd gate approval. No construction code yet.
 

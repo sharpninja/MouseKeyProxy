@@ -31,7 +31,7 @@ This follows the Byrd Development Process V4 strictly (tests first with mocks/st
 **Source control note**: GitHub repo added explicitly as `origin` per user instruction (https://github.com/sharpninja/MouseKeyProxy.git). This project treats GitHub as the working origin for this repository. (Global rules note AzDO as primary for other repos; this one follows the explicit add-github-repo directive.)
 
 ## Review Processing Summary
-All prior Codex + Claude Round 2 (from 001) incorporated at fork. **Claude Round-3 for PLAN-MKP-002** (see docs/PLAN-MKP-002-Claude-Review.md) addressed in this polish pass (PLAN-POLISH-003-001):
+All prior Codex + Claude Round 2 findings from PLAN-MKP-001 were incorporated at fork. Claude Round-3 findings for PLAN-MKP-002 were addressed in this polish pass (PLAN-POLISH-003-001):
 - R3-BLK-1: full red/green for all TEST-002..008 with concrete cmds; inline mappings added under FR-002..006; wireframe specs and risks restored in dedicated section; OpenSession bidi confirmed in proto.
 - R3-BLK-2: proto updated - duplicate ClipboardFormat removed, service includes OpenSession bidi + Pair RPC, SessionEnvelope carries high-rate + Control/Heartbeat/Ack; pairing surface added.
 - Majors: TLS/identity made consistent (service data-plane + TLS key, agent user secrets - no or-forks or contradictions); decisions locked (no 'preferred'/'or'/'documented in code'); traceability drift fixed (clean yaml export, no invented TRs, references match store).
@@ -478,7 +478,7 @@ Phases updated to v1 two-node first, explicit IPC in elaboration, REPL contract 
 
 **Path of this plan**: `f:\github\MouseKeyProxy\docs\PLAN-MKP-002.md`
 
-**Review history**: Codex review in `docs/PLAN-MKP-001-Codex-Review.md`, Claude Round 2 in `docs/PLAN-MKP-001-Claude-Review.md`, Claude Round 3 in `docs/PLAN-MKP-002-Claude-Review.md` (all incorporated). Successor: docs/PLAN-MKP-003-Release.md (the PLAN-MKP-002-Release.md is legacy stub).
+**Review history**: Prior Codex and Claude review findings were incorporated into this plan. Standalone review artifacts have been removed. Successor: docs/PLAN-MKP-003-Release.md (the PLAN-MKP-002-Release.md is legacy stub).
 
 **MCP TODO tracking**: PLAN-SUBAGENT-001 (subagent MCP TODO + session logging rule) + other gated TODOs. This is now the active working plan. Construction remains on hold pending final peer reviews / Byrd gate approval. No construction code yet.
 
