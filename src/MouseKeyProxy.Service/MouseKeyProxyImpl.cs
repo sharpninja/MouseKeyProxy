@@ -18,15 +18,18 @@ public class MouseKeyProxyImpl : MouseKeyProxy.Network.V1.MouseKeyProxy.MouseKey
     private readonly ILogger<MouseKeyProxyImpl> _logger;
     private readonly SessionFrameDispatcher? _dispatcher;
     private readonly IRemoteDesktopController? _desktopController;
+    private readonly IEmergencyReleaseController? _emergencyReleaseController;
 
     public MouseKeyProxyImpl(
         ILogger<MouseKeyProxyImpl> logger,
         SessionFrameDispatcher? dispatcher = null,
-        IRemoteDesktopController? desktopController = null)
+        IRemoteDesktopController? desktopController = null,
+        IEmergencyReleaseController? emergencyReleaseController = null)
     {
         _logger = logger;
         _dispatcher = dispatcher;
         _desktopController = desktopController;
+        _emergencyReleaseController = emergencyReleaseController;
     }
 
     public override Task<PairResponse> Pair(PairRequest request, ServerCallContext context)
@@ -169,6 +172,24 @@ public class MouseKeyProxyImpl : MouseKeyProxy.Network.V1.MouseKeyProxy.MouseKey
             await _dispatcher.HandleInputBatchAsync(evts);
         }
         return new global::MouseKeyProxy.Network.V1.CommandResult { Ok = true, Msg = "ok" };
+    }
+
+    public override Task<global::MouseKeyProxy.Network.V1.CommandResult> EmergencyRelease(
+        global::MouseKeyProxy.Network.V1.EmergencyReleaseRequest request,
+        ServerCallContext context)
+    {
+        _logger.LogWarning(
+            "EmergencyRelease requested by PeerId={PeerId}, correlationId={CorrelationId}",
+            request.PeerId,
+            request.CorrelationId);
+        if (_emergencyReleaseController is null)
+        {
+            _logger.LogWarning("EmergencyRelease failed: {ErrorCode}", AgentIpcUnavailable);
+            return Task.FromResult(UnavailableResult());
+        }
+
+        var result = _emergencyReleaseController.EmergencyRelease(request.PeerId, request.CorrelationId);
+        return Task.FromResult(ToCommandResult(result));
     }
 
     private static global::MouseKeyProxy.Network.V1.CommandResult ToCommandResult(RemoteControlResult result)

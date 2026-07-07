@@ -70,24 +70,29 @@ namespace MouseKeyProxy.Network.V1 {
             "EhUKDWNvcnJlbGF0aW9uSWQYBSABKAkimQEKEkluamVjdElucHV0UmVxdWVz",
             "dBIXCg9wcm90b2NvbFZlcnNpb24YASABKAkSDgoGcGVlcklkGAIgASgJEhUK",
             "DXRhcmdldFJlbW90ZXMYAyADKAkSLAoGZXZlbnRzGAQgAygLMhwubW91c2Vr",
-            "ZXlwcm94eS52MS5JbnB1dEV2ZW50EhUKDWNvcnJlbGF0aW9uSWQYBSABKAkq",
-            "tQEKCUlucHV0S2luZBIaChZJTlBVVF9LSU5EX1VOU1BFQ0lGSUVEEAASDAoI",
-            "S0VZX0RPV04QARIKCgZLRVlfVVAQAhIOCgpNT1VTRV9NT1ZFEAMSDgoKTU9V",
-            "U0VfRE9XThAEEgwKCE1PVVNFX1VQEAUSDwoLTU9VU0VfV0hFRUwQBhIQCgxN",
-            "T1VTRV9IV0hFRUwQCRIRCg1NT1VTRV9YQlVUVE9OEAcSDgoKVEVYVF9JTlBV",
-            "VBAIMp0ECg1Nb3VzZUtleVByb3h5ElEKC09wZW5TZXNzaW9uEh4ubW91c2Vr",
-            "ZXlwcm94eS52MS5TZXNzaW9uRnJhbWUaHi5tb3VzZWtleXByb3h5LnYxLlNl",
-            "c3Npb25GcmFtZSgBMAESRQoEUGFpchIdLm1vdXNla2V5cHJveHkudjEuUGFp",
-            "clJlcXVlc3QaHi5tb3VzZWtleXByb3h5LnYxLlBhaXJSZXNwb25zZRJeChBT",
-            "ZXRNb3VzZVBvc2l0aW9uEikubW91c2VrZXlwcm94eS52MS5TZXRNb3VzZVBv",
-            "c2l0aW9uUmVxdWVzdBofLm1vdXNla2V5cHJveHkudjEuQ29tbWFuZFJlc3Vs",
-            "dBJgCg1Mb2NhdGVQcm9jZXNzEiYubW91c2VrZXlwcm94eS52MS5Mb2NhdGVQ",
-            "cm9jZXNzUmVxdWVzdBonLm1vdXNla2V5cHJveHkudjEuTG9jYXRlUHJvY2Vz",
-            "c1Jlc3BvbnNlEloKDlNldEZvY3VzQnlId25kEicubW91c2VrZXlwcm94eS52",
-            "MS5TZXRGb2N1c0J5SHduZFJlcXVlc3QaHy5tb3VzZWtleXByb3h5LnYxLkNv",
-            "bW1hbmRSZXN1bHQSVAoLSW5qZWN0SW5wdXQSJC5tb3VzZWtleXByb3h5LnYx",
-            "LkluamVjdElucHV0UmVxdWVzdBofLm1vdXNla2V5cHJveHkudjEuQ29tbWFu",
-            "ZFJlc3VsdEIbqgIYTW91c2VLZXlQcm94eS5OZXR3b3JrLlYxYgZwcm90bzM="));
+            "ZXlwcm94eS52MS5JbnB1dEV2ZW50EhUKDWNvcnJlbGF0aW9uSWQYBSABKAki",
+            "WQoXRW1lcmdlbmN5UmVsZWFzZVJlcXVlc3QSFwoPcHJvdG9jb2xWZXJzaW9u",
+            "GAEgASgJEg4KBnBlZXJJZBgCIAEoCRIVCg1jb3JyZWxhdGlvbklkGAMgASgJ",
+            "KrUBCglJbnB1dEtpbmQSGgoWSU5QVVRfS0lORF9VTlNQRUNJRklFRBAAEgwK",
+            "CEtFWV9ET1dOEAESCgoGS0VZX1VQEAISDgoKTU9VU0VfTU9WRRADEg4KCk1P",
+            "VVNFX0RPV04QBBIMCghNT1VTRV9VUBAFEg8KC01PVVNFX1dIRUVMEAYSEAoM",
+            "TU9VU0VfSFdIRUVMEAkSEQoNTU9VU0VfWEJVVFRPThAHEg4KClRFWFRfSU5Q",
+            "VVQQCDL9BAoNTW91c2VLZXlQcm94eRJRCgtPcGVuU2Vzc2lvbhIeLm1vdXNl",
+            "a2V5cHJveHkudjEuU2Vzc2lvbkZyYW1lGh4ubW91c2VrZXlwcm94eS52MS5T",
+            "ZXNzaW9uRnJhbWUoATABEkUKBFBhaXISHS5tb3VzZWtleXByb3h5LnYxLlBh",
+            "aXJSZXF1ZXN0Gh4ubW91c2VrZXlwcm94eS52MS5QYWlyUmVzcG9uc2USXgoQ",
+            "U2V0TW91c2VQb3NpdGlvbhIpLm1vdXNla2V5cHJveHkudjEuU2V0TW91c2VQ",
+            "b3NpdGlvblJlcXVlc3QaHy5tb3VzZWtleXByb3h5LnYxLkNvbW1hbmRSZXN1",
+            "bHQSYAoNTG9jYXRlUHJvY2VzcxImLm1vdXNla2V5cHJveHkudjEuTG9jYXRl",
+            "UHJvY2Vzc1JlcXVlc3QaJy5tb3VzZWtleXByb3h5LnYxLkxvY2F0ZVByb2Nl",
+            "c3NSZXNwb25zZRJaCg5TZXRGb2N1c0J5SHduZBInLm1vdXNla2V5cHJveHku",
+            "djEuU2V0Rm9jdXNCeUh3bmRSZXF1ZXN0Gh8ubW91c2VrZXlwcm94eS52MS5D",
+            "b21tYW5kUmVzdWx0ElQKC0luamVjdElucHV0EiQubW91c2VrZXlwcm94eS52",
+            "MS5JbmplY3RJbnB1dFJlcXVlc3QaHy5tb3VzZWtleXByb3h5LnYxLkNvbW1h",
+            "bmRSZXN1bHQSXgoQRW1lcmdlbmN5UmVsZWFzZRIpLm1vdXNla2V5cHJveHku",
+            "djEuRW1lcmdlbmN5UmVsZWFzZVJlcXVlc3QaHy5tb3VzZWtleXByb3h5LnYx",
+            "LkNvbW1hbmRSZXN1bHRCG6oCGE1vdXNlS2V5UHJveHkuTmV0d29yay5WMWIG",
+            "cHJvdG8z"));
       descriptor = pbr::FileDescriptor.FromGeneratedCode(descriptorData,
           new pbr::FileDescriptor[] { },
           new pbr::GeneratedClrTypeInfo(new[] {typeof(global::MouseKeyProxy.Network.V1.InputKind), }, null, new pbr::GeneratedClrTypeInfo[] {
@@ -111,7 +116,8 @@ namespace MouseKeyProxy.Network.V1 {
             new pbr::GeneratedClrTypeInfo(typeof(global::MouseKeyProxy.Network.V1.LocateProcessResponse), global::MouseKeyProxy.Network.V1.LocateProcessResponse.Parser, new[]{ "Nodes", "ErrorCode" }, null, null, null, null),
             new pbr::GeneratedClrTypeInfo(typeof(global::MouseKeyProxy.Network.V1.HwndNode), global::MouseKeyProxy.Network.V1.HwndNode.Parser, new[]{ "Hwnd", "Title", "ClassName", "ProcessId", "Children" }, null, null, null, null),
             new pbr::GeneratedClrTypeInfo(typeof(global::MouseKeyProxy.Network.V1.SetFocusByHwndRequest), global::MouseKeyProxy.Network.V1.SetFocusByHwndRequest.Parser, new[]{ "ProtocolVersion", "PeerId", "Hwnd", "BringToFront", "CorrelationId" }, null, null, null, null),
-            new pbr::GeneratedClrTypeInfo(typeof(global::MouseKeyProxy.Network.V1.InjectInputRequest), global::MouseKeyProxy.Network.V1.InjectInputRequest.Parser, new[]{ "ProtocolVersion", "PeerId", "TargetRemotes", "Events", "CorrelationId" }, null, null, null, null)
+            new pbr::GeneratedClrTypeInfo(typeof(global::MouseKeyProxy.Network.V1.InjectInputRequest), global::MouseKeyProxy.Network.V1.InjectInputRequest.Parser, new[]{ "ProtocolVersion", "PeerId", "TargetRemotes", "Events", "CorrelationId" }, null, null, null, null),
+            new pbr::GeneratedClrTypeInfo(typeof(global::MouseKeyProxy.Network.V1.EmergencyReleaseRequest), global::MouseKeyProxy.Network.V1.EmergencyReleaseRequest.Parser, new[]{ "ProtocolVersion", "PeerId", "CorrelationId" }, null, null, null, null)
           }));
     }
     #endregion
@@ -377,7 +383,11 @@ namespace MouseKeyProxy.Network.V1 {
     #else
       uint tag;
       while ((tag = input.ReadTag()) != 0) {
-        switch(tag) {
+      if ((tag & 7) == 4) {
+        // Abort on any end group tag.
+        return;
+      }
+      switch(tag) {
           default:
             _unknownFields = pb::UnknownFieldSet.MergeFieldFrom(_unknownFields, input);
             break;
@@ -408,7 +418,11 @@ namespace MouseKeyProxy.Network.V1 {
     void pb::IBufferMessage.InternalMergeFrom(ref pb::ParseContext input) {
       uint tag;
       while ((tag = input.ReadTag()) != 0) {
-        switch(tag) {
+      if ((tag & 7) == 4) {
+        // Abort on any end group tag.
+        return;
+      }
+      switch(tag) {
           default:
             _unknownFields = pb::UnknownFieldSet.MergeFieldFrom(_unknownFields, ref input);
             break;
@@ -649,7 +663,11 @@ namespace MouseKeyProxy.Network.V1 {
     #else
       uint tag;
       while ((tag = input.ReadTag()) != 0) {
-        switch(tag) {
+      if ((tag & 7) == 4) {
+        // Abort on any end group tag.
+        return;
+      }
+      switch(tag) {
           default:
             _unknownFields = pb::UnknownFieldSet.MergeFieldFrom(_unknownFields, input);
             break;
@@ -676,7 +694,11 @@ namespace MouseKeyProxy.Network.V1 {
     void pb::IBufferMessage.InternalMergeFrom(ref pb::ParseContext input) {
       uint tag;
       while ((tag = input.ReadTag()) != 0) {
-        switch(tag) {
+      if ((tag & 7) == 4) {
+        // Abort on any end group tag.
+        return;
+      }
+      switch(tag) {
           default:
             _unknownFields = pb::UnknownFieldSet.MergeFieldFrom(_unknownFields, ref input);
             break;
@@ -1057,7 +1079,11 @@ namespace MouseKeyProxy.Network.V1 {
     #else
       uint tag;
       while ((tag = input.ReadTag()) != 0) {
-        switch(tag) {
+      if ((tag & 7) == 4) {
+        // Abort on any end group tag.
+        return;
+      }
+      switch(tag) {
           default:
             _unknownFields = pb::UnknownFieldSet.MergeFieldFrom(_unknownFields, input);
             break;
@@ -1121,7 +1147,11 @@ namespace MouseKeyProxy.Network.V1 {
     void pb::IBufferMessage.InternalMergeFrom(ref pb::ParseContext input) {
       uint tag;
       while ((tag = input.ReadTag()) != 0) {
-        switch(tag) {
+      if ((tag & 7) == 4) {
+        // Abort on any end group tag.
+        return;
+      }
+      switch(tag) {
           default:
             _unknownFields = pb::UnknownFieldSet.MergeFieldFrom(_unknownFields, ref input);
             break;
@@ -1355,7 +1385,11 @@ namespace MouseKeyProxy.Network.V1 {
     #else
       uint tag;
       while ((tag = input.ReadTag()) != 0) {
-        switch(tag) {
+      if ((tag & 7) == 4) {
+        // Abort on any end group tag.
+        return;
+      }
+      switch(tag) {
           default:
             _unknownFields = pb::UnknownFieldSet.MergeFieldFrom(_unknownFields, input);
             break;
@@ -1378,7 +1412,11 @@ namespace MouseKeyProxy.Network.V1 {
     void pb::IBufferMessage.InternalMergeFrom(ref pb::ParseContext input) {
       uint tag;
       while ((tag = input.ReadTag()) != 0) {
-        switch(tag) {
+      if ((tag & 7) == 4) {
+        // Abort on any end group tag.
+        return;
+      }
+      switch(tag) {
           default:
             _unknownFields = pb::UnknownFieldSet.MergeFieldFrom(_unknownFields, ref input);
             break;
@@ -1814,7 +1852,11 @@ namespace MouseKeyProxy.Network.V1 {
     #else
       uint tag;
       while ((tag = input.ReadTag()) != 0) {
-        switch(tag) {
+      if ((tag & 7) == 4) {
+        // Abort on any end group tag.
+        return;
+      }
+      switch(tag) {
           default:
             _unknownFields = pb::UnknownFieldSet.MergeFieldFrom(_unknownFields, input);
             break;
@@ -1869,7 +1911,11 @@ namespace MouseKeyProxy.Network.V1 {
     void pb::IBufferMessage.InternalMergeFrom(ref pb::ParseContext input) {
       uint tag;
       while ((tag = input.ReadTag()) != 0) {
-        switch(tag) {
+      if ((tag & 7) == 4) {
+        // Abort on any end group tag.
+        return;
+      }
+      switch(tag) {
           default:
             _unknownFields = pb::UnknownFieldSet.MergeFieldFrom(_unknownFields, ref input);
             break;
@@ -2108,7 +2154,11 @@ namespace MouseKeyProxy.Network.V1 {
     #else
       uint tag;
       while ((tag = input.ReadTag()) != 0) {
-        switch(tag) {
+      if ((tag & 7) == 4) {
+        // Abort on any end group tag.
+        return;
+      }
+      switch(tag) {
           default:
             _unknownFields = pb::UnknownFieldSet.MergeFieldFrom(_unknownFields, input);
             break;
@@ -2134,7 +2184,11 @@ namespace MouseKeyProxy.Network.V1 {
     void pb::IBufferMessage.InternalMergeFrom(ref pb::ParseContext input) {
       uint tag;
       while ((tag = input.ReadTag()) != 0) {
-        switch(tag) {
+      if ((tag & 7) == 4) {
+        // Abort on any end group tag.
+        return;
+      }
+      switch(tag) {
           default:
             _unknownFields = pb::UnknownFieldSet.MergeFieldFrom(_unknownFields, ref input);
             break;
@@ -2388,7 +2442,11 @@ namespace MouseKeyProxy.Network.V1 {
     #else
       uint tag;
       while ((tag = input.ReadTag()) != 0) {
-        switch(tag) {
+      if ((tag & 7) == 4) {
+        // Abort on any end group tag.
+        return;
+      }
+      switch(tag) {
           default:
             _unknownFields = pb::UnknownFieldSet.MergeFieldFrom(_unknownFields, input);
             break;
@@ -2419,7 +2477,11 @@ namespace MouseKeyProxy.Network.V1 {
     void pb::IBufferMessage.InternalMergeFrom(ref pb::ParseContext input) {
       uint tag;
       while ((tag = input.ReadTag()) != 0) {
-        switch(tag) {
+      if ((tag & 7) == 4) {
+        // Abort on any end group tag.
+        return;
+      }
+      switch(tag) {
           default:
             _unknownFields = pb::UnknownFieldSet.MergeFieldFrom(_unknownFields, ref input);
             break;
@@ -2634,7 +2696,11 @@ namespace MouseKeyProxy.Network.V1 {
     #else
       uint tag;
       while ((tag = input.ReadTag()) != 0) {
-        switch(tag) {
+      if ((tag & 7) == 4) {
+        // Abort on any end group tag.
+        return;
+      }
+      switch(tag) {
           default:
             _unknownFields = pb::UnknownFieldSet.MergeFieldFrom(_unknownFields, input);
             break;
@@ -2657,7 +2723,11 @@ namespace MouseKeyProxy.Network.V1 {
     void pb::IBufferMessage.InternalMergeFrom(ref pb::ParseContext input) {
       uint tag;
       while ((tag = input.ReadTag()) != 0) {
-        switch(tag) {
+      if ((tag & 7) == 4) {
+        // Abort on any end group tag.
+        return;
+      }
+      switch(tag) {
           default:
             _unknownFields = pb::UnknownFieldSet.MergeFieldFrom(_unknownFields, ref input);
             break;
@@ -2964,7 +3034,11 @@ namespace MouseKeyProxy.Network.V1 {
     #else
       uint tag;
       while ((tag = input.ReadTag()) != 0) {
-        switch(tag) {
+      if ((tag & 7) == 4) {
+        // Abort on any end group tag.
+        return;
+      }
+      switch(tag) {
           default:
             _unknownFields = pb::UnknownFieldSet.MergeFieldFrom(_unknownFields, input);
             break;
@@ -3010,7 +3084,11 @@ namespace MouseKeyProxy.Network.V1 {
     void pb::IBufferMessage.InternalMergeFrom(ref pb::ParseContext input) {
       uint tag;
       while ((tag = input.ReadTag()) != 0) {
-        switch(tag) {
+      if ((tag & 7) == 4) {
+        // Abort on any end group tag.
+        return;
+      }
+      switch(tag) {
           default:
             _unknownFields = pb::UnknownFieldSet.MergeFieldFrom(_unknownFields, ref input);
             break;
@@ -3208,7 +3286,11 @@ namespace MouseKeyProxy.Network.V1 {
     #else
       uint tag;
       while ((tag = input.ReadTag()) != 0) {
-        switch(tag) {
+      if ((tag & 7) == 4) {
+        // Abort on any end group tag.
+        return;
+      }
+      switch(tag) {
           default:
             _unknownFields = pb::UnknownFieldSet.MergeFieldFrom(_unknownFields, input);
             break;
@@ -3227,7 +3309,11 @@ namespace MouseKeyProxy.Network.V1 {
     void pb::IBufferMessage.InternalMergeFrom(ref pb::ParseContext input) {
       uint tag;
       while ((tag = input.ReadTag()) != 0) {
-        switch(tag) {
+      if ((tag & 7) == 4) {
+        // Abort on any end group tag.
+        return;
+      }
+      switch(tag) {
           default:
             _unknownFields = pb::UnknownFieldSet.MergeFieldFrom(_unknownFields, ref input);
             break;
@@ -3387,7 +3473,11 @@ namespace MouseKeyProxy.Network.V1 {
     #else
       uint tag;
       while ((tag = input.ReadTag()) != 0) {
-        switch(tag) {
+      if ((tag & 7) == 4) {
+        // Abort on any end group tag.
+        return;
+      }
+      switch(tag) {
           default:
             _unknownFields = pb::UnknownFieldSet.MergeFieldFrom(_unknownFields, input);
             break;
@@ -3407,7 +3497,11 @@ namespace MouseKeyProxy.Network.V1 {
     void pb::IBufferMessage.InternalMergeFrom(ref pb::ParseContext input) {
       uint tag;
       while ((tag = input.ReadTag()) != 0) {
-        switch(tag) {
+      if ((tag & 7) == 4) {
+        // Abort on any end group tag.
+        return;
+      }
+      switch(tag) {
           default:
             _unknownFields = pb::UnknownFieldSet.MergeFieldFrom(_unknownFields, ref input);
             break;
@@ -3608,7 +3702,11 @@ namespace MouseKeyProxy.Network.V1 {
     #else
       uint tag;
       while ((tag = input.ReadTag()) != 0) {
-        switch(tag) {
+      if ((tag & 7) == 4) {
+        // Abort on any end group tag.
+        return;
+      }
+      switch(tag) {
           default:
             _unknownFields = pb::UnknownFieldSet.MergeFieldFrom(_unknownFields, input);
             break;
@@ -3631,7 +3729,11 @@ namespace MouseKeyProxy.Network.V1 {
     void pb::IBufferMessage.InternalMergeFrom(ref pb::ParseContext input) {
       uint tag;
       while ((tag = input.ReadTag()) != 0) {
-        switch(tag) {
+      if ((tag & 7) == 4) {
+        // Abort on any end group tag.
+        return;
+      }
+      switch(tag) {
           default:
             _unknownFields = pb::UnknownFieldSet.MergeFieldFrom(_unknownFields, ref input);
             break;
@@ -3835,7 +3937,11 @@ namespace MouseKeyProxy.Network.V1 {
     #else
       uint tag;
       while ((tag = input.ReadTag()) != 0) {
-        switch(tag) {
+      if ((tag & 7) == 4) {
+        // Abort on any end group tag.
+        return;
+      }
+      switch(tag) {
           default:
             _unknownFields = pb::UnknownFieldSet.MergeFieldFrom(_unknownFields, input);
             break;
@@ -3858,7 +3964,11 @@ namespace MouseKeyProxy.Network.V1 {
     void pb::IBufferMessage.InternalMergeFrom(ref pb::ParseContext input) {
       uint tag;
       while ((tag = input.ReadTag()) != 0) {
-        switch(tag) {
+      if ((tag & 7) == 4) {
+        // Abort on any end group tag.
+        return;
+      }
+      switch(tag) {
           default:
             _unknownFields = pb::UnknownFieldSet.MergeFieldFrom(_unknownFields, ref input);
             break;
@@ -4033,7 +4143,11 @@ namespace MouseKeyProxy.Network.V1 {
     #else
       uint tag;
       while ((tag = input.ReadTag()) != 0) {
-        switch(tag) {
+      if ((tag & 7) == 4) {
+        // Abort on any end group tag.
+        return;
+      }
+      switch(tag) {
           default:
             _unknownFields = pb::UnknownFieldSet.MergeFieldFrom(_unknownFields, input);
             break;
@@ -4052,7 +4166,11 @@ namespace MouseKeyProxy.Network.V1 {
     void pb::IBufferMessage.InternalMergeFrom(ref pb::ParseContext input) {
       uint tag;
       while ((tag = input.ReadTag()) != 0) {
-        switch(tag) {
+      if ((tag & 7) == 4) {
+        // Abort on any end group tag.
+        return;
+      }
+      switch(tag) {
           default:
             _unknownFields = pb::UnknownFieldSet.MergeFieldFrom(_unknownFields, ref input);
             break;
@@ -4313,7 +4431,11 @@ namespace MouseKeyProxy.Network.V1 {
     #else
       uint tag;
       while ((tag = input.ReadTag()) != 0) {
-        switch(tag) {
+      if ((tag & 7) == 4) {
+        // Abort on any end group tag.
+        return;
+      }
+      switch(tag) {
           default:
             _unknownFields = pb::UnknownFieldSet.MergeFieldFrom(_unknownFields, input);
             break;
@@ -4344,7 +4466,11 @@ namespace MouseKeyProxy.Network.V1 {
     void pb::IBufferMessage.InternalMergeFrom(ref pb::ParseContext input) {
       uint tag;
       while ((tag = input.ReadTag()) != 0) {
-        switch(tag) {
+      if ((tag & 7) == 4) {
+        // Abort on any end group tag.
+        return;
+      }
+      switch(tag) {
           default:
             _unknownFields = pb::UnknownFieldSet.MergeFieldFrom(_unknownFields, ref input);
             break;
@@ -4675,7 +4801,11 @@ namespace MouseKeyProxy.Network.V1 {
     #else
       uint tag;
       while ((tag = input.ReadTag()) != 0) {
-        switch(tag) {
+      if ((tag & 7) == 4) {
+        // Abort on any end group tag.
+        return;
+      }
+      switch(tag) {
           default:
             _unknownFields = pb::UnknownFieldSet.MergeFieldFrom(_unknownFields, input);
             break;
@@ -4714,7 +4844,11 @@ namespace MouseKeyProxy.Network.V1 {
     void pb::IBufferMessage.InternalMergeFrom(ref pb::ParseContext input) {
       uint tag;
       while ((tag = input.ReadTag()) != 0) {
-        switch(tag) {
+      if ((tag & 7) == 4) {
+        // Abort on any end group tag.
+        return;
+      }
+      switch(tag) {
           default:
             _unknownFields = pb::UnknownFieldSet.MergeFieldFrom(_unknownFields, ref input);
             break;
@@ -4992,7 +5126,11 @@ namespace MouseKeyProxy.Network.V1 {
     #else
       uint tag;
       while ((tag = input.ReadTag()) != 0) {
-        switch(tag) {
+      if ((tag & 7) == 4) {
+        // Abort on any end group tag.
+        return;
+      }
+      switch(tag) {
           default:
             _unknownFields = pb::UnknownFieldSet.MergeFieldFrom(_unknownFields, input);
             break;
@@ -5023,7 +5161,11 @@ namespace MouseKeyProxy.Network.V1 {
     void pb::IBufferMessage.InternalMergeFrom(ref pb::ParseContext input) {
       uint tag;
       while ((tag = input.ReadTag()) != 0) {
-        switch(tag) {
+      if ((tag & 7) == 4) {
+        // Abort on any end group tag.
+        return;
+      }
+      switch(tag) {
           default:
             _unknownFields = pb::UnknownFieldSet.MergeFieldFrom(_unknownFields, ref input);
             break;
@@ -5224,7 +5366,11 @@ namespace MouseKeyProxy.Network.V1 {
     #else
       uint tag;
       while ((tag = input.ReadTag()) != 0) {
-        switch(tag) {
+      if ((tag & 7) == 4) {
+        // Abort on any end group tag.
+        return;
+      }
+      switch(tag) {
           default:
             _unknownFields = pb::UnknownFieldSet.MergeFieldFrom(_unknownFields, input);
             break;
@@ -5247,7 +5393,11 @@ namespace MouseKeyProxy.Network.V1 {
     void pb::IBufferMessage.InternalMergeFrom(ref pb::ParseContext input) {
       uint tag;
       while ((tag = input.ReadTag()) != 0) {
-        switch(tag) {
+      if ((tag & 7) == 4) {
+        // Abort on any end group tag.
+        return;
+      }
+      switch(tag) {
           default:
             _unknownFields = pb::UnknownFieldSet.MergeFieldFrom(_unknownFields, ref input);
             break;
@@ -5527,7 +5677,11 @@ namespace MouseKeyProxy.Network.V1 {
     #else
       uint tag;
       while ((tag = input.ReadTag()) != 0) {
-        switch(tag) {
+      if ((tag & 7) == 4) {
+        // Abort on any end group tag.
+        return;
+      }
+      switch(tag) {
           default:
             _unknownFields = pb::UnknownFieldSet.MergeFieldFrom(_unknownFields, input);
             break;
@@ -5562,7 +5716,11 @@ namespace MouseKeyProxy.Network.V1 {
     void pb::IBufferMessage.InternalMergeFrom(ref pb::ParseContext input) {
       uint tag;
       while ((tag = input.ReadTag()) != 0) {
-        switch(tag) {
+      if ((tag & 7) == 4) {
+        // Abort on any end group tag.
+        return;
+      }
+      switch(tag) {
           default:
             _unknownFields = pb::UnknownFieldSet.MergeFieldFrom(_unknownFields, ref input);
             break;
@@ -5865,7 +6023,11 @@ namespace MouseKeyProxy.Network.V1 {
     #else
       uint tag;
       while ((tag = input.ReadTag()) != 0) {
-        switch(tag) {
+      if ((tag & 7) == 4) {
+        // Abort on any end group tag.
+        return;
+      }
+      switch(tag) {
           default:
             _unknownFields = pb::UnknownFieldSet.MergeFieldFrom(_unknownFields, input);
             break;
@@ -5900,7 +6062,11 @@ namespace MouseKeyProxy.Network.V1 {
     void pb::IBufferMessage.InternalMergeFrom(ref pb::ParseContext input) {
       uint tag;
       while ((tag = input.ReadTag()) != 0) {
-        switch(tag) {
+      if ((tag & 7) == 4) {
+        // Abort on any end group tag.
+        return;
+      }
+      switch(tag) {
           default:
             _unknownFields = pb::UnknownFieldSet.MergeFieldFrom(_unknownFields, ref input);
             break;
@@ -6181,7 +6347,11 @@ namespace MouseKeyProxy.Network.V1 {
     #else
       uint tag;
       while ((tag = input.ReadTag()) != 0) {
-        switch(tag) {
+      if ((tag & 7) == 4) {
+        // Abort on any end group tag.
+        return;
+      }
+      switch(tag) {
           default:
             _unknownFields = pb::UnknownFieldSet.MergeFieldFrom(_unknownFields, input);
             break;
@@ -6216,7 +6386,11 @@ namespace MouseKeyProxy.Network.V1 {
     void pb::IBufferMessage.InternalMergeFrom(ref pb::ParseContext input) {
       uint tag;
       while ((tag = input.ReadTag()) != 0) {
-        switch(tag) {
+      if ((tag & 7) == 4) {
+        // Abort on any end group tag.
+        return;
+      }
+      switch(tag) {
           default:
             _unknownFields = pb::UnknownFieldSet.MergeFieldFrom(_unknownFields, ref input);
             break;
@@ -6237,6 +6411,278 @@ namespace MouseKeyProxy.Network.V1 {
             break;
           }
           case 42: {
+            CorrelationId = input.ReadString();
+            break;
+          }
+        }
+      }
+    }
+    #endif
+
+  }
+
+  [global::System.Diagnostics.DebuggerDisplayAttribute("{ToString(),nq}")]
+  public sealed partial class EmergencyReleaseRequest : pb::IMessage<EmergencyReleaseRequest>
+  #if !GOOGLE_PROTOBUF_REFSTRUCT_COMPATIBILITY_MODE
+      , pb::IBufferMessage
+  #endif
+  {
+    private static readonly pb::MessageParser<EmergencyReleaseRequest> _parser = new pb::MessageParser<EmergencyReleaseRequest>(() => new EmergencyReleaseRequest());
+    private pb::UnknownFieldSet _unknownFields;
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public static pb::MessageParser<EmergencyReleaseRequest> Parser { get { return _parser; } }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public static pbr::MessageDescriptor Descriptor {
+      get { return global::MouseKeyProxy.Network.V1.MousekeyproxyReflection.Descriptor.MessageTypes[21]; }
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    pbr::MessageDescriptor pb::IMessage.Descriptor {
+      get { return Descriptor; }
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public EmergencyReleaseRequest() {
+      OnConstruction();
+    }
+
+    partial void OnConstruction();
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public EmergencyReleaseRequest(EmergencyReleaseRequest other) : this() {
+      protocolVersion_ = other.protocolVersion_;
+      peerId_ = other.peerId_;
+      correlationId_ = other.correlationId_;
+      _unknownFields = pb::UnknownFieldSet.Clone(other._unknownFields);
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public EmergencyReleaseRequest Clone() {
+      return new EmergencyReleaseRequest(this);
+    }
+
+    /// <summary>Field number for the "protocolVersion" field.</summary>
+    public const int ProtocolVersionFieldNumber = 1;
+    private string protocolVersion_ = "";
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public string ProtocolVersion {
+      get { return protocolVersion_; }
+      set {
+        protocolVersion_ = pb::ProtoPreconditions.CheckNotNull(value, "value");
+      }
+    }
+
+    /// <summary>Field number for the "peerId" field.</summary>
+    public const int PeerIdFieldNumber = 2;
+    private string peerId_ = "";
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public string PeerId {
+      get { return peerId_; }
+      set {
+        peerId_ = pb::ProtoPreconditions.CheckNotNull(value, "value");
+      }
+    }
+
+    /// <summary>Field number for the "correlationId" field.</summary>
+    public const int CorrelationIdFieldNumber = 3;
+    private string correlationId_ = "";
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public string CorrelationId {
+      get { return correlationId_; }
+      set {
+        correlationId_ = pb::ProtoPreconditions.CheckNotNull(value, "value");
+      }
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public override bool Equals(object other) {
+      return Equals(other as EmergencyReleaseRequest);
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public bool Equals(EmergencyReleaseRequest other) {
+      if (ReferenceEquals(other, null)) {
+        return false;
+      }
+      if (ReferenceEquals(other, this)) {
+        return true;
+      }
+      if (ProtocolVersion != other.ProtocolVersion) return false;
+      if (PeerId != other.PeerId) return false;
+      if (CorrelationId != other.CorrelationId) return false;
+      return Equals(_unknownFields, other._unknownFields);
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public override int GetHashCode() {
+      int hash = 1;
+      if (ProtocolVersion.Length != 0) hash ^= ProtocolVersion.GetHashCode();
+      if (PeerId.Length != 0) hash ^= PeerId.GetHashCode();
+      if (CorrelationId.Length != 0) hash ^= CorrelationId.GetHashCode();
+      if (_unknownFields != null) {
+        hash ^= _unknownFields.GetHashCode();
+      }
+      return hash;
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public override string ToString() {
+      return pb::JsonFormatter.ToDiagnosticString(this);
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public void WriteTo(pb::CodedOutputStream output) {
+    #if !GOOGLE_PROTOBUF_REFSTRUCT_COMPATIBILITY_MODE
+      output.WriteRawMessage(this);
+    #else
+      if (ProtocolVersion.Length != 0) {
+        output.WriteRawTag(10);
+        output.WriteString(ProtocolVersion);
+      }
+      if (PeerId.Length != 0) {
+        output.WriteRawTag(18);
+        output.WriteString(PeerId);
+      }
+      if (CorrelationId.Length != 0) {
+        output.WriteRawTag(26);
+        output.WriteString(CorrelationId);
+      }
+      if (_unknownFields != null) {
+        _unknownFields.WriteTo(output);
+      }
+    #endif
+    }
+
+    #if !GOOGLE_PROTOBUF_REFSTRUCT_COMPATIBILITY_MODE
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    void pb::IBufferMessage.InternalWriteTo(ref pb::WriteContext output) {
+      if (ProtocolVersion.Length != 0) {
+        output.WriteRawTag(10);
+        output.WriteString(ProtocolVersion);
+      }
+      if (PeerId.Length != 0) {
+        output.WriteRawTag(18);
+        output.WriteString(PeerId);
+      }
+      if (CorrelationId.Length != 0) {
+        output.WriteRawTag(26);
+        output.WriteString(CorrelationId);
+      }
+      if (_unknownFields != null) {
+        _unknownFields.WriteTo(ref output);
+      }
+    }
+    #endif
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public int CalculateSize() {
+      int size = 0;
+      if (ProtocolVersion.Length != 0) {
+        size += 1 + pb::CodedOutputStream.ComputeStringSize(ProtocolVersion);
+      }
+      if (PeerId.Length != 0) {
+        size += 1 + pb::CodedOutputStream.ComputeStringSize(PeerId);
+      }
+      if (CorrelationId.Length != 0) {
+        size += 1 + pb::CodedOutputStream.ComputeStringSize(CorrelationId);
+      }
+      if (_unknownFields != null) {
+        size += _unknownFields.CalculateSize();
+      }
+      return size;
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public void MergeFrom(EmergencyReleaseRequest other) {
+      if (other == null) {
+        return;
+      }
+      if (other.ProtocolVersion.Length != 0) {
+        ProtocolVersion = other.ProtocolVersion;
+      }
+      if (other.PeerId.Length != 0) {
+        PeerId = other.PeerId;
+      }
+      if (other.CorrelationId.Length != 0) {
+        CorrelationId = other.CorrelationId;
+      }
+      _unknownFields = pb::UnknownFieldSet.MergeFrom(_unknownFields, other._unknownFields);
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public void MergeFrom(pb::CodedInputStream input) {
+    #if !GOOGLE_PROTOBUF_REFSTRUCT_COMPATIBILITY_MODE
+      input.ReadRawMessage(this);
+    #else
+      uint tag;
+      while ((tag = input.ReadTag()) != 0) {
+      if ((tag & 7) == 4) {
+        // Abort on any end group tag.
+        return;
+      }
+      switch(tag) {
+          default:
+            _unknownFields = pb::UnknownFieldSet.MergeFieldFrom(_unknownFields, input);
+            break;
+          case 10: {
+            ProtocolVersion = input.ReadString();
+            break;
+          }
+          case 18: {
+            PeerId = input.ReadString();
+            break;
+          }
+          case 26: {
+            CorrelationId = input.ReadString();
+            break;
+          }
+        }
+      }
+    #endif
+    }
+
+    #if !GOOGLE_PROTOBUF_REFSTRUCT_COMPATIBILITY_MODE
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    void pb::IBufferMessage.InternalMergeFrom(ref pb::ParseContext input) {
+      uint tag;
+      while ((tag = input.ReadTag()) != 0) {
+      if ((tag & 7) == 4) {
+        // Abort on any end group tag.
+        return;
+      }
+      switch(tag) {
+          default:
+            _unknownFields = pb::UnknownFieldSet.MergeFieldFrom(_unknownFields, ref input);
+            break;
+          case 10: {
+            ProtocolVersion = input.ReadString();
+            break;
+          }
+          case 18: {
+            PeerId = input.ReadString();
+            break;
+          }
+          case 26: {
             CorrelationId = input.ReadString();
             break;
           }

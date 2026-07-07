@@ -12,6 +12,7 @@ public static class AgentControlPipe
     public const string InjectInput = "injectInput";
     public const string NotifyPairingState = "notifyPairingState";
     public const string GetAgentStatus = "getAgentStatus";
+    public const string EmergencyRelease = "emergencyRelease";
 }
 
 public sealed class AgentControlRequest
@@ -27,6 +28,7 @@ public sealed class AgentControlRequest
     public string RemotePeer { get; set; } = string.Empty;
     public string RemoteGrpcUrl { get; set; } = string.Empty;
     public string PairingCode { get; set; } = string.Empty;
+    public string CorrelationId { get; set; } = string.Empty;
     public List<InputEvent> Events { get; set; } = new();
 }
 

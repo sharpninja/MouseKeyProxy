@@ -17,7 +17,7 @@ Core requirements from user:
 - Setup: f:\github\MouseKeyProxy root; git init; `director add-workspace`; GitHub repo sharpninja/MouseKeyProxy (origin); .NET 10; manage entirely via project's own PowerShell REPL global dotnet tool; settings in %LOCALAPPDATA%\MouseKeyProxy; register/run as Windows service.
 - REPL tool: pairing (UPnP/broadcast discovery + key negotiation/persist), settings, service start/stop/uninstall + reverse firewall (elevate Windows PowerShell 5.1 (powershell.exe; always present in-box on Win11; pwsh is PS7+)), clipboard ops, toggle. REPL is the primary management UX. Explicit `mkp service install` (not automatic on tool install).
 - App itself is **NOT** MCP-aware (plain .NET service + WinForms tray for desktop interaction).
-- Tray (WinForms): actions (start/stop conns/service, inject text, Mirror Mode, SetMousePos) invoke shared REPL command implementation (no per-click spawn).
+- Tray (WinForms): actions (start/stop conns/service, inject text, emergency release, SetMousePos) invoke shared REPL command implementation (no per-click spawn).
 - gRPC for comms (TLS + REPL-negotiated secrets).
 - New gRPC: InjectInput, SetMousePosition (display/pos without focus change), LocateProcess (name/PID -> hwnd tree), SetFocusByHwnd.
 - Nuke build (like McpServer).

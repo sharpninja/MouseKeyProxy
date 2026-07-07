@@ -85,11 +85,34 @@ public class AdvancedControlServiceTests
         controller.Received(1).SetFocusByHwnd(0x1234, bringToFront: true);
     }
 
-    private static MouseKeyProxyImpl CreateImpl(IRemoteDesktopController controller)
+    [Fact]
+    [Trait("Category", "EmergencyRelease")]
+    public async Task TEST_MKP_013_EmergencyRelease_Delegates_To_Agent_Controller()
+    {
+        var controller = Substitute.For<IEmergencyReleaseController>();
+        controller.EmergencyRelease("payton-desktop", "release-proof")
+            .Returns(RemoteControlResult.Success("released"));
+        var impl = CreateImpl(Substitute.For<IRemoteDesktopController>(), controller);
+
+        var response = await impl.EmergencyRelease(new EmergencyReleaseRequest
+        {
+            PeerId = "payton-desktop",
+            CorrelationId = "release-proof"
+        }, Substitute.For<ServerCallContext>());
+
+        Assert.True(response.Ok);
+        Assert.Equal("released", response.Msg);
+        controller.Received(1).EmergencyRelease("payton-desktop", "release-proof");
+    }
+
+    private static MouseKeyProxyImpl CreateImpl(
+        IRemoteDesktopController controller,
+        IEmergencyReleaseController? emergencyReleaseController = null)
     {
         return new MouseKeyProxyImpl(
             Substitute.For<ILogger<MouseKeyProxyImpl>>(),
             dispatcher: null,
-            desktopController: controller);
+            desktopController: controller,
+            emergencyReleaseController: emergencyReleaseController);
     }
 }

@@ -23,7 +23,7 @@ Core requirements from user:
 - Setup: f:\github\MouseKeyProxy root; `director add-workspace`; GitHub repo sharpninja/MouseKeyProxy (origin); .NET 10; manage entirely via project's own PowerShell REPL global dotnet tool; settings in %LOCALAPPDATA%\MouseKeyProxy; register/run as Windows service. The Visibility Gate (product workspace at f:\github\MouseKeyProxy, dirty src/ state with explicit git diff headers, and exact scratch hygiene after verify-goal.ps1) is a prerequisite for all work and claims.
 - REPL tool: pairing (UDP broadcast and/or mDNS LAN discovery (no UPnP IGD/NAT port mapping) + key negotiation/persist), settings, service start/stop/uninstall + reverse firewall (elevate via netsh or Windows PowerShell 5.1 (powershell.exe)), clipboard ops, toggle. REPL is the primary management UX. Explicit `mkp service install` (not automatic on tool install). The REPL nupkg includes self-contained Service and Agent payloads (produced via Nuke publish-selfcontained and bundled under a payloads/ directory inside the package). The install command deploys these to %ProgramData%\MouseKeyProxy\, applies ACLs, creates the service via sc.exe, adds firewall, starts the service, creates a scheduled task "MouseKeyProxyTray" (ONLOGON for the interactive user session to make the tray visible), and launches it.
 - App itself is **NOT** MCP-aware (plain .NET service + WinForms tray for desktop interaction).
-- Tray (WinForms): actions (start/stop conns/service, inject text, Mirror Mode, SetMousePos) invoke shared REPL command implementation (no per-click spawn). The tray UI and forms must exactly match the wireframes in docs/wireframes/ (using the logo from assets/ for the NotifyIcon). A wireframe-to-UI review with receipts is required.
+- Tray (WinForms): actions (start/stop conns/service, inject text, emergency release, SetMousePos) invoke shared REPL command implementation (no per-click spawn). Mirror Mode is removed from product scope. The tray UI and forms must exactly match the wireframes in docs/wireframes/ (using the logo from assets/ for the NotifyIcon). A wireframe-to-UI review with receipts is required.
 - gRPC for comms (TLS + REPL-negotiated secrets).
 - New gRPC: InjectInput, SetMousePosition (display/pos without focus change), LocateProcess (name/PID -> hwnd tree), SetFocusByHwnd.
 - Nuke build (like McpServer) responsible for producing self-contained Service and Agent payloads, packing the REPL nupkg with the payloads/ directory included, and supporting verification.
@@ -571,9 +571,8 @@ Follow Byrd V4 strictly (small gated slices, 100% pass (zero fail, zero skip) in
 ## SVG Wireframes (re-homed specs)
 Wireframes are required as deliverable blocking tray tests and ACs. Specs (simple SVG):
 
-- 01-tray-icon-menu.svg: tray icon (mouse+key symbol), right-click: Toggle Active (Ctrl-Alt-F1), Start Mirror Mode, Inject Text to Remote..., Start/Stop Service, Pair/Discover (REPL), Settings, Exit.
+- 01-tray-icon-menu.svg: tray icon (mouse+key symbol), right-click: Toggle Active (Ctrl-Alt-F1), Emergency release, Inject Text to Remote..., Start/Stop Service, Pair/Discover (REPL), Settings, Exit.
 - 02-inject-form.svg: modal "Inject to Remote": remote dropdown, textarea, Send/Cancel.
-- 03-mirror-mode.svg: active indicator + selectable remote list (checkboxes); Stop button.
 - 04-status.svg: hover/click shows connected remotes, role, last clip event.
 
 See docs/wireframes/ (to be created with actual SVGs). The Agent tray implementation must match these wireframes exactly (full menu items, forms for inject/mirror/status, custom icon from assets/). A wireframe-to-UI review (AIUnit or equivalent) with receipts is required before the tray slice is complete.

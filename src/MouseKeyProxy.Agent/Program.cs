@@ -54,7 +54,7 @@ internal static class Program
         _clip = new Win32CursorClip();
         _state = new ToggleStateMachine();
         _hotkey = new Win32HotkeyMonitor();
-        _controlPipe = AgentControlPipeServer.Start(new Win32DesktopController(), _injector, NotifyPairingState, GetAgentStatus);
+        _controlPipe = AgentControlPipeServer.Start(new Win32DesktopController(), _injector, NotifyPairingState, GetAgentStatus, ExecuteEmergencyReleaseCommand);
         _forwarder = new RemoteInputForwarder();
         LoadPersistedPairingState();
 
@@ -73,7 +73,6 @@ internal static class Program
         menu.Items.Add("Service", null, (_, _) => ShowServiceForm());
         AddConnectedRemoteMenuAction(menu, "Clipboard", (_, _) => ShowClipboardForm());
         AddConnectedRemoteMenuAction(menu, "Inject Text to Remote...", (_, _) => ShowInjectForm());
-        AddConnectedRemoteMenuAction(menu, "Start Mirror Mode", (_, _) => ShowMirrorForm());
         menu.Items.Add("Emergency release", null, (_, _) => EmergencyRelease());
         menu.Items.Add("Open logs", null, (_, _) => OpenLogs());
         menu.Items.Add("Exit", null, (_, _) => ExitApplication());
@@ -141,20 +140,6 @@ internal static class Program
         send.Click += (_, _) => { DoRealInject(text.Text); form.Close(); };
         form.Controls.Add(send);
         form.Controls.Add(new Button { Text = "Cancel", Left = 272, Top = 168, Width = 64, DialogResult = DialogResult.Cancel });
-        form.ShowDialog();
-    }
-
-    private static void ShowMirrorForm()
-    {
-        if (!EnsureConnectedRemoteAction("Start Mirror Mode"))
-        {
-            return;
-        }
-
-        using var form = new Form { Text = "Mirror Active peer", Width = 320, Height = 200, StartPosition = FormStartPosition.CenterScreen };
-        form.Controls.Add(new Label { Text = "Active peer", Left = 16, Top = 16, AutoSize = true });
-        form.Controls.Add(new CheckBox { Text = CurrentRemotePeer(), Left = 16, Top = 48, Checked = true });
-        form.Controls.Add(new Button { Text = "Stop", Left = 200, Top = 120, Width = 80 });
         form.ShowDialog();
     }
 
@@ -793,12 +778,97 @@ internal static class Program
 
     private static void EmergencyRelease()
     {
-        _clip?.Release();
-        MessageBox.Show(
-            "Emergency release completed. Local cursor clipping is released.",
-            "Emergency release",
-            MessageBoxButtons.OK,
-            MessageBoxIcon.Information);
+        PerformEmergencyRelease(showUi: true, notifyPeer: true, source: Environment.MachineName);
+    }
+
+    private static AgentControlResponse ExecuteEmergencyReleaseCommand(AgentControlRequest request)
+    {
+        if (_hotkeyWindow is { IsHandleCreated: true } window && window.InvokeRequired)
+        {
+            return (AgentControlResponse)window.Invoke(new Func<AgentControlResponse>(() => ExecuteEmergencyReleaseCommand(request)));
+        }
+
+        return PerformEmergencyRelease(showUi: false, notifyPeer: false, source: request.RemotePeer);
+    }
+
+    private static AgentControlResponse PerformEmergencyRelease(bool showUi, bool notifyPeer, string? source)
+    {
+        var failures = new List<string>();
+        var peerRelease = notifyPeer ? TryRequestPeerEmergencyRelease() : null;
+
+        try
+        {
+            _forwarder?.Stop();
+        }
+        catch (Exception ex)
+        {
+            failures.Add($"forwarder stop failed: {ex.Message}");
+        }
+
+        try
+        {
+            _clip?.Release();
+        }
+        catch (Exception ex)
+        {
+            failures.Add($"cursor release failed: {ex.Message}");
+        }
+
+        _state?.Reset();
+        UpdateRemoteActionAvailability();
+
+        if (peerRelease is { Ok: false })
+        {
+            failures.Add($"peer release failed: {peerRelease.Value.ErrorCode}: {peerRelease.Value.Message}");
+        }
+
+        var ok = failures.Count == 0;
+        var sourceSuffix = string.IsNullOrWhiteSpace(source) ? string.Empty : $" requested by {source.Trim()}";
+        var message = ok
+            ? $"Emergency release completed{sourceSuffix}. Local forwarding is stopped and keyboard/mouse are restored."
+            : $"Emergency release completed locally{sourceSuffix}, but {string.Join("; ", failures)}.";
+
+        if (showUi)
+        {
+            MessageBox.Show(
+                message,
+                "Emergency release",
+                MessageBoxButtons.OK,
+                ok ? MessageBoxIcon.Information : MessageBoxIcon.Warning);
+        }
+
+        return ok
+            ? AgentControlResponse.Success(message)
+            : AgentControlResponse.Failure("EMERGENCY_RELEASE_PARTIAL", message);
+    }
+
+    private static RemoteControlResult? TryRequestPeerEmergencyRelease()
+    {
+        if (_remoteState == RemoteConnectionState.NotPaired || string.IsNullOrWhiteSpace(_activeRemoteGrpcUrl))
+        {
+            return null;
+        }
+
+        try
+        {
+            using var channel = GrpcChannel.ForAddress(_activeRemoteGrpcUrl, new GrpcChannelOptions
+            {
+                HttpHandler = new System.Net.Http.SocketsHttpHandler { EnableMultipleHttp2Connections = true }
+            });
+            var client = new Wire.MouseKeyProxy.MouseKeyProxyClient(channel);
+            var response = client.EmergencyRelease(new Wire.EmergencyReleaseRequest
+            {
+                ProtocolVersion = "v1",
+                PeerId = Environment.MachineName.ToLowerInvariant(),
+                CorrelationId = Guid.NewGuid().ToString("N")
+            });
+
+            return new RemoteControlResult(response.Ok, response.Err, response.Msg);
+        }
+        catch (Exception ex)
+        {
+            return RemoteControlResult.Failure("EMERGENCY_RELEASE_RPC_FAILED", ex.Message);
+        }
     }
 
     private static void OpenLogs()

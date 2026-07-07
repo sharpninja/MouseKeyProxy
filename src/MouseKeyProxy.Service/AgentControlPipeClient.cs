@@ -147,3 +147,25 @@ internal sealed class AgentPipeInputInjector : IInputInjector
         return response.Ok;
     }
 }
+
+internal sealed class AgentPipeEmergencyReleaseController : IEmergencyReleaseController
+{
+    private readonly AgentControlPipeClient _client;
+
+    public AgentPipeEmergencyReleaseController(AgentControlPipeClient client)
+    {
+        _client = client;
+    }
+
+    public RemoteControlResult EmergencyRelease(string peerId, string correlationId)
+    {
+        var response = _client.Send(new AgentControlRequest
+        {
+            Operation = AgentControlPipe.EmergencyRelease,
+            RemotePeer = peerId,
+            CorrelationId = correlationId
+        });
+
+        return new RemoteControlResult(response.Ok, response.ErrorCode, response.Message);
+    }
+}

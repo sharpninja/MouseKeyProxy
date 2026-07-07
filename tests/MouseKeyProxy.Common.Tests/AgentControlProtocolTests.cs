@@ -41,4 +41,20 @@ public class AgentControlProtocolTests
         Assert.Equal("Connected", response.RemoteState);
         Assert.True(response.ForwardingActive);
     }
+
+    [Fact]
+    [Trait("Category", "EmergencyRelease")]
+    public void AgentControlProtocol_Includes_Emergency_Release()
+    {
+        var request = new AgentControlRequest
+        {
+            Operation = AgentControlPipe.EmergencyRelease,
+            RemotePeer = "payton-desktop",
+            CorrelationId = "release-proof"
+        };
+
+        Assert.Equal("emergencyRelease", AgentControlPipe.EmergencyRelease);
+        Assert.Equal("payton-desktop", request.RemotePeer);
+        Assert.Equal("release-proof", request.CorrelationId);
+    }
 }

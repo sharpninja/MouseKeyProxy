@@ -93,8 +93,8 @@ public class HotkeyRegistrationRegressionTests
         Assert.Contains("AddConnectedRemoteMenuAction(menu, \"Toggle Active - Desktop Control (Ctrl-Alt-F1)\"", mainMenu, StringComparison.Ordinal);
         Assert.Contains("AddConnectedRemoteMenuAction(menu, \"Clipboard\"", mainMenu, StringComparison.Ordinal);
         Assert.Contains("AddConnectedRemoteMenuAction(menu, \"Inject Text to Remote...\"", mainMenu, StringComparison.Ordinal);
-        Assert.Contains("AddConnectedRemoteMenuAction(menu, \"Start Mirror Mode\"", mainMenu, StringComparison.Ordinal);
         Assert.Contains("AddPairedRemoteMenuAction(menu, \"Reconnect\"", mainMenu, StringComparison.Ordinal);
+        Assert.Contains("menu.Items.Add(\"Emergency release\"", mainMenu, StringComparison.Ordinal);
         Assert.Contains("_primaryRemoteButton = CreateDashboardButton(\"Pair\")", source, StringComparison.Ordinal);
         Assert.Contains("UpdatePrimaryRemoteButton", source, StringComparison.Ordinal);
         Assert.Contains("_primaryRemoteButton.Text = \"Pair\"", source, StringComparison.Ordinal);
@@ -104,10 +104,12 @@ public class HotkeyRegistrationRegressionTests
         Assert.Contains("EnsureConnectedRemoteAction(\"Toggle Active - Desktop Control\")", toggleHelper, StringComparison.Ordinal);
         Assert.Contains("EnsureConnectedRemoteAction(\"Inject Text to Remote\")", injectHelper, StringComparison.Ordinal);
         Assert.Contains("EnsureConnectedRemoteAction(\"Clipboard\")", source, StringComparison.Ordinal);
-        Assert.Contains("EnsureConnectedRemoteAction(\"Start Mirror Mode\")", source, StringComparison.Ordinal);
         Assert.Contains("EnsurePairedRemoteAction(\"Reconnect\")", source, StringComparison.Ordinal);
+        Assert.Contains("PerformEmergencyRelease(showUi: true, notifyPeer: true", source, StringComparison.Ordinal);
         Assert.DoesNotContain("nullTransport", toggleHelper, StringComparison.Ordinal);
         Assert.DoesNotContain("[LOCAL fallback inject]", injectHelper, StringComparison.Ordinal);
+        Assert.DoesNotContain("Start Mirror Mode", source, StringComparison.Ordinal);
+        Assert.DoesNotContain("ShowMirrorForm", source, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -169,5 +171,40 @@ public class HotkeyRegistrationRegressionTests
         monitor.RaiseToggle("Ctrl-Alt-F1", remote: false);
 
         Assert.Equal(1, dispatchCount);
+    }
+
+    [Fact]
+    [Trait("Category", "Hotkey")]
+    public void RemoteInputForwarder_Consumes_Modifier_Keys_While_Remote_Control_Is_Active()
+    {
+        var sourcePath = Path.Combine(RepoRoot, "src", "MouseKeyProxy.Agent", "RemoteInputForwarder.cs");
+        var source = File.ReadAllText(sourcePath);
+        var hookStart = source.IndexOf("private IntPtr KeyboardHookCallback", StringComparison.Ordinal);
+        var hookEnd = source.IndexOf("private IntPtr MouseHookCallback", StringComparison.Ordinal);
+        Assert.True(hookStart >= 0 && hookEnd > hookStart, "KeyboardHookCallback helper was not found.");
+        var hook = source[hookStart..hookEnd];
+
+        Assert.Contains("if (!IsToggleChord(data.vkCode))", hook, StringComparison.Ordinal);
+        Assert.Contains("return new IntPtr(1);", hook, StringComparison.Ordinal);
+        Assert.DoesNotContain("IsLocalPassThroughKey", source, StringComparison.Ordinal);
+        Assert.DoesNotContain("CallNextHookEx(_keyboardHook, nCode, wParam, lParam) :", hook, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    [Trait("Category", "EmergencyRelease")]
+    public void Agent_Emergency_Release_Stops_Forwarder_And_Is_Available_Over_Control_Pipe()
+    {
+        var programPath = Path.Combine(RepoRoot, "src", "MouseKeyProxy.Agent", "Program.cs");
+        var programSource = File.ReadAllText(programPath);
+        var pipePath = Path.Combine(RepoRoot, "src", "MouseKeyProxy.Agent", "AgentControlPipeServer.cs");
+        var pipeSource = File.ReadAllText(pipePath);
+
+        Assert.Contains("AgentControlPipe.EmergencyRelease", pipeSource, StringComparison.Ordinal);
+        Assert.Contains("ExecuteEmergencyReleaseCommand", programSource, StringComparison.Ordinal);
+        Assert.Contains("PerformEmergencyRelease(showUi: false, notifyPeer: false", programSource, StringComparison.Ordinal);
+        Assert.Contains("_forwarder?.Stop();", programSource, StringComparison.Ordinal);
+        Assert.Contains("_clip?.Release();", programSource, StringComparison.Ordinal);
+        Assert.Contains("_state?.Reset();", programSource, StringComparison.Ordinal);
+        Assert.Contains("ForwardingActive = _forwarder?.IsActive ?? false", programSource, StringComparison.Ordinal);
     }
 }

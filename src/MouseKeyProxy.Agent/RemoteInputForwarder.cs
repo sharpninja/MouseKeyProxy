@@ -353,7 +353,7 @@ public sealed class RemoteInputForwarder : IDisposable
                 var input = TranslateKeyboardMessage(wParam.ToInt32(), data.vkCode, data.scanCode, data.flags);
                 if (input != null && TryEnqueue(input))
                 {
-                    return IsLocalPassThroughKey(data.vkCode) ? CallNextHookEx(_keyboardHook, nCode, wParam, lParam) : new IntPtr(1);
+                    return new IntPtr(1);
                 }
             }
         }
@@ -380,11 +380,6 @@ public sealed class RemoteInputForwarder : IDisposable
     {
         var queue = _queue;
         return queue != null && !queue.IsAddingCompleted && queue.TryAdd(input);
-    }
-
-    private static bool IsLocalPassThroughKey(uint vk)
-    {
-        return vk is VK_CONTROL or VK_MENU or VK_SHIFT or VK_LWIN or VK_RWIN;
     }
 
     private static bool IsToggleChord(uint vk)

@@ -63,6 +63,8 @@ namespace MouseKeyProxy.Network.V1 {
     static readonly grpc::Marshaller<global::MouseKeyProxy.Network.V1.SetFocusByHwndRequest> __Marshaller_mousekeyproxy_v1_SetFocusByHwndRequest = grpc::Marshallers.Create(__Helper_SerializeMessage, context => __Helper_DeserializeMessage(context, global::MouseKeyProxy.Network.V1.SetFocusByHwndRequest.Parser));
     [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
     static readonly grpc::Marshaller<global::MouseKeyProxy.Network.V1.InjectInputRequest> __Marshaller_mousekeyproxy_v1_InjectInputRequest = grpc::Marshallers.Create(__Helper_SerializeMessage, context => __Helper_DeserializeMessage(context, global::MouseKeyProxy.Network.V1.InjectInputRequest.Parser));
+    [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
+    static readonly grpc::Marshaller<global::MouseKeyProxy.Network.V1.EmergencyReleaseRequest> __Marshaller_mousekeyproxy_v1_EmergencyReleaseRequest = grpc::Marshallers.Create(__Helper_SerializeMessage, context => __Helper_DeserializeMessage(context, global::MouseKeyProxy.Network.V1.EmergencyReleaseRequest.Parser));
 
     [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
     static readonly grpc::Method<global::MouseKeyProxy.Network.V1.SessionFrame, global::MouseKeyProxy.Network.V1.SessionFrame> __Method_OpenSession = new grpc::Method<global::MouseKeyProxy.Network.V1.SessionFrame, global::MouseKeyProxy.Network.V1.SessionFrame>(
@@ -110,6 +112,14 @@ namespace MouseKeyProxy.Network.V1 {
         __ServiceName,
         "InjectInput",
         __Marshaller_mousekeyproxy_v1_InjectInputRequest,
+        __Marshaller_mousekeyproxy_v1_CommandResult);
+
+    [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
+    static readonly grpc::Method<global::MouseKeyProxy.Network.V1.EmergencyReleaseRequest, global::MouseKeyProxy.Network.V1.CommandResult> __Method_EmergencyRelease = new grpc::Method<global::MouseKeyProxy.Network.V1.EmergencyReleaseRequest, global::MouseKeyProxy.Network.V1.CommandResult>(
+        grpc::MethodType.Unary,
+        __ServiceName,
+        "EmergencyRelease",
+        __Marshaller_mousekeyproxy_v1_EmergencyReleaseRequest,
         __Marshaller_mousekeyproxy_v1_CommandResult);
 
     /// <summary>Service descriptor</summary>
@@ -173,6 +183,12 @@ namespace MouseKeyProxy.Network.V1 {
 
       [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
       public virtual global::System.Threading.Tasks.Task<global::MouseKeyProxy.Network.V1.CommandResult> InjectInput(global::MouseKeyProxy.Network.V1.InjectInputRequest request, grpc::ServerCallContext context)
+      {
+        throw new grpc::RpcException(new grpc::Status(grpc::StatusCode.Unimplemented, ""));
+      }
+
+      [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
+      public virtual global::System.Threading.Tasks.Task<global::MouseKeyProxy.Network.V1.CommandResult> EmergencyRelease(global::MouseKeyProxy.Network.V1.EmergencyReleaseRequest request, grpc::ServerCallContext context)
       {
         throw new grpc::RpcException(new grpc::Status(grpc::StatusCode.Unimplemented, ""));
       }
@@ -384,6 +400,26 @@ namespace MouseKeyProxy.Network.V1 {
       {
         return CallInvoker.AsyncUnaryCall(__Method_InjectInput, null, options, request);
       }
+      [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
+      public virtual global::MouseKeyProxy.Network.V1.CommandResult EmergencyRelease(global::MouseKeyProxy.Network.V1.EmergencyReleaseRequest request, grpc::Metadata headers = null, global::System.DateTime? deadline = null, global::System.Threading.CancellationToken cancellationToken = default(global::System.Threading.CancellationToken))
+      {
+        return EmergencyRelease(request, new grpc::CallOptions(headers, deadline, cancellationToken));
+      }
+      [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
+      public virtual global::MouseKeyProxy.Network.V1.CommandResult EmergencyRelease(global::MouseKeyProxy.Network.V1.EmergencyReleaseRequest request, grpc::CallOptions options)
+      {
+        return CallInvoker.BlockingUnaryCall(__Method_EmergencyRelease, null, options, request);
+      }
+      [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
+      public virtual grpc::AsyncUnaryCall<global::MouseKeyProxy.Network.V1.CommandResult> EmergencyReleaseAsync(global::MouseKeyProxy.Network.V1.EmergencyReleaseRequest request, grpc::Metadata headers = null, global::System.DateTime? deadline = null, global::System.Threading.CancellationToken cancellationToken = default(global::System.Threading.CancellationToken))
+      {
+        return EmergencyReleaseAsync(request, new grpc::CallOptions(headers, deadline, cancellationToken));
+      }
+      [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
+      public virtual grpc::AsyncUnaryCall<global::MouseKeyProxy.Network.V1.CommandResult> EmergencyReleaseAsync(global::MouseKeyProxy.Network.V1.EmergencyReleaseRequest request, grpc::CallOptions options)
+      {
+        return CallInvoker.AsyncUnaryCall(__Method_EmergencyRelease, null, options, request);
+      }
       /// <summary>Creates a new instance of client from given <c>ClientBaseConfiguration</c>.</summary>
       [global::System.CodeDom.Compiler.GeneratedCode("grpc_csharp_plugin", null)]
       protected override MouseKeyProxyClient NewInstance(ClientBaseConfiguration configuration)
@@ -403,7 +439,8 @@ namespace MouseKeyProxy.Network.V1 {
           .AddMethod(__Method_SetMousePosition, serviceImpl.SetMousePosition)
           .AddMethod(__Method_LocateProcess, serviceImpl.LocateProcess)
           .AddMethod(__Method_SetFocusByHwnd, serviceImpl.SetFocusByHwnd)
-          .AddMethod(__Method_InjectInput, serviceImpl.InjectInput).Build();
+          .AddMethod(__Method_InjectInput, serviceImpl.InjectInput)
+          .AddMethod(__Method_EmergencyRelease, serviceImpl.EmergencyRelease).Build();
     }
 
     /// <summary>Register service method with a service binder with or without implementation. Useful when customizing the service binding logic.
@@ -419,6 +456,7 @@ namespace MouseKeyProxy.Network.V1 {
       serviceBinder.AddMethod(__Method_LocateProcess, serviceImpl == null ? null : new grpc::UnaryServerMethod<global::MouseKeyProxy.Network.V1.LocateProcessRequest, global::MouseKeyProxy.Network.V1.LocateProcessResponse>(serviceImpl.LocateProcess));
       serviceBinder.AddMethod(__Method_SetFocusByHwnd, serviceImpl == null ? null : new grpc::UnaryServerMethod<global::MouseKeyProxy.Network.V1.SetFocusByHwndRequest, global::MouseKeyProxy.Network.V1.CommandResult>(serviceImpl.SetFocusByHwnd));
       serviceBinder.AddMethod(__Method_InjectInput, serviceImpl == null ? null : new grpc::UnaryServerMethod<global::MouseKeyProxy.Network.V1.InjectInputRequest, global::MouseKeyProxy.Network.V1.CommandResult>(serviceImpl.InjectInput));
+      serviceBinder.AddMethod(__Method_EmergencyRelease, serviceImpl == null ? null : new grpc::UnaryServerMethod<global::MouseKeyProxy.Network.V1.EmergencyReleaseRequest, global::MouseKeyProxy.Network.V1.CommandResult>(serviceImpl.EmergencyRelease));
     }
 
   }

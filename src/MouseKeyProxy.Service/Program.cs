@@ -48,6 +48,7 @@ internal static class Program
         builder.Services.AddSingleton<AgentControlPipeClient>();
         builder.Services.AddSingleton<IInputInjector, AgentPipeInputInjector>();
         builder.Services.AddSingleton<IRemoteDesktopController, AgentPipeRemoteDesktopController>();
+        builder.Services.AddSingleton<IEmergencyReleaseController, AgentPipeEmergencyReleaseController>();
         builder.Services.AddSingleton<SessionFrameDispatcher>(sp =>
             new SessionFrameDispatcher(sp.GetRequiredService<IInputInjector>(), new ToggleStateMachine()));
 
@@ -61,7 +62,5 @@ internal static class Program
         logger.LogInformation("MouseKeyProxy service starting (EventLog source=MouseKeyProxy, log=MouseKeyProxy)");
 
         app.Run();
-
-        logger.LogInformation("MouseKeyProxy service stopped");
     }
 }

@@ -19,6 +19,7 @@ service MouseKeyProxy {
   rpc LocateProcess (LocateProcessRequest) returns (LocateProcessResponse);
   rpc SetFocusByHwnd (SetFocusByHwndRequest) returns (CommandResult);
   rpc InjectInput (InjectInputRequest) returns (CommandResult);
+  rpc EmergencyRelease (EmergencyReleaseRequest) returns (CommandResult);
 }
 
 message PairRequest {
@@ -160,4 +161,10 @@ message InjectInputRequest {
   repeated string targetRemotes = 3;
   repeated InputEvent events = 4;
   string correlationId = 5;
+}
+
+message EmergencyReleaseRequest {
+  string protocolVersion = 1;
+  string peerId = 2;
+  string correlationId = 3;
 }

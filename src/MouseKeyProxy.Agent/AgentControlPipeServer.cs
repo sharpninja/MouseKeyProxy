@@ -16,6 +16,7 @@ internal sealed class AgentControlPipeServer : IDisposable
     private readonly IInputInjector _inputInjector;
     private readonly Func<AgentControlRequest, AgentControlResponse>? _pairingStateNotifier;
     private readonly Func<AgentControlResponse>? _statusProvider;
+    private readonly Func<AgentControlRequest, AgentControlResponse>? _emergencyReleaseHandler;
     private readonly CancellationTokenSource _stop = new();
     private readonly Task _loop;
 
@@ -23,12 +24,14 @@ internal sealed class AgentControlPipeServer : IDisposable
         IRemoteDesktopController desktopController,
         IInputInjector inputInjector,
         Func<AgentControlRequest, AgentControlResponse>? pairingStateNotifier,
-        Func<AgentControlResponse>? statusProvider)
+        Func<AgentControlResponse>? statusProvider,
+        Func<AgentControlRequest, AgentControlResponse>? emergencyReleaseHandler)
     {
         _desktopController = desktopController;
         _inputInjector = inputInjector;
         _pairingStateNotifier = pairingStateNotifier;
         _statusProvider = statusProvider;
+        _emergencyReleaseHandler = emergencyReleaseHandler;
         _loop = Task.Run(RunAsync);
     }
 
@@ -36,9 +39,10 @@ internal sealed class AgentControlPipeServer : IDisposable
         IRemoteDesktopController desktopController,
         IInputInjector inputInjector,
         Func<AgentControlRequest, AgentControlResponse>? pairingStateNotifier = null,
-        Func<AgentControlResponse>? statusProvider = null)
+        Func<AgentControlResponse>? statusProvider = null,
+        Func<AgentControlRequest, AgentControlResponse>? emergencyReleaseHandler = null)
     {
-        return new AgentControlPipeServer(desktopController, inputInjector, pairingStateNotifier, statusProvider);
+        return new AgentControlPipeServer(desktopController, inputInjector, pairingStateNotifier, statusProvider, emergencyReleaseHandler);
     }
 
     public void Dispose()
@@ -111,6 +115,7 @@ internal sealed class AgentControlPipeServer : IDisposable
                 AgentControlPipe.InjectInput => InjectInput(request),
                 AgentControlPipe.NotifyPairingState => NotifyPairingState(request),
                 AgentControlPipe.GetAgentStatus => GetAgentStatus(),
+                AgentControlPipe.EmergencyRelease => EmergencyRelease(request),
                 _ => AgentControlResponse.Failure("UNKNOWN_OPERATION", $"Unknown agent control operation: {request.Operation}")
             };
         }
@@ -149,6 +154,12 @@ internal sealed class AgentControlPipeServer : IDisposable
     {
         return _statusProvider?.Invoke()
             ?? AgentControlResponse.Failure("AGENT_STATUS_UNAVAILABLE", "Agent status handler is not configured.");
+    }
+
+    private AgentControlResponse EmergencyRelease(AgentControlRequest request)
+    {
+        return _emergencyReleaseHandler?.Invoke(request)
+            ?? AgentControlResponse.Failure("EMERGENCY_RELEASE_UNAVAILABLE", "Agent emergency release handler is not configured.");
     }
 
     private static AgentControlResponse ToResponse(RemoteControlResult result)

@@ -66,6 +66,11 @@ public interface IRemoteDesktopController
     RemoteControlResult SetFocusByHwnd(ulong hwnd, bool bringToFront);
 }
 
+public interface IEmergencyReleaseController
+{
+    RemoteControlResult EmergencyRelease(string peerId, string correlationId);
+}
+
 public readonly record struct RemoteControlResult(bool Ok, string ErrorCode, string Message)
 {
     public static RemoteControlResult Success(string message = "ok") => new(true, "0", message);

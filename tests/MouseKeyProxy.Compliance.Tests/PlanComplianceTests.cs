@@ -27,7 +27,7 @@ public class PlanComplianceTests
     public void TEST_MKP_010_Wireframes_Assets_And_Menu_Spec_Present()
     {
         var wireDir = Path.Combine(RepoRoot, "docs", "wireframes");
-        foreach (var name in new[] { "01-tray-icon-menu.svg", "02-inject-form.svg", "03-mirror-mode.svg", "04-status.svg" })
+        foreach (var name in new[] { "01-tray-icon-menu.svg", "02-inject-form.svg", "04-status.svg" })
         {
             Assert.True(File.Exists(Path.Combine(wireDir, name)), $"missing wireframe {name}");
         }
@@ -35,9 +35,22 @@ public class PlanComplianceTests
         Assert.True(File.Exists(logo), "assets/logo.png missing");
         var agentSrc = File.ReadAllText(Path.Combine(RepoRoot, "src", "MouseKeyProxy.Agent", "Program.cs"));
         Assert.Contains("Toggle Active", agentSrc);
-        Assert.Contains("Start Mirror Mode", agentSrc);
         Assert.Contains("Inject Text to Remote", agentSrc);
+        Assert.Contains("Emergency release", agentSrc);
+        Assert.DoesNotContain("Start Mirror Mode", agentSrc);
+        Assert.DoesNotContain("ShowMirrorForm", agentSrc);
+        Assert.False(File.Exists(Path.Combine(wireDir, "03-mirror-mode.svg")), "mirror mode wireframe should be removed");
         Assert.DoesNotContain("SystemIcons.Application", agentSrc);
+    }
+
+    [Fact]
+    [Trait("Category", "EmergencyRelease")]
+    public void TEST_MKP_013_Emergency_Release_Rpc_Contract_Present()
+    {
+        var proto = File.ReadAllText(Path.Combine(RepoRoot, "src", "MouseKeyProxy.Network", "mousekeyproxy.proto"));
+
+        Assert.Contains("rpc EmergencyRelease (EmergencyReleaseRequest) returns (CommandResult);", proto);
+        Assert.Contains("message EmergencyReleaseRequest", proto);
     }
 
     [Fact]

@@ -17,7 +17,7 @@ Core requirements from user:
 - Setup: f:\github\MouseKeyProxy root; git init; `director add-workspace`; GitHub repo sharpninja/MouseKeyProxy (origin); .NET 10; manage entirely via project's own PowerShell REPL global dotnet tool; settings in %LOCALAPPDATA%\MouseKeyProxy; register/run as Windows service.
 - REPL tool: pairing (UDP broadcast and/or mDNS LAN discovery (no UPnP IGD/NAT port mapping) + key negotiation/persist), settings, service start/stop/uninstall + reverse firewall (elevate Windows PowerShell 5.1 (powershell.exe; always present in-box on Win11; pwsh is PS7+)), clipboard ops, toggle. REPL is the primary management UX. Explicit `mkp service install` (not automatic on tool install).
 - App itself is **NOT** MCP-aware (plain .NET service + WinForms tray for desktop interaction).
-- Tray (WinForms): actions (start/stop conns/service, inject text, Mirror Mode, SetMousePos) invoke shared REPL command implementation (no per-click spawn).
+- Tray (WinForms): actions (start/stop conns/service, inject text, emergency release, SetMousePos) invoke shared REPL command implementation (no per-click spawn).
 - gRPC for comms (TLS + REPL-negotiated secrets).
 - New gRPC: InjectInput, SetMousePosition (display/pos without focus change), LocateProcess (name/PID -> hwnd tree), SetFocusByHwnd.
 - Nuke build (like McpServer).
@@ -452,9 +452,8 @@ Follow Byrd V4 strictly (small gated slices, 100% pass (zero fail, zero skip) in
 ## SVG Wireframes (re-homed specs)
 Wireframes are required as deliverable blocking tray tests and ACs. Specs (simple SVG):
 
-- 01-tray-icon-menu.svg: tray icon (mouse+key symbol), right-click: Toggle Active (Ctrl-Alt-F1), Start Mirror Mode, Inject Text to Remote..., Start/Stop Service, Pair/Discover (REPL), Settings, Exit.
+- 01-tray-icon-menu.svg: tray icon (mouse+key symbol), right-click: Toggle Active (Ctrl-Alt-F1), Emergency release, Inject Text to Remote..., Start/Stop Service, Pair/Discover (REPL), Settings, Exit.
 - 02-inject-form.svg: modal "Inject to Remote": remote dropdown, textarea, Send/Cancel.
-- 03-mirror-mode.svg: active indicator + selectable remote list (checkboxes); Stop button.
 - 04-status.svg: hover/click shows connected remotes, role, last clip event.
 
 See docs/wireframes/ (to be created with actual SVGs).
