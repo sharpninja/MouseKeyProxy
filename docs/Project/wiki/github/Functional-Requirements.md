@@ -65,7 +65,7 @@ Scope: layer-1+
 
 ## FR-MKP-006 Setup, REPL, service lifecycle, and agent UI
 
-Provide setup tooling, a management REPL, service lifecycle commands, and a usable agent UI. The UI must not be a throwaway or diagnostic-only surface.
+Provide setup tooling, a management REPL/CLI, service lifecycle commands, and a usable agent UI. The UI must not be a throwaway or diagnostic-only surface.
 
 Acceptance Criteria:
 - REPL/CLI is the canonical implementation of the control surface. It manages pairing, pair status, agent status, service install/uninstall/update/status, clipboard operations, toggle state, emergency release, logs, and remote-control commands.
