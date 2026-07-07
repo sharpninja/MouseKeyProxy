@@ -7,7 +7,7 @@ public class TransitionReleaseTests
 
     [Fact]
     [Trait("Category", "ReleaseContract")]
-    public void TEST_MKP_013_Release_Scripts_And_Version_0_5_0_Present()
+    public void TEST_MKP_013_Release_Scripts_And_GitVersion_Nuke_Targets_Present()
     {
         var publish = Path.Combine(RepoRoot, "scripts", "publish-release.ps1");
         var e2e = Path.Combine(RepoRoot, "scripts", "run-transition-e2e.ps1");
@@ -17,16 +17,22 @@ public class TransitionReleaseTests
         Assert.True(File.Exists(soak), "scripts/run-soak.ps1 missing");
 
         var publishText = File.ReadAllText(publish);
-        Assert.Contains("0.5.0", publishText);
-        Assert.Contains("nuget push", publishText, StringComparison.OrdinalIgnoreCase);
-        Assert.Contains("git tag", publishText, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("dotnet-gitversion", publishText);
+        Assert.Contains("PackRepl", publishText);
+        Assert.Contains("PublishToolToNuGet", publishText);
+        Assert.Contains("NUGET_API_KEY", publishText);
+        Assert.DoesNotContain("0.5.0", publishText);
 
-        var e2eText = File.ReadAllText(e2e);
-        Assert.Contains("gsudo", e2eText, StringComparison.OrdinalIgnoreCase);
-        Assert.Contains("mkp-e2e-elev.ps1", e2eText);
+        var buildText = File.ReadAllText(Path.Combine(RepoRoot, "build", "Build.cs"));
+        Assert.Contains("PublishToolToNuGet", buildText);
+        Assert.Contains("NUGET_API_KEY", buildText);
+        Assert.Contains("rev-list --tags --max-count=1", buildText);
+        Assert.Contains("dotnet-gitversion", buildText);
 
         var props = File.ReadAllText(Path.Combine(RepoRoot, "Directory.Build.props"));
-        Assert.Contains("0.5.0", props);
+        Assert.Contains("GitVersion.MsBuild", props);
+        Assert.DoesNotContain("<Version>0.5.0</Version>", props);
+        Assert.DoesNotContain("<PackageVersion>0.5.0</PackageVersion>", props);
     }
 
     [Fact]

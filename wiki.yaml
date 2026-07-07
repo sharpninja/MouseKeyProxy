@@ -7,3 +7,15 @@ wiki:
       destinations:
         - github
         - azure
+    - title: User Guide
+      source: docs/USER-GUIDE.md
+      output: User-Guide.md
+      destinations:
+        - github
+        - azure
+    - title: Security Administration Guide
+      source: docs/SECURITY-ADMIN-GUIDE.md
+      output: Security-Administration-Guide.md
+      destinations:
+        - github
+        - azure

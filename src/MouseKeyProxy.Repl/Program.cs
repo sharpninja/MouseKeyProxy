@@ -2,6 +2,7 @@ using System;
 using System.Diagnostics;
 using System.IO;
 using System.IO.Pipes;
+using System.Reflection;
 using System.Linq;
 using System.Security.AccessControl;
 using System.Security.Principal;
@@ -38,6 +39,7 @@ See: https://github.com/sharpninja/MouseKeyProxy
 
 Commands:
   mkp --help
+  mkp --version
   mkp status [--json]
   mkp service status | install | uninstall | start | stop   (uses sc.exe, netsh, schtasks; elevation via runas)
   mkp agent status [--json] | emergency-release [--json]
@@ -53,6 +55,12 @@ Commands:
 
 Explicit 'mkp service install' does NOT happen on 'dotnet tool install'.
 ");
+            return 0;
+        }
+
+        if (args[0] is "--version" or "-v" or "version")
+        {
+            Console.WriteLine(GetVersionText());
             return 0;
         }
 
@@ -231,6 +239,17 @@ Explicit 'mkp service install' does NOT happen on 'dotnet tool install'.
         }
     }
 
+    private static string GetVersionText()
+    {
+        var assembly = typeof(Program).Assembly;
+        var informationalVersion = assembly.GetCustomAttribute<AssemblyInformationalVersionAttribute>()?.InformationalVersion;
+        if (!string.IsNullOrWhiteSpace(informationalVersion))
+        {
+            return informationalVersion;
+        }
+
+        return assembly.GetName().Version?.ToString() ?? "unknown";
+    }
     private static int DoStatus(string[] args)
     {
         if (WantsJson(args))

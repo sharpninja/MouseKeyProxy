@@ -1,0 +1,18 @@
+mode: ContinuousDelivery
+tag-prefix: '[vV]?'
+branches:
+  main:
+    regex: ^master$|^main$
+    is-main-branch: true
+    increment: Patch
+  pull-request:
+    regex: ^(pull|pull\-requests|pr)[/-]
+    increment: Patch
+  feature:
+    regex: ^features?[/-]
+    increment: Inherit
+  unknown:
+    regex: .*
+    increment: Inherit
+ignore:
+  sha: []

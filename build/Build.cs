@@ -1,15 +1,13 @@
 using System;
+using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using Nuke.Common;
 using Nuke.Common.CI;
 using Nuke.Common.Execution;
 using Nuke.Common.IO;
-using Nuke.Common.ProjectModel;
 using Nuke.Common.Tooling;
-using Nuke.Common.Tools.DotNet;
 using Nuke.Common.Utilities.Collections;
-using static Nuke.Common.IO.FileSystemTasks;
 using static Nuke.Common.IO.PathConstruction;
 using static Nuke.Common.Tools.DotNet.DotNetTasks;
 
@@ -21,11 +19,37 @@ class Build : NukeBuild
     [Parameter("Configuration to build")]
     readonly string Configuration = "Debug";
 
-    [Solution] readonly Solution Solution;
+    [Parameter("NuGet API key. Defaults to NUGET_API_KEY from the environment.")]
+    readonly string NuGetApiKey = Environment.GetEnvironmentVariable("NUGET_API_KEY") ?? string.Empty;
+
+    string? _packageVersion;
+    string? _assemblySemVer;
+    string? _assemblySemFileVer;
+    string? _informationalVersion;
 
     AbsolutePath SourceDirectory => RootDirectory / "src";
     AbsolutePath TestsDirectory => RootDirectory / "tests";
     AbsolutePath OutputDirectory => RootDirectory / "output";
+    AbsolutePath SolutionPath => RootDirectory / "MouseKeyProxy.slnx";
+    AbsolutePath PayloadsDirectory => OutputDirectory / "payloads";
+    AbsolutePath ToolPackagesDirectory => OutputDirectory / "packages";
+
+    AbsolutePath ReplProject => SourceDirectory / "MouseKeyProxy.Repl" / "MouseKeyProxy.Repl.csproj";
+    AbsolutePath ServiceProject => SourceDirectory / "MouseKeyProxy.Service" / "MouseKeyProxy.Service.csproj";
+    AbsolutePath AgentProject => SourceDirectory / "MouseKeyProxy.Agent" / "MouseKeyProxy.Agent.csproj";
+
+    string PackageVersion => _packageVersion ??= GetGitVersionVariable("SemVer");
+    string AssemblySemVer => _assemblySemVer ??= GetGitVersionVariable("AssemblySemVer");
+    string AssemblySemFileVer => _assemblySemFileVer ??= GetGitVersionVariable("AssemblySemFileVer");
+    string InformationalVersion => _informationalVersion ??= GetGitVersionVariable("InformationalVersion");
+
+    string VersionMsBuildProperties => string.Join(" ", new[]
+    {
+        MsBuildProperty("Version", PackageVersion),
+        MsBuildProperty("PackageVersion", PackageVersion),
+        MsBuildProperty("AssemblyVersion", AssemblySemVer),
+        MsBuildProperty("FileVersion", AssemblySemFileVer)
+    });
 
     Target Clean => _ => _
         .Before(Restore)
@@ -39,44 +63,43 @@ class Build : NukeBuild
     Target Restore => _ => _
         .Executes(() =>
         {
-            DotNetRestore(s => s
-                .SetProjectFile(Solution));
+            RunDotNetCommand("tool restore");
+            RunDotNetCommand($"restore {Quote(SolutionPath)}");
         });
 
     Target Compile => _ => _
         .DependsOn(Restore)
         .Executes(() =>
         {
-            DotNetBuild(s => s
-                .SetProjectFile(Solution)
-                .SetConfiguration(Configuration)
-                .EnableNoRestore());
+            RunDotNetCommand($"build {Quote(SolutionPath)} -c {Configuration} --no-restore {VersionMsBuildProperties}");
         });
 
     Target Test => _ => _
         .DependsOn(Compile)
         .Executes(() =>
         {
-            DotNetTest(s => s
-                .SetProjectFile(Solution)
-                .SetConfiguration(Configuration)
-                .EnableNoRestore()
-                .EnableNoBuild());
+            RunDotNetCommand($"test {Quote(SolutionPath)} -c {Configuration} --no-restore --no-build {VersionMsBuildProperties}");
+        });
+
+    Target ShowVersion => _ => _
+        .DependsOn(Restore)
+        .Executes(() =>
+        {
+            Console.WriteLine($"PackageVersion: {PackageVersion}");
+            Console.WriteLine($"AssemblyVersion: {AssemblySemVer}");
+            Console.WriteLine($"FileVersion: {AssemblySemFileVer}");
+            Console.WriteLine($"InformationalVersion: {InformationalVersion}");
         });
 
     Target PackRepl => _ => _
         .DependsOn(Compile)
         .Executes(() =>
         {
-            DotNetPack(s => s
-                .SetProject(Solution.GetProject("MouseKeyProxy.Repl"))
-                .SetConfiguration(Configuration)
-                .SetOutputDirectory(OutputDirectory)
-                .EnableNoRestore()
-                .EnableNoBuild());
+            EnsureCleanDirectory(ToolPackagesDirectory);
+            RunDotNetCommand($"pack {Quote(ReplProject)} -c {Configuration} -o {Quote(ToolPackagesDirectory)} --no-restore --no-build {VersionMsBuildProperties}");
+            var package = GetToolPackagePath();
+            Console.WriteLine($"Packed {package} with GitVersion package version {PackageVersion}.");
         });
-
-    AbsolutePath PayloadsDirectory => OutputDirectory / "payloads";
 
     Target PublishService => _ => _
         .DependsOn(Compile)
@@ -84,13 +107,7 @@ class Build : NukeBuild
         {
             var outDir = PayloadsDirectory / "service";
             EnsureCleanDirectory(outDir);
-            DotNetPublish(s => s
-                .SetProject(Solution.GetProject("MouseKeyProxy.Service"))
-                .SetConfiguration(Configuration)
-                .SetRuntime("win-x64")
-                .EnableSelfContained()
-                .SetPublishSingleFile(true)
-                .SetOutput(outDir));
+            RunDotNetCommand($"publish {Quote(ServiceProject)} -c {Configuration} -o {Quote(outDir)} -r win-x64 --self-contained true -p:PublishSingleFile=true {VersionMsBuildProperties}");
         });
 
     Target PublishAgent => _ => _
@@ -99,23 +116,141 @@ class Build : NukeBuild
         {
             var outDir = PayloadsDirectory / "agent";
             EnsureCleanDirectory(outDir);
-            DotNetPublish(s => s
-                .SetProject(Solution.GetProject("MouseKeyProxy.Agent"))
-                .SetConfiguration(Configuration)
-                .SetRuntime("win-x64")
-                .EnableSelfContained()
-                .SetPublishSingleFile(true)
-                .SetOutput(outDir));
+            RunDotNetCommand($"publish {Quote(AgentProject)} -c {Configuration} -o {Quote(outDir)} -r win-x64 --self-contained true -p:PublishSingleFile=true {VersionMsBuildProperties}");
         });
 
     Target PublishSelfContained => _ => _
         .DependsOn(PublishService, PublishAgent)
         .Executes(() => { });
 
+    Target PublishToolToNuGet => _ => _
+        .DependsOn(PackRepl)
+        .Executes(() =>
+        {
+            if (string.IsNullOrWhiteSpace(NuGetApiKey))
+            {
+                throw new InvalidOperationException("NUGET_API_KEY is required to publish MouseKeyProxy.Repl.");
+            }
+
+            EnsureHeadIsLatestTaggedCommit();
+            var package = GetToolPackagePath();
+            RunDotNetCommand($"nuget push {Quote(package)} --api-key {Quote(NuGetApiKey)} --source https://api.nuget.org/v3/index.json --skip-duplicate");
+        });
+
     Target FullBuild => _ => _
         .DependsOn(Clean, Restore, Compile, Test, PackRepl, PublishService, PublishAgent)
         .Executes(() =>
         {
-            // Full build note logged via console in practice
+            Console.WriteLine($"Full build completed with GitVersion package version {PackageVersion}.");
         });
+
+    string GetGitVersionVariable(string variable)
+    {
+        var value = RunCapture("dotnet", $"tool run dotnet-gitversion /showvariable {variable}");
+        if (string.IsNullOrWhiteSpace(value))
+        {
+            throw new InvalidOperationException($"GitVersion did not return {variable}.");
+        }
+
+        return value.Trim();
+    }
+
+    AbsolutePath GetToolPackagePath()
+    {
+        var expected = ToolPackagesDirectory / $"MouseKeyProxy.Repl.{PackageVersion}.nupkg";
+        if (File.Exists(expected))
+        {
+            return expected;
+        }
+
+        var packages = ToolPackagesDirectory.GlobFiles("MouseKeyProxy.Repl.*.nupkg")
+            .OrderByDescending(path => File.GetLastWriteTimeUtc(path))
+            .ToList();
+        if (packages.Count == 0)
+        {
+            throw new FileNotFoundException($"No MouseKeyProxy.Repl package was found in {ToolPackagesDirectory}.");
+        }
+
+        return packages[0];
+    }
+
+    void EnsureHeadIsLatestTaggedCommit()
+    {
+        RunCapture("git", "fetch --tags origin");
+        var head = RunCapture("git", "rev-parse HEAD");
+        var latestTaggedCommit = RunCapture("git", "rev-list --tags --max-count=1");
+        if (string.IsNullOrWhiteSpace(latestTaggedCommit))
+        {
+            throw new InvalidOperationException("Cannot publish: no Git tags exist.");
+        }
+
+        if (!string.Equals(head, latestTaggedCommit, StringComparison.OrdinalIgnoreCase))
+        {
+            throw new InvalidOperationException($"Cannot publish: HEAD {head} is not the latest tagged commit {latestTaggedCommit}.");
+        }
+
+        var exactTag = RunCapture("git", "describe --tags --exact-match HEAD");
+        if (string.IsNullOrWhiteSpace(exactTag))
+        {
+            throw new InvalidOperationException("Cannot publish: HEAD is not exactly tagged.");
+        }
+
+        Console.WriteLine($"Publishing from latest tagged commit {head} ({exactTag}).");
+    }
+
+    void RunDotNetCommand(string arguments)
+    {
+        RunProcess("dotnet", arguments, captureOutput: false);
+    }
+
+    string RunCapture(string fileName, string arguments)
+    {
+        return RunProcess(fileName, arguments, captureOutput: true).Trim();
+    }
+
+    string RunProcess(string fileName, string arguments, bool captureOutput)
+    {
+        var psi = new ProcessStartInfo(fileName, arguments)
+        {
+            WorkingDirectory = RootDirectory,
+            UseShellExecute = false,
+            RedirectStandardOutput = captureOutput,
+            RedirectStandardError = captureOutput
+        };
+
+        using var process = Process.Start(psi) ?? throw new InvalidOperationException($"Failed to start {fileName}.");
+        string stdout = string.Empty;
+        string stderr = string.Empty;
+        if (captureOutput)
+        {
+            stdout = process.StandardOutput.ReadToEnd();
+            stderr = process.StandardError.ReadToEnd();
+        }
+
+        process.WaitForExit();
+        if (process.ExitCode != 0)
+        {
+            var details = captureOutput ? Environment.NewLine + stdout + stderr : string.Empty;
+            throw new InvalidOperationException($"{fileName} {arguments} failed with exit code {process.ExitCode}.{details}");
+        }
+
+        return stdout;
+    }
+
+    static void DeleteDirectory(AbsolutePath path)
+    {
+        if (Directory.Exists(path))
+        {
+            Directory.Delete(path, recursive: true);
+        }
+    }
+
+    static void EnsureCleanDirectory(AbsolutePath path)
+    {
+        DeleteDirectory(path);
+        Directory.CreateDirectory(path);
+    }
+    static string MsBuildProperty(string name, string value) => $"/p:{name}={Quote(value)}";
+
+    static string Quote(object value) => $"\"{value.ToString()?.Replace("\"", "\\\"")}\"";
 }

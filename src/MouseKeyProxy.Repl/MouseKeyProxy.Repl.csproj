@@ -1,4 +1,4 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk">
 
   <ItemGroup>
     <ProjectReference Include="..\MouseKeyProxy.Common\MouseKeyProxy.Common.csproj" />
@@ -22,6 +22,7 @@
     <PackageId>MouseKeyProxy.Repl</PackageId>
     <PackageReadmeFile>README.md</PackageReadmeFile>
     <TargetsForTfmSpecificContentInPackage>$(TargetsForTfmSpecificContentInPackage);PublishPayloadsForPackage</TargetsForTfmSpecificContentInPackage>
+    <PayloadVersionProperties>-p:Version=$(Version) -p:PackageVersion=$(PackageVersion) -p:AssemblyVersion=$(AssemblyVersion) -p:FileVersion=$(FileVersion)</PayloadVersionProperties>
   </PropertyGroup>
 
   <ItemGroup>
@@ -30,8 +31,8 @@
 
   <Target Name="PublishPayloadsForPackage">
     <RemoveDir Directories="$(OutputPath)payloads" />
-    <Exec Command="dotnet publish ../MouseKeyProxy.Service/MouseKeyProxy.Service.csproj -c $(Configuration) -o $(OutputPath)payloads/service -r win-x64 --self-contained true -p:PublishSingleFile=true" />
-    <Exec Command="dotnet publish ../MouseKeyProxy.Agent/MouseKeyProxy.Agent.csproj -c $(Configuration) -o $(OutputPath)payloads/agent -r win-x64 --self-contained true -p:PublishSingleFile=true" />
+    <Exec Command="dotnet publish ../MouseKeyProxy.Service/MouseKeyProxy.Service.csproj -c $(Configuration) -o $(OutputPath)payloads/service -r win-x64 --self-contained true -p:PublishSingleFile=true $(PayloadVersionProperties)" />
+    <Exec Command="dotnet publish ../MouseKeyProxy.Agent/MouseKeyProxy.Agent.csproj -c $(Configuration) -o $(OutputPath)payloads/agent -r win-x64 --self-contained true -p:PublishSingleFile=true $(PayloadVersionProperties)" />
     <MakeDir Directories="$(OutputPath)payloads\agent" Condition="!Exists('$(OutputPath)payloads\agent')" />
     <Copy SourceFiles="$(MSBuildThisFileDirectory)..\..\assets\logo.png" DestinationFolder="$(OutputPath)payloads\agent" SkipUnchangedFiles="true" Condition="Exists('$(MSBuildThisFileDirectory)..\..\assets\logo.png')" />
     <ItemGroup>

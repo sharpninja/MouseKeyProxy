@@ -1,41 +1,55 @@
 # MouseKeyProxy
 
-<!-- Re-anchor gate refresh 2026-07-03 + visibility pass: trivial edit + src commits to ensure project files (src/tests/scripts) appear in harness CHANGED/patch -->
-
 Free hotkey-only alternative to PowerToys Mouse Without Borders for exactly two Windows 11 systems.
 
-See full plan: docs/PLAN-MKP-004.md and https://github.com/sharpninja/MouseKeyProxy
+MouseKeyProxy provides a Windows service, a user-session tray/dashboard agent, and the `mkp` .NET tool for pairing two machines and transferring keyboard/mouse ownership with an explicit hotkey.
 
-(Trivial tracked edit after re-anchor for harness CHANGED_FILES visibility)
+## Documentation
 
-# Trivial blank-line edit committed for verification gate
+- [User Guide](docs/USER-GUIDE.md)
+- [Security Administration Guide](docs/SECURITY-ADMIN-GUIDE.md)
+- [Logo Branding Contract](assets/logo.branding.md)
+- [Current implementation plan](docs/PLAN-MKP-006.md)
 
-## Quick start (REPL)
+## Quick Start
+
+```powershell
 dotnet tool install --global MouseKeyProxy.Repl
-
+mkp --version
 mkp --help
-mkp service install   # (elevated, uses powershell.exe (5.1))
-mkp pair ...
+mkp service install
+mkp pair status
 mkp toggle
+```
 
-Hotkeys: Ctrl-Alt-F1 (local), Ctrl-Alt-F2 (remote) - configurable.
+Default hotkey: Ctrl+Alt+F1.
 
-## Features (v1)
-- Hotkey toggle only (no edge mouse)
-- LIFO clipboard sync (DPAPI encrypted, ~50 cap, privacy skip)
-- gRPC (TLS) + advanced controls (Inject, SetMousePos, LocateProcess, SetFocus)
-- Service + tray + REPL management
-- Failsafes: emergency release, mod resync, clip release <2s
+## Features
+
+- Explicit hotkey toggle only; no mirror mode and no edge-of-screen switching.
+- Exclusive input forwarding so one machine receives keyboard and mouse at a time.
+- Pairing, status, service lifecycle, emergency release, logs, clipboard, and remote-control commands through the canonical `mkp` CLI/REPL surface.
+- User-session dashboard for pairing state, active peer, service state, clipboard state, recent errors, and emergency release.
+- Windows Event Log diagnostics.
+- LIFO clipboard sync with bounded history and privacy skips.
 
 ## Build
-dotnet build
-dotnet test
 
-See Nuke in build/ (basic targets).
+```powershell
+dotnet tool restore
+dotnet build MouseKeyProxy.slnx -c Release
+dotnet test MouseKeyProxy.slnx -c Release
+```
+
+Nuke targets live in `build/`:
+
+```powershell
+dotnet run --project build/MouseKeyProxy.Build.csproj -- --target PackRepl --configuration Release
+dotnet run --project build/MouseKeyProxy.Build.csproj -- --target PublishToolToNuGet --configuration Release
+```
+
+Versions are produced by GitVersion. NuGet publishing requires the current commit to be the latest tagged commit and reads the API key from `NUGET_API_KEY`.
 
 ## License
 
- (workspace re-anchored edit for harness visibility - trivial tracked change)
-MIT
-
-(Extensive docs in repo + wiki.)
+Apache-2.0. See [LICENSE](LICENSE).
