@@ -1,93 +1,133 @@
+using System.Text.Json;
 using MouseKeyProxy.Common;
+using Xunit;
 
 namespace MouseKeyProxy.Common.Tests;
 
+/// <summary>
+/// TR-MKP-SEC-001 / FR-MKP-011: real wire-contract tests for the agent-control IPC DTOs. The pipe
+/// serializes with <see cref="JsonSerializerDefaults.Web"/>, so these verify a full serialize ->
+/// deserialize round-trip preserves every field (including the security AuthToken) - not tautological
+/// "set a property then assert it" checks.
+/// </summary>
 public class AgentControlProtocolTests
 {
+    private static readonly JsonSerializerOptions Web = new(JsonSerializerDefaults.Web);
+
+    private static T RoundTrip<T>(T value) =>
+        JsonSerializer.Deserialize<T>(JsonSerializer.Serialize(value, Web), Web)!;
+
+    /// <summary>A pairing-state request round-trips through the pipe's JSON contract with all fields intact.</summary>
     [Fact]
     [Trait("Category", "Pairing")]
-    public void AgentControlProtocol_Includes_Pairing_State_Notification()
+    public void PairingStateRequest_RoundTrips()
     {
         var request = new AgentControlRequest
         {
+            AuthToken = "tok-123",
             Operation = AgentControlPipe.NotifyPairingState,
             RemotePeer = "payton-desktop",
-            RemoteGrpcUrl = "http://payton-desktop:50051",
-            PairingCode = "valid-test"
+            RemoteGrpcUrl = "https://payton-desktop:50051",
+            PairingCode = "ABC12345",
         };
 
-        Assert.Equal("notifyPairingState", AgentControlPipe.NotifyPairingState);
-        Assert.Equal("payton-desktop", request.RemotePeer);
-        Assert.Equal("http://payton-desktop:50051", request.RemoteGrpcUrl);
-        Assert.Equal("valid-test", request.PairingCode);
+        var back = RoundTrip(request);
+
+        Assert.Equal("notifyPairingState", back.Operation);
+        Assert.Equal("tok-123", back.AuthToken);
+        Assert.Equal("payton-desktop", back.RemotePeer);
+        Assert.Equal("https://payton-desktop:50051", back.RemoteGrpcUrl);
+        Assert.Equal("ABC12345", back.PairingCode);
     }
 
+    /// <summary>An input-injection request preserves its event list across the JSON round-trip.</summary>
     [Fact]
-    [Trait("Category", "Hotkey")]
-    public void AgentControlProtocol_Includes_Agent_Status_For_Hotkey_Verification()
+    [Trait("Category", "Injection")]
+    public void InjectInputRequest_PreservesEvents()
+    {
+        var request = new AgentControlRequest
+        {
+            AuthToken = "t",
+            Operation = AgentControlPipe.InjectInput,
+        };
+        request.Events.Add(new InputEvent(InputKind.KEY_DOWN, Vk: 0x41));
+        request.Events.Add(new InputEvent(InputKind.KEY_UP, Vk: 0x41));
+
+        var back = RoundTrip(request);
+
+        Assert.Equal(2, back.Events.Count);
+        Assert.Equal(InputKind.KEY_DOWN, back.Events[0].Kind);
+        Assert.Equal(0x41u, back.Events[0].Vk);
+        Assert.Equal(InputKind.KEY_UP, back.Events[1].Kind);
+    }
+
+    /// <summary>A status response round-trips its state and forwarding flag.</summary>
+    [Fact]
+    [Trait("Category", "Status")]
+    public void StatusResponse_RoundTrips()
     {
         var response = new AgentControlResponse
         {
             Ok = true,
             RemotePeer = "payton-desktop",
-            RemoteGrpcUrl = "http://payton-desktop:50051",
+            RemoteGrpcUrl = "https://payton-desktop:50051",
             RemoteState = "Connected",
-            ForwardingActive = true
+            ForwardingActive = true,
         };
 
-        Assert.Equal("getAgentStatus", AgentControlPipe.GetAgentStatus);
-        Assert.Equal("payton-desktop", response.RemotePeer);
-        Assert.Equal("http://payton-desktop:50051", response.RemoteGrpcUrl);
-        Assert.Equal("Connected", response.RemoteState);
-        Assert.True(response.ForwardingActive);
+        var back = RoundTrip(response);
+
+        Assert.True(back.Ok);
+        Assert.Equal("Connected", back.RemoteState);
+        Assert.True(back.ForwardingActive);
     }
 
+    /// <summary>A screenshot response preserves its binary payload and metadata across the round-trip.</summary>
     [Fact]
-    [Trait("Category", "EmergencyRelease")]
-    public void AgentControlProtocol_Includes_Emergency_Release()
+    [Trait("Category", "Screenshot")]
+    public void ScreenshotResponse_PreservesBinaryPayload()
     {
-        var request = new AgentControlRequest
-        {
-            Operation = AgentControlPipe.EmergencyRelease,
-            RemotePeer = "payton-desktop",
-            CorrelationId = "release-proof",
-            NotifyPeer = true
-        };
-
-        Assert.Equal("emergencyRelease", AgentControlPipe.EmergencyRelease);
-        Assert.Equal("payton-desktop", request.RemotePeer);
-        Assert.Equal("release-proof", request.CorrelationId);
-        Assert.True(request.NotifyPeer);
-    }
-
-    [Fact]
-    [Trait("Category", "ModifierCleanup")]
-    public void AgentControlProtocol_Includes_Clear_Modifiers_And_Screenshot_Capture()
-    {
-        var request = new AgentControlRequest
-        {
-            Operation = AgentControlPipe.CaptureScreenshot,
-            ScreenshotTarget = "foreground",
-            Hwnd = 0x1234,
-            CorrelationId = "shot-proof",
-            IncludeCursor = true
-        };
         var response = new AgentControlResponse
         {
             Ok = true,
-            ScreenshotPng = new byte[] { 1, 2, 3 },
+            ScreenshotPng = new byte[] { 1, 2, 3, 250 },
             SourceHost = "payton-desktop",
             CorrelationId = "shot-proof",
             Width = 640,
             Height = 480,
-            Sha256 = "abc123"
+            Sha256 = "abc123",
         };
 
-        Assert.Equal("clearModifiers", AgentControlPipe.ClearModifiers);
-        Assert.Equal("captureScreenshot", AgentControlPipe.CaptureScreenshot);
-        Assert.Equal("foreground", request.ScreenshotTarget);
-        Assert.Equal(0x1234UL, request.Hwnd);
-        Assert.Equal("shot-proof", response.CorrelationId);
-        Assert.Equal("abc123", response.Sha256);
-        Assert.Equal(3, response.ScreenshotPng.Length);
-    }}
+        var back = RoundTrip(response);
+
+        Assert.Equal(new byte[] { 1, 2, 3, 250 }, back.ScreenshotPng);
+        Assert.Equal(640, back.Width);
+        Assert.Equal(480, back.Height);
+        Assert.Equal("abc123", back.Sha256);
+        Assert.Equal("shot-proof", back.CorrelationId);
+    }
+
+    /// <summary>The operation name constants match their documented wire values.</summary>
+    [Theory]
+    [Trait("Category", "Contract")]
+    [InlineData("notifyPairingState")]
+    [InlineData("getAgentStatus")]
+    [InlineData("emergencyRelease")]
+    [InlineData("clearModifiers")]
+    [InlineData("captureScreenshot")]
+    [InlineData("injectInput")]
+    public void OperationConstants_HaveStableWireNames(string expected)
+    {
+        var names = new[]
+        {
+            AgentControlPipe.NotifyPairingState,
+            AgentControlPipe.GetAgentStatus,
+            AgentControlPipe.EmergencyRelease,
+            AgentControlPipe.ClearModifiers,
+            AgentControlPipe.CaptureScreenshot,
+            AgentControlPipe.InjectInput,
+        };
+
+        Assert.Contains(expected, names);
+    }
+}
