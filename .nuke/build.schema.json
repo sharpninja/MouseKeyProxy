@@ -27,6 +27,7 @@
         "Clean",
         "Compile",
         "FullBuild",
+        "IntegrationTest",
         "PackRepl",
         "PublishAgent",
         "PublishSelfContained",

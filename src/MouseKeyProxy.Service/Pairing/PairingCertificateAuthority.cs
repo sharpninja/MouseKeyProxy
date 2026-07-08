@@ -25,6 +25,12 @@ public interface IPairingCertificateAuthority
     /// <param name="clientCertificate">The certificate presented by a caller.</param>
     /// <returns>True when the certificate was issued by this CA.</returns>
     bool IsIssuedByThisCa(X509Certificate2 clientCertificate);
+
+    /// <summary>Issues a CA-signed server (TLS) certificate, with private key, for the mTLS listener.</summary>
+    /// <param name="dnsName">The DNS name / host the certificate is issued for (subject CN + SAN).</param>
+    /// <param name="validity">How long the certificate is valid.</param>
+    /// <returns>The server certificate including its private key.</returns>
+    X509Certificate2 CreateServerCertificate(string dnsName, TimeSpan validity);
 }
 
 /// <summary>
@@ -34,6 +40,7 @@ public interface IPairingCertificateAuthority
 public sealed class PairingCertificateAuthority : IPairingCertificateAuthority, IDisposable
 {
     private static readonly Oid ClientAuthEku = new("1.3.6.1.5.5.7.3.2");
+    private static readonly Oid ServerAuthEku = new("1.3.6.1.5.5.7.3.1");
 
     private readonly X509Certificate2 _ca;
 
@@ -77,6 +84,32 @@ public sealed class PairingCertificateAuthority : IPairingCertificateAuthority, 
         chain.ChainPolicy.CustomTrustStore.Add(_ca);
         chain.ChainPolicy.ExtraStore.Add(_ca);
         return chain.Build(clientCertificate);
+    }
+
+    /// <inheritdoc />
+    public X509Certificate2 CreateServerCertificate(string dnsName, TimeSpan validity)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(dnsName);
+
+        using var serverKey = ECDsa.Create(ECCurve.NamedCurves.nistP256);
+        var request = new CertificateRequest($"CN={dnsName}", serverKey, HashAlgorithmName.SHA256);
+        request.CertificateExtensions.Add(new X509BasicConstraintsExtension(false, false, 0, true));
+        request.CertificateExtensions.Add(new X509KeyUsageExtension(
+            X509KeyUsageFlags.DigitalSignature | X509KeyUsageFlags.KeyEncipherment, true));
+        request.CertificateExtensions.Add(new X509EnhancedKeyUsageExtension(new OidCollection { ServerAuthEku }, true));
+
+        var san = new SubjectAlternativeNameBuilder();
+        san.AddDnsName(dnsName);
+        request.CertificateExtensions.Add(san.Build());
+
+        var now = DateTimeOffset.UtcNow;
+        var serial = RandomNumberGenerator.GetBytes(16);
+        using var signed = request.Create(_ca, now.AddMinutes(-5), now.Add(validity), serial);
+        using var withKey = signed.CopyWithPrivateKey(serverKey);
+
+        // Round-trip through PKCS#12 so the private key is durably associated for the TLS stack
+        // (avoids ephemeral-key handles that Kestrel can reject on some platforms).
+        return X509CertificateLoader.LoadPkcs12(withKey.Export(X509ContentType.Pkcs12), null);
     }
 
     private static X509Certificate2 CreateCa()

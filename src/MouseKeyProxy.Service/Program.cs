@@ -1,10 +1,13 @@
+using System;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Server.Kestrel.Core;
+using Microsoft.AspNetCore.Server.Kestrel.Https;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using MouseKeyProxy.Common;
+using MouseKeyProxy.Service.Pairing;
 
 namespace MouseKeyProxy.Service;
 
@@ -23,11 +26,27 @@ internal static class Program
             ContentRootPath = AppContext.BaseDirectory
         });
 
+        // TR-MKP-SEC-001: single CA instance shared between the mTLS listener (server cert) and DI
+        // (peer-cert issuance + authorization). NOTE: the CA is currently in-memory and regenerated
+        // per start; DPAPI/file-perm persistence so pairings survive restarts is a follow-up slice.
+        var certificateAuthority = new PairingCertificateAuthority();
+        var pairedPeerStore = new PairedPeerStore();
+        var serverCertificate = certificateAuthority.CreateServerCertificate(
+            System.Net.Dns.GetHostName(), TimeSpan.FromDays(365));
+
         builder.WebHost.ConfigureKestrel(serverOptions =>
         {
             serverOptions.ListenAnyIP(LabTopology.GrpcPort, listenOptions =>
             {
                 listenOptions.Protocols = HttpProtocols.Http2;
+                listenOptions.UseHttps(serverCertificate, https =>
+                {
+                    // Request a client cert but do not require it at the TLS layer: pairing-bootstrap
+                    // RPCs run before a peer has a credential. PairingAuthorizationInterceptor performs
+                    // real authorization (CA-issued + paired + non-revoked) on effect-bearing RPCs.
+                    https.ClientCertificateMode = ClientCertificateMode.AllowCertificate;
+                    https.AllowAnyClientCertificate();
+                });
             });
         });
         builder.WebHost.UseSetting(WebHostDefaults.ServerUrlsKey, string.Empty);
@@ -60,7 +79,13 @@ internal static class Program
         builder.Services.AddSingleton<SessionFrameDispatcher>(sp =>
             new SessionFrameDispatcher(sp.GetRequiredService<IInputInjector>(), new ToggleStateMachine()));
 
-        builder.Services.AddGrpc();
+        // TR-MKP-SEC-001: pairing authority + authorization interceptor.
+        builder.Services.AddSingleton<IPairingCertificateAuthority>(certificateAuthority);
+        builder.Services.AddSingleton<IPairedPeerStore>(pairedPeerStore);
+        builder.Services.AddSingleton<PairingAuthorizer>();
+        builder.Services.AddSingleton<PairingAuthorizationInterceptor>();
+
+        builder.Services.AddGrpc(options => options.Interceptors.Add<PairingAuthorizationInterceptor>());
 
         var app = builder.Build();
 

@@ -1,11 +1,14 @@
 using System;
 using System.Collections.Generic;
 using System.Globalization;
+using System.Security.Cryptography.X509Certificates;
 using System.Threading.Tasks;
+using Google.Protobuf;
 using Grpc.Core;
 using Microsoft.Extensions.Logging;
 using MouseKeyProxy.Common;
 using MouseKeyProxy.Network.V1;
+using MouseKeyProxy.Service.Pairing;
 using CommonScreenshotTarget = MouseKeyProxy.Common.ScreenshotTarget;
 using WireScreenshotTarget = MouseKeyProxy.Network.V1.ScreenshotTarget;
 
@@ -21,6 +24,12 @@ public class MouseKeyProxyImpl : MouseKeyProxy.Network.V1.MouseKeyProxy.MouseKey
     private const string AgentIpcUnavailable = "AGENT_IPC_UNAVAILABLE";
     private const int ScreenshotChunkSize = 64 * 1024;
 
+    /// <summary>TR-MKP-SEC-001: default pairing-code lifetime when the caller does not specify one.</summary>
+    private static readonly TimeSpan DefaultPairingCodeTtl = TimeSpan.FromMinutes(5);
+
+    /// <summary>TR-MKP-SEC-001: lifetime of an issued per-peer client certificate.</summary>
+    private static readonly TimeSpan PeerCertValidity = TimeSpan.FromDays(365);
+
     private readonly ILogger<MouseKeyProxyImpl> _logger;
     private readonly SessionFrameDispatcher? _dispatcher;
     private readonly IRemoteDesktopController? _desktopController;
@@ -28,6 +37,8 @@ public class MouseKeyProxyImpl : MouseKeyProxy.Network.V1.MouseKeyProxy.MouseKey
     private readonly IModifierReleaseController? _modifierReleaseController;
     private readonly IScreenshotCapture? _screenshotCapture;
     private readonly ISystemPowerController _powerController;
+    private readonly IPairedPeerStore _pairedPeerStore;
+    private readonly IPairingCertificateAuthority _certificateAuthority;
 
     public MouseKeyProxyImpl(
         ILogger<MouseKeyProxyImpl> logger,
@@ -36,7 +47,9 @@ public class MouseKeyProxyImpl : MouseKeyProxy.Network.V1.MouseKeyProxy.MouseKey
         IEmergencyReleaseController? emergencyReleaseController = null,
         IModifierReleaseController? modifierReleaseController = null,
         IScreenshotCapture? screenshotCapture = null,
-        ISystemPowerController? powerController = null)
+        ISystemPowerController? powerController = null,
+        IPairedPeerStore? pairedPeerStore = null,
+        IPairingCertificateAuthority? certificateAuthority = null)
     {
         _logger = logger;
         _dispatcher = dispatcher;
@@ -45,21 +58,84 @@ public class MouseKeyProxyImpl : MouseKeyProxy.Network.V1.MouseKeyProxy.MouseKey
         _modifierReleaseController = modifierReleaseController;
         _screenshotCapture = screenshotCapture;
         _powerController = powerController ?? new UnsupportedPowerController();
+        _pairedPeerStore = pairedPeerStore ?? new PairedPeerStore();
+        _certificateAuthority = certificateAuthority ?? new PairingCertificateAuthority();
     }
 
+    /// <summary>
+    /// TR-MKP-SEC-001: mints a time-bound, single-use pairing code held in the paired-peer store.
+    /// This is a bootstrap RPC (allowed before a credential exists); the operator relays the code
+    /// out of band to the peer being paired.
+    /// </summary>
+    public override Task<RequestPairingCodeResponse> RequestPairingCode(RequestPairingCodeRequest request, ServerCallContext context)
+    {
+        var ttl = request.TtlSeconds > 0 ? TimeSpan.FromSeconds(request.TtlSeconds) : DefaultPairingCodeTtl;
+        var code = _pairedPeerStore.IssuePairingCode(ttl);
+        _logger.LogInformation("Issued pairing code valid for {TtlSeconds}s", (int)ttl.TotalSeconds);
+
+        return Task.FromResult(new RequestPairingCodeResponse
+        {
+            Success = true,
+            PairingCode = code,
+            TtlSeconds = (int)ttl.TotalSeconds,
+        });
+    }
+
+    /// <summary>
+    /// TR-MKP-SEC-001: validates and consumes a single-use pairing code, binds the peer-supplied
+    /// public key to a service-signed client certificate, registers the peer by cert thumbprint,
+    /// and returns the issued certificate plus the CA certificate the peer must trust.
+    /// </summary>
     public override Task<PairResponse> Pair(PairRequest request, ServerCallContext context)
     {
         _logger.LogInformation("Pair request received from PeerId={PeerId}, ProtocolVersion={ProtocolVersion}",
             request.PeerId, request.ProtocolVersion);
 
-        if (string.IsNullOrEmpty(request.PeerId) || request.PairingCode != "valid-test")
+        if (string.IsNullOrWhiteSpace(request.PeerId))
         {
-            _logger.LogWarning("Pair failed for PeerId={PeerId}: AUTH_FAIL", request.PeerId);
-            return Task.FromResult(new PairResponse { Success = false, Error = "AUTH_FAIL" });
+            return Fail(request.PeerId, "MISSING_PEER_ID");
         }
 
-        _logger.LogInformation("Pair succeeded for PeerId={PeerId}", request.PeerId);
-        return Task.FromResult(new PairResponse { Success = true });
+        if (request.PublicInfo is null || request.PublicInfo.IsEmpty)
+        {
+            return Fail(request.PeerId, "MISSING_PUBLIC_KEY");
+        }
+
+        if (!_pairedPeerStore.TryConsumePairingCode(request.PairingCode))
+        {
+            return Fail(request.PeerId, "INVALID_OR_EXPIRED_CODE");
+        }
+
+        X509Certificate2 peerCert;
+        try
+        {
+            peerCert = _certificateAuthority.IssuePeerCertificate(
+                request.PeerId, request.PublicInfo.ToByteArray(), PeerCertValidity);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Pair failed for PeerId={PeerId}: BAD_PUBLIC_KEY", request.PeerId);
+            return Fail(request.PeerId, "BAD_PUBLIC_KEY");
+        }
+
+        _pairedPeerStore.RegisterPeer(request.PeerId, peerCert.Thumbprint);
+        _logger.LogInformation("Pair succeeded for PeerId={PeerId}, thumbprint={Thumbprint}",
+            request.PeerId, peerCert.Thumbprint);
+
+        var response = new PairResponse
+        {
+            Success = true,
+            PeerCert = ByteString.CopyFrom(peerCert.Export(X509ContentType.Cert)),
+            CaCertificate = ByteString.CopyFrom(_certificateAuthority.CaCertificate.Export(X509ContentType.Cert)),
+        };
+        peerCert.Dispose();
+        return Task.FromResult(response);
+    }
+
+    private Task<PairResponse> Fail(string peerId, string error)
+    {
+        _logger.LogWarning("Pair failed for PeerId={PeerId}: {Error}", peerId, error);
+        return Task.FromResult(new PairResponse { Success = false, Error = error });
     }
 
     public override async Task OpenSession(

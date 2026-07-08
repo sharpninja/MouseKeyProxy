@@ -12,6 +12,8 @@ service MouseKeyProxy {
   rpc OpenSession (stream SessionFrame) returns (stream SessionFrame);
 
   // Pairing protocol surface (discovery / key negotiation before OpenSession)
+  // RequestPairingCode: operator mints a time-bound, single-use code (bootstrap).
+  rpc RequestPairingCode (RequestPairingCodeRequest) returns (RequestPairingCodeResponse);
   rpc Pair (PairRequest) returns (PairResponse);
 
   // Local REPL/tray management RPCs (typically routed over the open stream in implementation)
@@ -41,17 +43,30 @@ message ShutdownRequest {
   string correlationId = 4;
 }
 
+message RequestPairingCodeRequest {
+  string protocolVersion = 1;
+  int32 ttlSeconds = 2;      // 0 => service default
+}
+
+message RequestPairingCodeResponse {
+  bool success = 1;
+  string pairingCode = 2;
+  int32 ttlSeconds = 3;
+  string error = 4;
+}
+
 message PairRequest {
   string protocolVersion = 1;
   string peerId = 2;
-  bytes publicInfo = 3;
+  bytes publicInfo = 3;      // peer public key, SubjectPublicKeyInfo (DER)
   string pairingCode = 4;
 }
 
 message PairResponse {
   bool success = 1;
-  bytes peerCert = 2;
+  bytes peerCert = 2;        // service-signed per-peer client cert (DER)
   string error = 3;
+  bytes caCertificate = 4;   // service CA public cert (DER) so the peer trusts the channel
 }
 
 message SessionFrame {

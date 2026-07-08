@@ -1,4 +1,5 @@
 using System;
+using System.Linq;
 using System.Security.Cryptography;
 using System.Security.Cryptography.X509Certificates;
 using MouseKeyProxy.Service.Pairing;
@@ -45,6 +46,22 @@ public class PairingCertificateAuthorityTests
         using var foreign = req.CreateSelfSigned(DateTimeOffset.UtcNow.AddMinutes(-1), DateTimeOffset.UtcNow.AddDays(1));
 
         Assert.False(ca.IsIssuedByThisCa(foreign));
+    }
+
+    /// <summary>The CA issues a server certificate that carries a private key, a serverAuth EKU, and chains to the CA.</summary>
+    [Fact]
+    [Trait("Category", "Security")]
+    public void ServerCertificate_HasPrivateKey_ServerAuth_AndChainsToCa()
+    {
+        var ca = new PairingCertificateAuthority();
+
+        using var server = ca.CreateServerCertificate("mkp-host", TimeSpan.FromDays(30));
+
+        Assert.True(server.HasPrivateKey);
+        Assert.True(ca.IsIssuedByThisCa(server));
+
+        var ekus = server.Extensions.OfType<X509EnhancedKeyUsageExtension>().SelectMany(e => e.EnhancedKeyUsages.Cast<Oid>());
+        Assert.Contains(ekus, o => o.Value == "1.3.6.1.5.5.7.3.1");
     }
 
     /// <summary>Two peers get distinct thumbprints from the same CA.</summary>

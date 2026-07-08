@@ -1,3 +1,5 @@
+using System.Security.Cryptography;
+using Google.Protobuf;
 using Grpc.Core;
 using Microsoft.Extensions.Logging;
 using NSubstitute;
@@ -17,9 +19,17 @@ public class LoggingTests
     {
         var logger = Substitute.For<ILogger<MouseKeyProxyImpl>>();
         var impl = new MouseKeyProxyImpl(logger);
+        var ctx = Substitute.For<ServerCallContext>();
 
-        var req = new PairRequest { PeerId = "peer42", PairingCode = "valid-test" };
-        var resp = await impl.Pair(req, Substitute.For<ServerCallContext>());
+        using var ecdsa = ECDsa.Create(ECCurve.NamedCurves.nistP256);
+        var code = (await impl.RequestPairingCode(new RequestPairingCodeRequest(), ctx)).PairingCode;
+        var req = new PairRequest
+        {
+            PeerId = "peer42",
+            PairingCode = code,
+            PublicInfo = ByteString.CopyFrom(ecdsa.ExportSubjectPublicKeyInfo()),
+        };
+        var resp = await impl.Pair(req, ctx);
 
         Assert.True(resp.Success);
 
