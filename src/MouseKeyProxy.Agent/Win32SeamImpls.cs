@@ -586,11 +586,15 @@ public class Win32HotkeyMonitor : IHotkeyMonitor
     private const int WM_SYSKEYDOWN = 0x0104;
     private const uint VK_F1 = 0x70;
     private const uint VK_F2 = 0x71;
+    private const uint VK_F3 = 0x72;
     private const uint VK_CONTROL = 0x11;
     private const uint VK_MENU = 0x12;
     private static readonly TimeSpan ToggleDebounceWindow = TimeSpan.FromMilliseconds(300);
 
     public event EventHandler<ToggleEventArgs>? ToggleRequested;
+
+    /// <inheritdoc />
+    public event EventHandler<ToggleEventArgs>? EmergencyReleaseRequested;
 
     [DllImport("user32.dll", SetLastError = true)] private static extern bool RegisterHotKey(IntPtr hWnd, int id, uint fsModifiers, uint vk);
     [DllImport("user32.dll")] private static extern bool UnregisterHotKey(IntPtr hWnd, int id);
@@ -605,11 +609,23 @@ public class Win32HotkeyMonitor : IHotkeyMonitor
     private int _id = 1;
     private readonly KeyboardHookProc _keyboardProc;
     private long _lastToggleTimestamp;
+    private long _lastEmergencyTimestamp;
+    private readonly HotkeyConfig _config;
 
-    public Win32HotkeyMonitor()
+    public Win32HotkeyMonitor() : this(new HotkeyConfig())
     {
+    }
+
+    /// <summary>Creates the monitor with a specific hotkey configuration.</summary>
+    /// <param name="config">The toggle/emergency-release hotkey bindings.</param>
+    public Win32HotkeyMonitor(HotkeyConfig config)
+    {
+        _config = config ?? new HotkeyConfig();
         _keyboardProc = KeyboardHookCallback;
     }
+
+    /// <summary>The active hotkey configuration.</summary>
+    public HotkeyConfig Config => _config;
 
     public void StartMonitoring()
     {
@@ -653,7 +669,7 @@ public class Win32HotkeyMonitor : IHotkeyMonitor
     // Called from real WM_HOTKEY handler or test to drive shipped state
     public void RaiseToggle(string chord, bool remote)
     {
-        if (!ShouldDispatchToggle())
+        if (!ShouldDispatch(ref _lastToggleTimestamp))
         {
             return;
         }
@@ -661,12 +677,35 @@ public class Win32HotkeyMonitor : IHotkeyMonitor
         ToggleRequested?.Invoke(this, new ToggleEventArgs(chord, remote));
     }
 
+    /// <summary>
+    /// FR-MKP-001 / TR-MKP-RELI-001: raises the dedicated emergency-release hotkey (distinct from
+    /// toggle), debounced independently from the toggle. Called from the WM_HOTKEY handler or tests.
+    /// </summary>
+    public void RaiseEmergencyRelease(string chord, bool remote)
+    {
+        if (!ShouldDispatch(ref _lastEmergencyTimestamp))
+        {
+            return;
+        }
+
+        EmergencyReleaseRequested?.Invoke(this, new ToggleEventArgs(chord, remote));
+    }
+
     private IntPtr KeyboardHookCallback(int nCode, IntPtr wParam, IntPtr lParam)
     {
         if (nCode >= 0 && IsKeyDownMessage(wParam.ToInt32()))
         {
             var data = Marshal.PtrToStructure<KBDLLHOOKSTRUCT>(lParam);
-            if (IsCtrlAltF1(data.vkCode) || IsCtrlAltF2(data.vkCode))
+
+            // Dedicated emergency-release hotkey takes precedence over toggle.
+            if (MatchesChord(data.vkCode, _config.EmergencyReleaseVk, _config.EmergencyReleaseMods) || IsCtrlAltF3(data.vkCode))
+            {
+                RaiseEmergencyRelease("Ctrl-Alt-F3", false);
+                return new IntPtr(1);
+            }
+
+            // Toggle: configured binding, plus the legacy Ctrl-Alt-F1/F2 chords for back-compat.
+            if (MatchesChord(data.vkCode, _config.ToggleVk, _config.ToggleMods) || IsCtrlAltF1(data.vkCode) || IsCtrlAltF2(data.vkCode))
             {
                 RaiseToggle(data.vkCode == VK_F2 ? "Ctrl-Alt-F2" : "Ctrl-Alt-F1", false);
                 return new IntPtr(1);
@@ -676,16 +715,31 @@ public class Win32HotkeyMonitor : IHotkeyMonitor
         return CallNextHookEx(_keyboardHook, nCode, wParam, lParam);
     }
 
-    private bool ShouldDispatchToggle()
+    private static bool ShouldDispatch(ref long lastTimestamp)
     {
         var now = Stopwatch.GetTimestamp();
-        var previous = Interlocked.Read(ref _lastToggleTimestamp);
+        var previous = Interlocked.Read(ref lastTimestamp);
         if (previous != 0 && Stopwatch.GetElapsedTime(previous, now) < ToggleDebounceWindow)
         {
             return false;
         }
 
-        Interlocked.Exchange(ref _lastToggleTimestamp, now);
+        Interlocked.Exchange(ref lastTimestamp, now);
+        return true;
+    }
+
+    private static bool MatchesChord(uint vk, uint targetVk, uint mods)
+    {
+        if (vk != targetVk)
+        {
+            return false;
+        }
+
+        const uint modAlt = 0x0001, modControl = 0x0002, modShift = 0x0004, modWin = 0x0008;
+        if ((mods & modControl) != 0 && !IsKeyDown(VK_CONTROL)) return false;
+        if ((mods & modAlt) != 0 && !IsKeyDown(VK_MENU)) return false;
+        if ((mods & modShift) != 0 && !IsKeyDown(0x10)) return false;   // VK_SHIFT
+        if ((mods & modWin) != 0 && !IsKeyDown(0x5B) && !IsKeyDown(0x5C)) return false; // L/R Win
         return true;
     }
 
@@ -702,6 +756,11 @@ public class Win32HotkeyMonitor : IHotkeyMonitor
     private static bool IsCtrlAltF2(uint vk)
     {
         return vk == VK_F2 && IsKeyDown(VK_CONTROL) && IsKeyDown(VK_MENU);
+    }
+
+    private static bool IsCtrlAltF3(uint vk)
+    {
+        return vk == VK_F3 && IsKeyDown(VK_CONTROL) && IsKeyDown(VK_MENU);
     }
 
     private static bool IsKeyDown(uint vk)

@@ -54,7 +54,7 @@ internal static class Program
         _injector = new Win32InputInjector();
         _clip = new Win32CursorClip();
         _state = new ToggleStateMachine();
-        _hotkey = new Win32HotkeyMonitor();
+        _hotkey = new Win32HotkeyMonitor(HotkeyConfigStore.Load(HotkeyConfigStore.DefaultPath()));
         _controlPipe = AgentControlPipeServer.Start(new Win32DesktopController(), _injector, NotifyPairingState, GetAgentStatus, ExecuteEmergencyReleaseCommand, new Win32ScreenshotCapture());
         _forwarder = new RemoteInputForwarder(CreateRemoteChannel);
         LoadPersistedPairingState();
@@ -82,6 +82,7 @@ internal static class Program
         UpdateRemoteActionAvailability();
 
         _hotkey.ToggleRequested += (_, _) => DoRealToggle();
+        _hotkey.EmergencyReleaseRequested += (_, _) => EmergencyRelease();
         _hotkey.StartMonitoring();
 
         _hotkeyWindow = new HotkeyMessageForm(() => _hotkey.RaiseToggle("Ctrl-Alt-F1", false));
@@ -976,7 +977,9 @@ internal static class Program
         }
     }
 
-    private static void DoRealToggle()
+    // async void: this is a WinForms event handler (menu click + hotkey). Awaiting keeps the UI
+    // message pump live during the toggle RPC instead of blocking it with .GetResult().
+    private static async void DoRealToggle()
     {
         if (!EnsureConnectedRemoteAction("Toggle Active - Desktop Control"))
         {
@@ -989,7 +992,7 @@ internal static class Program
             TryRequestPeerClearModifiers();
             var remoteUrl = ResolveRemoteGrpcUrl();
             var activePeer = remoteUrl;
-            bool active = InputCommandHandler.ToggleAsync(_state!, null, activePeer).GetAwaiter().GetResult();
+            bool active = await InputCommandHandler.ToggleAsync(_state!, null, activePeer);
             if (active)
             {
                 // Engage the cursor clip so the local pointer is confined while input forwards to the
@@ -1094,7 +1097,8 @@ internal static class Program
         }
     }
 
-    private static void DoRealInject(string? text = null)
+    // async void: WinForms event handler; awaiting keeps the UI responsive during the inject RPC.
+    private static async void DoRealInject(string? text = null)
     {
         if (!EnsureConnectedRemoteAction("Inject Text to Remote"))
         {
@@ -1114,7 +1118,7 @@ internal static class Program
 
             var client = new Wire.MouseKeyProxy.MouseKeyProxyClient(channel);
             using var transport = new BidiSessionTransport(client);
-            InputCommandHandler.SendInputAsync(transport, InputKind.TEXT_INPUT, payload).GetAwaiter().GetResult();
+            await InputCommandHandler.SendInputAsync(transport, InputKind.TEXT_INPUT, payload);
             Console.WriteLine("[REAL bidi via transport] inject-text sent as SessionFrame/InputBatch SUCCESS");
         }
         catch (Exception ex)

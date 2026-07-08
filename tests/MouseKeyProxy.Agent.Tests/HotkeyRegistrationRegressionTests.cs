@@ -78,11 +78,11 @@ public class HotkeyRegistrationRegressionTests
         var mainMenuEnd = source.IndexOf("_tray.ContextMenuStrip = menu", StringComparison.Ordinal);
         Assert.True(mainMenuStart >= 0 && mainMenuEnd > mainMenuStart, "Main tray menu block was not found.");
         var mainMenu = source[mainMenuStart..mainMenuEnd];
-        var toggleStart = source.IndexOf("private static void DoRealToggle", StringComparison.Ordinal);
+        var toggleStart = source.IndexOf("private static async void DoRealToggle", StringComparison.Ordinal);
         var toggleEnd = source.IndexOf("private static string ResolveRemoteGrpcUrl", StringComparison.Ordinal);
         Assert.True(toggleStart >= 0 && toggleEnd > toggleStart, "DoRealToggle helper was not found.");
         var toggleHelper = source[toggleStart..toggleEnd];
-        var injectStart = source.IndexOf("private static void DoRealInject", StringComparison.Ordinal);
+        var injectStart = source.IndexOf("private static async void DoRealInject", StringComparison.Ordinal);
         Assert.True(injectStart >= 0, "DoRealInject helper was not found.");
         var injectHelper = source[injectStart..];
 

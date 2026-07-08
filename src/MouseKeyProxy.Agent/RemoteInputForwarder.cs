@@ -375,7 +375,13 @@ public sealed class RemoteInputForwarder : IDisposable
 
         try
         {
-            SendBatchAsync(ModifierReleasePolicy.CreateKeyUpEvents(), CancellationToken.None).GetAwaiter().GetResult();
+            // Bounded wait (not an unbounded .GetResult()): teardown still sends the release before
+            // the channel is disposed, but a hung remote can never freeze the caller indefinitely.
+            // SendBatchAsync awaits with ConfigureAwait(false), so this cannot deadlock the UI thread.
+            if (!SendBatchAsync(ModifierReleasePolicy.CreateKeyUpEvents(), CancellationToken.None).Wait(TimeSpan.FromSeconds(2)))
+            {
+                Debug.WriteLine("MouseKeyProxy remote modifier release timed out after 2s.");
+            }
         }
         catch (Exception ex)
         {

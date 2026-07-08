@@ -10,6 +10,10 @@ namespace MouseKeyProxy.Common;
 public interface IHotkeyMonitor
 {
     event EventHandler<ToggleEventArgs> ToggleRequested;
+
+    /// <summary>FR-MKP-001 / TR-MKP-RELI-001: dedicated emergency-release hotkey, distinct from toggle.</summary>
+    event EventHandler<ToggleEventArgs> EmergencyReleaseRequested;
+
     void StartMonitoring();
     void StopMonitoring();
 }
