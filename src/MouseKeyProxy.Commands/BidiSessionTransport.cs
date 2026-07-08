@@ -23,6 +23,16 @@ public class BidiSessionTransport : IDisposable
     private AsyncDuplexStreamingCall<Wire.SessionFrame, Wire.SessionFrame>? _call;
     private ulong _nextSeq = 1;
     private bool _disposed;
+    private readonly SeqGapDetector _gaps = new();
+
+    /// <summary>TR-MKP-RELI-001: seq/ack gap detector observing sent frames vs received acks.</summary>
+    public SeqGapDetector Gaps => _gaps;
+
+    /// <summary>TR-MKP-RELI-001: the current detected sequence gaps (sent frames skipped by acks).</summary>
+    public IReadOnlyList<SeqGap> DetectedGaps => _gaps.GetGaps();
+
+    /// <summary>TR-MKP-RELI-001: the highest ack sequence observed on this transport.</summary>
+    public ulong LastAckSeq => _gaps.HighestAck;
 
     /// <summary>
     /// Capture seam for AC4 verification: last SessionFrame constructed/sent by shipped transport (Seq, Input, acks etc).
@@ -103,6 +113,7 @@ public class BidiSessionTransport : IDisposable
         var frame = BuildControlFrame(control);
         _sentFrames.Add(frame);
         LastSentFrame = frame;
+        _gaps.OnSendFrame(frame.Seq);
 
         if (_client == null)
         {
@@ -129,6 +140,7 @@ public class BidiSessionTransport : IDisposable
         var frame = BuildInputBatchFrame(events);
         _sentFrames.Add(frame);
         LastSentFrame = frame;
+        _gaps.OnSendFrame(frame.Seq);
 
         if (_client == null)
         {
@@ -151,7 +163,15 @@ public class BidiSessionTransport : IDisposable
     {
         if (_call == null) return null;
         if (await _call.ResponseStream.MoveNext(ct))
-            return _call.ResponseStream.Current;
+        {
+            var frame = _call.ResponseStream.Current;
+            if (frame?.Ack != null)
+            {
+                _gaps.OnReceiveAck(frame.Ack.Last);
+            }
+
+            return frame;
+        }
         return null;
     }
 
