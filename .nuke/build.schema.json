@@ -36,6 +36,7 @@
         "Restore",
         "ShowVersion",
         "Test",
+        "TestPowerShell",
         "ValidateTraceability"
       ]
     },
