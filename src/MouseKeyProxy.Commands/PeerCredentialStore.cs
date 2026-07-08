@@ -72,7 +72,8 @@ public static class PeerCredentialStore
         var container = JsonSerializer.Deserialize<Container>(plaintext)
             ?? throw new InvalidDataException("Peer credential file is corrupt.");
 
-        var client = X509CertificateLoader.LoadPkcs12(container.ClientPfx, null);
+        // Exportable so a reloaded credential can itself be re-persisted (Save re-exports the key).
+        var client = X509CertificateLoader.LoadPkcs12(container.ClientPfx, null, X509KeyStorageFlags.Exportable);
         var ca = X509CertificateLoader.LoadCertificate(container.CaCert);
         return new PeerCredential(container.PeerId, client, ca);
     }

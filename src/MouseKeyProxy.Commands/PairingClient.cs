@@ -105,8 +105,14 @@ public static class PairingClient
         }
 
         using var withKey = issued.CopyWithPrivateKey(key);
-        // Round-trip through PKCS#12 so the private key is durably bound for the TLS stack.
-        var clientCert = X509CertificateLoader.LoadPkcs12(withKey.Export(X509ContentType.Pkcs12), null);
+        // Round-trip through PKCS#12 so the private key is durably bound for the TLS stack. Load it as
+        // Exportable so the credential can later be re-exported for at-rest persistence (PeerCredentialStore
+        // .Save); without this the private key is non-exportable on Windows and the save throws
+        // "Key not valid for use in specified state" (NTE_BAD_KEY_STATE).
+        var clientCert = X509CertificateLoader.LoadPkcs12(
+            withKey.Export(X509ContentType.Pkcs12),
+            null,
+            X509KeyStorageFlags.Exportable);
         return new PeerCredential(peerId, clientCert, ca);
     }
 

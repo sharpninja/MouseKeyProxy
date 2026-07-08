@@ -97,6 +97,51 @@ public sealed class PairingMtlsE2ETests : IAsyncLifetime
         Assert.Contains(_injector.Batches.SelectMany(b => b), e => e.Vk == 0x42);
     }
 
+    /// <summary>
+    /// TR-MKP-SEC-001: the field pairing path. After pairing, the credential is persisted via
+    /// <see cref="PeerCredentialStore.Save"/> and reloaded, then used to open an authenticated channel
+    /// and inject. This reproduces the operator flow (mkp pair discover), which the in-memory pairing
+    /// tests miss: PeerCredentialStore.Save re-exports the client certificate's private key, so the key
+    /// bound during pairing must be exportable or the save throws "Key not valid for use in specified state".
+    /// </summary>
+    [Fact]
+    [Trait("Category", "SecurityE2E")]
+    public async Task PairedPeer_CredentialSurvivesSaveLoad_AndAuthenticates()
+    {
+        var code = _store.IssuePairingCode(TimeSpan.FromMinutes(5));
+        var credential = await PairingClient.PairAsync(Address, "peer-persist", code, cancellationToken: Ct);
+
+        var path = System.IO.Path.Combine(System.IO.Path.GetTempPath(), $"mkp-cred-{Guid.NewGuid():N}.bin");
+        try
+        {
+            // Save re-exports the client private key: fails if pairing bound a non-exportable key.
+            PeerCredentialStore.Save(path, credential);
+            var loaded = PeerCredentialStore.Load(path);
+            Assert.NotNull(loaded);
+            Assert.True(loaded!.ClientCertificate.HasPrivateKey);
+
+            using var channel = PairingClient.CreateAuthenticatedChannel(Address, loaded);
+            var client = new Wire.MouseKeyProxy.MouseKeyProxyClient(channel);
+
+            var result = await client.InjectInputAsync(new Wire.InjectInputRequest
+            {
+                ProtocolVersion = "v1",
+                PeerId = "peer-persist",
+                Events = { new Wire.InputEvent { Kind = Wire.InputKind.KeyDown, Vk = 0x44 } },
+            }, cancellationToken: Ct);
+
+            Assert.True(result.Ok);
+            Assert.Contains(_injector.Batches.SelectMany(b => b), e => e.Vk == 0x44);
+        }
+        finally
+        {
+            if (System.IO.File.Exists(path))
+            {
+                System.IO.File.Delete(path);
+            }
+        }
+    }
+
     /// <summary>A revoked peer is rejected even though its certificate still chains to the CA.</summary>
     [Fact]
     [Trait("Category", "SecurityE2E")]
