@@ -30,6 +30,7 @@
         "IntegrationTest",
         "PackRepl",
         "PublishAgent",
+        "PublishPi",
         "PublishSelfContained",
         "PublishService",
         "PublishToolToNuGet",

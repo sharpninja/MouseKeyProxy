@@ -233,6 +233,30 @@ class Build : NukeBuild
         .DependsOn(PublishService, PublishAgent)
         .Executes(() => { });
 
+    AbsolutePath PiStageDirectory => OutputDirectory / "pi-stage";
+
+    // FR-MKP-012: publish the Service + Repl for the Pi as ready-to-run, single-file, self-contained
+    // linux-arm64 - the artifacts rufus stages recursively into the rootfs. Trimming is intentionally
+    // NOT enabled: ASP.NET Core + gRPC is not trim-safe and would break at runtime on the Pi.
+    Target PublishPi => _ => _
+        .DependsOn(Compile)
+        .Executes(() =>
+        {
+            var flags = "-r linux-arm64 --self-contained true "
+                + "-p:PublishSingleFile=true -p:PublishReadyToRun=true "
+                + "-p:IncludeNativeLibrariesForSelfExtract=true -p:EnableCompressionInSingleFile=true";
+
+            var serviceOut = PiStageDirectory / "service";
+            EnsureCleanDirectory(serviceOut);
+            RunDotNetCommand($"publish {Quote(ServiceProject)} -c {Configuration} -o {Quote(serviceOut)} {flags} {VersionMsBuildProperties}");
+
+            var replOut = PiStageDirectory / "repl";
+            EnsureCleanDirectory(replOut);
+            RunDotNetCommand($"publish {Quote(ReplProject)} -c {Configuration} -o {Quote(replOut)} {flags} {VersionMsBuildProperties}");
+
+            Console.WriteLine($"Pi publish staged under {PiStageDirectory}.");
+        });
+
     Target PublishToolToNuGet => _ => _
         .DependsOn(PackRepl)
         .Executes(() =>
