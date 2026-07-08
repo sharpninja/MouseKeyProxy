@@ -74,7 +74,7 @@ public class ReplBidiConstructionTests
         var sourcePath = System.IO.Path.Combine(RepoRoot, "src", "MouseKeyProxy.Repl", "Program.cs");
         var source = System.IO.File.ReadAllText(sourcePath);
 
-        Assert.Contains("NotifyLocalAgentPairingState(baseUrl, req.PairingCode)", source, StringComparison.Ordinal);
+        Assert.Contains("NotifyLocalAgentPairingState(baseUrl, code)", source, StringComparison.Ordinal);
         Assert.Contains("AgentControlPipe.NotifyPairingState", source, StringComparison.Ordinal);
         Assert.Contains("RemoteGrpcUrl = remoteGrpcUrl", source, StringComparison.Ordinal);
         Assert.Contains("[AGENT pairing state]", source, StringComparison.Ordinal);

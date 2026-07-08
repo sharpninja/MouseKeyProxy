@@ -64,7 +64,7 @@ public static class LabTopology
 
     /// <summary>Builds the gRPC URL for a host on the configured port.</summary>
     /// <param name="host">Target host name or address.</param>
-    /// <returns>The gRPC URL, or empty when <paramref name="host"/> is empty.</returns>
+    /// <returns>The gRPC URL (https, since the service requires mTLS), or empty when <paramref name="host"/> is empty.</returns>
     public static string GrpcUrl(string host) =>
-        string.IsNullOrWhiteSpace(host) ? string.Empty : $"http://{host}:{GrpcPort}";
+        string.IsNullOrWhiteSpace(host) ? string.Empty : $"https://{host}:{GrpcPort}";
 }

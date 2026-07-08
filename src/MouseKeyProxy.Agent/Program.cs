@@ -40,6 +40,7 @@ internal static class Program
     private static string? _activeRemoteGrpcUrl;
     private static string? _lastPairingCode;
     private static string? _lastRemoteError;
+    private static PeerCredential? _peerCredential;
     private static Label? _pairingStatusValue;
     private static Label? _activePeerValue;
     private static Label? _remoteEndpointValue;
@@ -55,7 +56,7 @@ internal static class Program
         _state = new ToggleStateMachine();
         _hotkey = new Win32HotkeyMonitor();
         _controlPipe = AgentControlPipeServer.Start(new Win32DesktopController(), _injector, NotifyPairingState, GetAgentStatus, ExecuteEmergencyReleaseCommand, new Win32ScreenshotCapture());
-        _forwarder = new RemoteInputForwarder();
+        _forwarder = new RemoteInputForwarder(CreateRemoteChannel);
         LoadPersistedPairingState();
 
         _tray = new NotifyIcon
@@ -452,31 +453,26 @@ internal static class Program
         var remoteUrl = ResolveRemoteGrpcUrl();
         try
         {
-            using var channel = GrpcChannel.ForAddress(remoteUrl, new GrpcChannelOptions
-            {
-                HttpHandler = new System.Net.Http.SocketsHttpHandler { EnableMultipleHttp2Connections = true }
-            });
-            var client = new Wire.MouseKeyProxy.MouseKeyProxyClient(channel);
-            var response = client.Pair(new Wire.PairRequest
-            {
-                ProtocolVersion = "v1",
-                PeerId = Environment.MachineName.ToLowerInvariant(),
-                PairingCode = pairingCode
-            });
+            // TR-MKP-SEC-001: real pairing - exchange the one-time code for a service-signed client
+            // certificate over mTLS, then persist the credential for authenticated forwarding.
+            var peerId = Environment.MachineName.ToLowerInvariant();
+            var credential = PairingClient.PairAsync(remoteUrl, peerId, pairingCode).GetAwaiter().GetResult();
 
-            if (!response.Success)
-            {
-                _remoteState = RemoteConnectionState.NotPaired;
-                _lastPairingCode = null;
-                _lastRemoteError = response.Error;
-                message = $"Not paired: {response.Error}";
-                UpdateRemoteActionAvailability();
-                return false;
-            }
+            _peerCredential = credential;
+            PeerCredentialStore.Save(PeerCredentialStore.DefaultPath(), credential);
 
             ApplyPairingState(ResolveRemotePeerName(remoteUrl), remoteUrl, pairingCode, connected: true);
             message = $"Paired and connected to {CurrentRemotePeer()}.";
             return true;
+        }
+        catch (PairingException ex)
+        {
+            _remoteState = RemoteConnectionState.NotPaired;
+            _lastPairingCode = null;
+            _lastRemoteError = ex.Error;
+            message = $"Not paired: {ex.Error}";
+            UpdateRemoteActionAvailability();
+            return false;
         }
         catch (Exception ex)
         {
@@ -494,6 +490,16 @@ internal static class Program
             UpdateRemoteActionAvailability();
             return false;
         }
+    }
+
+    /// <summary>
+    /// TR-MKP-SEC-001: builds a mutually-authenticated channel to the remote service using the
+    /// persisted peer credential, loading it from disk on first use. Returns null when unpaired.
+    /// </summary>
+    private static GrpcChannel? CreateRemoteChannel(string remoteUrl)
+    {
+        _peerCredential ??= PeerCredentialStore.Load(PeerCredentialStore.DefaultPath());
+        return _peerCredential is null ? null : PairingClient.CreateAuthenticatedChannel(remoteUrl, _peerCredential);
     }
 
     private static AgentControlResponse NotifyPairingState(AgentControlRequest request)
@@ -590,6 +596,7 @@ internal static class Program
             _lastPairingCode = state.PairingCode;
             _lastRemoteError = state.Connected ? null : NotConnectedText;
             _remoteState = state.Connected ? RemoteConnectionState.Connected : RemoteConnectionState.NotConnected;
+            _peerCredential = PeerCredentialStore.Load(PeerCredentialStore.DefaultPath());
         }
         catch
         {
@@ -858,10 +865,12 @@ internal static class Program
 
         try
         {
-            using var channel = GrpcChannel.ForAddress(_activeRemoteGrpcUrl, new GrpcChannelOptions
+            using var channel = CreateRemoteChannel(_activeRemoteGrpcUrl);
+            if (channel is null)
             {
-                HttpHandler = new System.Net.Http.SocketsHttpHandler { EnableMultipleHttp2Connections = true }
-            });
+                return RemoteControlResult.Failure("NOT_PAIRED", "No paired credential; pair before clearing remote modifiers.");
+            }
+
             var client = new Wire.MouseKeyProxy.MouseKeyProxyClient(channel);
             var response = client.ClearModifiers(new Wire.ClearModifiersRequest
             {
@@ -900,10 +909,12 @@ internal static class Program
 
         try
         {
-            using var channel = GrpcChannel.ForAddress(_activeRemoteGrpcUrl, new GrpcChannelOptions
+            using var channel = CreateRemoteChannel(_activeRemoteGrpcUrl);
+            if (channel is null)
             {
-                HttpHandler = new System.Net.Http.SocketsHttpHandler { EnableMultipleHttp2Connections = true }
-            });
+                return RemoteControlResult.Failure("NOT_PAIRED", "No paired credential; pair before requesting remote emergency release.");
+            }
+
             var client = new Wire.MouseKeyProxy.MouseKeyProxyClient(channel);
             var response = client.EmergencyRelease(new Wire.EmergencyReleaseRequest
             {
@@ -1092,10 +1103,13 @@ internal static class Program
         string baseUrl = ResolveRemoteGrpcUrl();
         try
         {
-            using var channel = GrpcChannel.ForAddress(baseUrl, new GrpcChannelOptions
+            using var channel = CreateRemoteChannel(baseUrl);
+            if (channel is null)
             {
-                HttpHandler = new System.Net.Http.SocketsHttpHandler { EnableMultipleHttp2Connections = true }
-            });
+                Console.WriteLine("[SHIPPED observable fail] inject FAILED: NOT_PAIRED");
+                return;
+            }
+
             var client = new Wire.MouseKeyProxy.MouseKeyProxyClient(channel);
             using var transport = new BidiSessionTransport(client);
             InputCommandHandler.SendInputAsync(transport, InputKind.TEXT_INPUT, payload).GetAwaiter().GetResult();

@@ -62,9 +62,16 @@ public sealed class RemoteInputForwarder : IDisposable
     private RawMouseInputWindow? _rawMouseWindow;
     private DateTimeOffset _passThroughUntilUtc;
     private bool _disposed;
+    private readonly Func<string, GrpcChannel?>? _channelFactory;
 
-    public RemoteInputForwarder()
+    /// <summary>Creates the forwarder.</summary>
+    /// <param name="channelFactory">
+    /// TR-MKP-SEC-001: optional factory that builds a mutually-authenticated channel for a remote URL
+    /// (returns null when unpaired). When omitted, a plain channel is used (test/local paths).
+    /// </param>
+    public RemoteInputForwarder(Func<string, GrpcChannel?>? channelFactory = null)
     {
+        _channelFactory = channelFactory;
         _keyboardProc = KeyboardHookCallback;
         _mouseProc = MouseHookCallback;
     }
@@ -91,10 +98,12 @@ public sealed class RemoteInputForwarder : IDisposable
             RemoteUrl = remoteUrl;
             _queue = new BlockingCollection<InputEvent>(boundedCapacity: 4096);
             _stop = new CancellationTokenSource();
-            _channel = GrpcChannel.ForAddress(remoteUrl, new GrpcChannelOptions
-            {
-                HttpHandler = new SocketsHttpHandler { EnableMultipleHttp2Connections = true }
-            });
+            _channel = _channelFactory is not null
+                ? _channelFactory(remoteUrl) ?? throw new InvalidOperationException("No paired credential for remote input forwarding.")
+                : GrpcChannel.ForAddress(remoteUrl, new GrpcChannelOptions
+                {
+                    HttpHandler = new SocketsHttpHandler { EnableMultipleHttp2Connections = true }
+                });
             _client = new Wire.MouseKeyProxy.MouseKeyProxyClient(_channel);
             _sender = Task.Run(() => SendLoopAsync(_stop.Token));
 

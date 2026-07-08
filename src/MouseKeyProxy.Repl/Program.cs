@@ -28,6 +28,33 @@ public static class Program
     private static System.Collections.Generic.List<Cmn.ClipboardEntry> _clipboardHistory = new();
     private const string TempDataRoot = @"%LOCALAPPDATA%\Temp\MouseKeyProxy";
     private static readonly JsonSerializerOptions AgentControlJsonOptions = new(JsonSerializerDefaults.Web);
+
+    /// <summary>
+    /// TR-MKP-SEC-001: builds a channel for effect RPCs using the persisted peer credential (mTLS),
+    /// falling back to a bootstrap channel (which trusts the server on first use) when unpaired so
+    /// pairing-bootstrap RPCs remain reachable.
+    /// </summary>
+    private static GrpcChannel CreateReplChannel(string baseUrl)
+    {
+        var credential = PeerCredentialStore.Load(PeerCredentialStore.DefaultPath());
+        return credential is not null
+            ? PairingClient.CreateAuthenticatedChannel(baseUrl, credential)
+            : CreateBootstrapChannel(baseUrl);
+    }
+
+    /// <summary>Builds a bootstrap channel that trusts the server certificate (operator-local pairing).</summary>
+    private static GrpcChannel CreateBootstrapChannel(string baseUrl)
+    {
+        var handler = new System.Net.Http.SocketsHttpHandler
+        {
+            EnableMultipleHttp2Connections = true,
+            SslOptions = new System.Net.Security.SslClientAuthenticationOptions
+            {
+                RemoteCertificateValidationCallback = (_, _, _, _) => true,
+            },
+        };
+        return GrpcChannel.ForAddress(baseUrl, new GrpcChannelOptions { HttpHandler = handler });
+    }
     private const string EventLogSourceName = "MouseKeyProxy";
     private const string EventLogName = "MouseKeyProxy";
 
@@ -49,6 +76,7 @@ Commands:
   mkp service status | install | uninstall | start | stop   (uses sc.exe, netsh, schtasks; elevation via runas)
   mkp agent status [--json] | emergency-release [--json]
   mkp pair discover | pair <code> | pair status [--json]
+  mkp pair mint [ttlSeconds]                                 (service host mints a one-time pairing code)
   mkp toggle
   mkp emergency-release [--json]
   mkp clear-modifiers
@@ -75,7 +103,7 @@ Explicit 'mkp service install' does NOT happen on 'dotnet tool install'.
         }
 
         var cmd = args[0].ToLowerInvariant();
-        string baseUrl = Environment.GetEnvironmentVariable("MKP_GRPC") ?? "http://localhost:50051";
+        string baseUrl = Environment.GetEnvironmentVariable("MKP_GRPC") ?? "https://localhost:50051";
 
         switch (cmd)
         {
@@ -107,33 +135,47 @@ Explicit 'mkp service install' does NOT happen on 'dotnet tool install'.
                     return DoAgentStatus(args);
                 }
 
+                if (args.Length > 1 && args[1].Equals("mint", StringComparison.OrdinalIgnoreCase))
+                {
+                    // Operator mints a one-time pairing code on the service host to relay to a peer.
+                    try
+                    {
+                        var ttl = args.Length > 2 && int.TryParse(args[2], out var t) ? t : 0;
+                        using var channel = CreateBootstrapChannel(baseUrl);
+                        var client = new Wire.MouseKeyProxy.MouseKeyProxyClient(channel);
+                        var minted = client.RequestPairingCode(new Wire.RequestPairingCodeRequest { ProtocolVersion = "v1", TtlSeconds = ttl });
+                        if (!minted.Success)
+                        {
+                            Console.WriteLine($"[PAIR mint failed] {minted.Error}");
+                            return 1;
+                        }
+
+                        Console.WriteLine($"Pairing code: {minted.PairingCode} (valid {minted.TtlSeconds}s)");
+                        return 0;
+                    }
+                    catch (Exception ex) { Console.WriteLine($"[PAIR mint error] {ex.Message}"); return 1; }
+                }
+
                 try
                 {
-                    using var channel = GrpcChannel.ForAddress(baseUrl, new GrpcChannelOptions
-                    {
-                        HttpHandler = new System.Net.Http.SocketsHttpHandler { EnableMultipleHttp2Connections = true }
-                    });
-                    var client = new Wire.MouseKeyProxy.MouseKeyProxyClient(channel);
-                    using var transport = new MouseKeyProxy.Commands.BidiSessionTransport(client);
-                    // real pair call (unary); bidi transport available for subsequent session
-                    var req = new Wire.PairRequest { ProtocolVersion = "v1", PeerId = "repl-peer", PairingCode = args.Length > 1 ? args[1] : "0000" };
-                    var resp = client.Pair(req);
-                    Console.WriteLine($"[REAL gRPC Pair via transport path] success={resp.Success} err={resp.Error}");
-                    if (!resp.Success)
-                    {
-                        return 1;
-                    }
+                    // TR-MKP-SEC-001: real pairing - exchange the one-time code for a service-signed
+                    // client certificate over mTLS and persist the credential for later effect RPCs.
+                    var code = args.Length > 1 ? args[1] : "0000";
+                    var credential = PairingClient.PairAsync(baseUrl, "repl-peer", code).GetAwaiter().GetResult();
+                    PeerCredentialStore.Save(PeerCredentialStore.DefaultPath(), credential);
+                    Console.WriteLine($"[REAL gRPC Pair] paired repl-peer; client cert thumbprint={credential.ClientCertificate.Thumbprint}");
 
-                    var agentResponse = NotifyLocalAgentPairingState(baseUrl, req.PairingCode);
+                    var agentResponse = NotifyLocalAgentPairingState(baseUrl, code);
                     Console.WriteLine($"[AGENT pairing state] ok={agentResponse.Ok} err={agentResponse.ErrorCode} msg={agentResponse.Message}");
                     return agentResponse.Ok ? 0 : 1;
                 }
+                catch (MouseKeyProxy.Commands.PairingException ex) { Console.WriteLine($"[REAL Pair rejected] {ex.Error}"); return 1; }
                 catch (Exception ex) { Console.WriteLine($"[REAL Pair attempted] {ex.Message}"); return 1; }
             case "toggle":
                 // real toggle via SHIPPED handler + transport for mod resync emission (AC3)
                 try
                 {
-                    using var channel = GrpcChannel.ForAddress(baseUrl, new GrpcChannelOptions { HttpHandler = new System.Net.Http.SocketsHttpHandler { EnableMultipleHttp2Connections = true } });
+                    using var channel = CreateReplChannel(baseUrl);
                     var client = new Wire.MouseKeyProxy.MouseKeyProxyClient(channel);
                     using var transport = new MouseKeyProxy.Commands.BidiSessionTransport(client);
                     bool active = MouseKeyProxy.Commands.InputCommandHandler.ToggleAsync(_toggle, transport, "peer-via-repl").GetAwaiter().GetResult();
@@ -183,10 +225,7 @@ Explicit 'mkp service install' does NOT happen on 'dotnet tool install'.
                 try
                 {
                     using var channel = TestGrpcClientFactory is null
-                        ? GrpcChannel.ForAddress(baseUrl, new GrpcChannelOptions
-                        {
-                            HttpHandler = new System.Net.Http.SocketsHttpHandler { EnableMultipleHttp2Connections = true }
-                        })
+                        ? CreateReplChannel(baseUrl)
                         : null;
                     var client = TestGrpcClientFactory?.Invoke(baseUrl)
                         ?? new Wire.MouseKeyProxy.MouseKeyProxyClient(channel!);
@@ -264,10 +303,7 @@ Explicit 'mkp service install' does NOT happen on 'dotnet tool install'.
     {
         try
         {
-            using var channel = GrpcChannel.ForAddress(baseUrl, new GrpcChannelOptions
-            {
-                HttpHandler = new System.Net.Http.SocketsHttpHandler { EnableMultipleHttp2Connections = true }
-            });
+            using var channel = CreateReplChannel(baseUrl);
             var client = new Wire.MouseKeyProxy.MouseKeyProxyClient(channel);
             var response = client.ClearModifiers(new Wire.ClearModifiersRequest
             {
@@ -304,10 +340,7 @@ Explicit 'mkp service install' does NOT happen on 'dotnet tool install'.
 
         try
         {
-            using var channel = GrpcChannel.ForAddress(baseUrl, new GrpcChannelOptions
-            {
-                HttpHandler = new System.Net.Http.SocketsHttpHandler { EnableMultipleHttp2Connections = true }
-            });
+            using var channel = CreateReplChannel(baseUrl);
             var client = new Wire.MouseKeyProxy.MouseKeyProxyClient(channel);
             using var call = client.CaptureScreenshot(new Wire.CaptureScreenshotRequest
             {
@@ -407,14 +440,11 @@ Explicit 'mkp service install' does NOT happen on 'dotnet tool install'.
         var remote = GetOption(args, "--remote", string.Empty);
         var baseUrl = !string.IsNullOrWhiteSpace(remote)
             ? (remote.StartsWith("http", StringComparison.OrdinalIgnoreCase) ? remote : Cmn.LabTopology.GrpcUrl(remote))
-            : (Environment.GetEnvironmentVariable("MKP_GRPC") ?? "http://localhost:50051");
+            : (Environment.GetEnvironmentVariable("MKP_GRPC") ?? "https://localhost:50051");
         var label = reboot ? "reboot" : "shutdown";
         try
         {
-            using var channel = GrpcChannel.ForAddress(baseUrl, new GrpcChannelOptions
-            {
-                HttpHandler = new System.Net.Http.SocketsHttpHandler { EnableMultipleHttp2Connections = true }
-            });
+            using var channel = CreateReplChannel(baseUrl);
             var client = new Wire.MouseKeyProxy.MouseKeyProxyClient(channel);
             var resp = client.Shutdown(new Wire.ShutdownRequest
             {
