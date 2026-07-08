@@ -43,8 +43,40 @@ public static class ServiceHost
             ContentRootPath = AppContext.BaseDirectory
         });
 
-        var ca = certificateAuthority ?? new PairingCertificateAuthority();
-        var store = pairedPeerStore ?? new PairedPeerStore();
+        // TR-MKP-SEC-001: load persisted pairing state (CA + paired peers) so a paired device stays
+        // paired across a Service restart / Pi reboot. Tests inject explicit ca/store and bypass this.
+        var statePath = PairingStateStore.DefaultPath();
+        PairingState? loadedState = null;
+        if (certificateAuthority is null || pairedPeerStore is null)
+        {
+            try
+            {
+                loadedState = PairingStateStore.Load(statePath);
+            }
+            catch (Exception)
+            {
+                loadedState = null; // corrupt/undecryptable state -> start fresh rather than crash
+            }
+        }
+
+        var ca = certificateAuthority ?? new PairingCertificateAuthority(loadedState?.CaCertificate);
+        var store = pairedPeerStore ?? new PairedPeerStore(
+            timeProvider: null,
+            initialPeers: loadedState?.Peers,
+            onChanged: peers =>
+            {
+                try { PairingStateStore.Save(statePath, ca.CaCertificate, peers); }
+                catch { /* persistence is best-effort; a failed save must not break pairing at runtime */ }
+            });
+
+        // Persist a freshly-generated CA immediately so it is stable across restarts even before the
+        // first pairing (otherwise a restart would regenerate the CA and invalidate any issued cert).
+        if (pairedPeerStore is null && loadedState is null)
+        {
+            try { PairingStateStore.Save(statePath, ca.CaCertificate, Array.Empty<PairedPeer>()); }
+            catch { /* best effort */ }
+        }
+
         var serverCertificate = ca.CreateServerCertificate(System.Net.Dns.GetHostName(), TimeSpan.FromDays(365));
         var listenPort = port ?? LabTopology.GrpcPort;
 

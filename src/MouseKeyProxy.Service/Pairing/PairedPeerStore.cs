@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Security.Cryptography;
 
 namespace MouseKeyProxy.Service.Pairing;
@@ -76,10 +77,54 @@ public sealed class PairedPeerStore : IPairedPeerStore
     private readonly Dictionary<string, DateTimeOffset> _codes = new(StringComparer.Ordinal);
     private readonly Dictionary<string, PairedPeer> _byThumbprint = new(StringComparer.OrdinalIgnoreCase);
     private readonly Dictionary<string, PairedPeer> _byPeerId = new(StringComparer.OrdinalIgnoreCase);
+    private readonly Action<IReadOnlyList<PairedPeer>>? _onChanged;
 
     /// <summary>Creates the store with the given time source (defaults to the system clock).</summary>
     /// <param name="timeProvider">Clock used for code expiry and timestamps.</param>
-    public PairedPeerStore(TimeProvider? timeProvider = null) => _time = timeProvider ?? TimeProvider.System;
+    public PairedPeerStore(TimeProvider? timeProvider = null) : this(timeProvider, null, null)
+    {
+    }
+
+    /// <summary>
+    /// TR-MKP-SEC-001: creates the store seeded with persisted peers and a change callback so pairings
+    /// survive restarts. The callback is invoked with the current peer snapshot after any registration
+    /// or revocation.
+    /// </summary>
+    /// <param name="timeProvider">Clock used for code expiry and timestamps.</param>
+    /// <param name="initialPeers">Peers loaded from persistence (seeds the store).</param>
+    /// <param name="onChanged">Invoked with the peer snapshot after register/revoke so the caller can persist.</param>
+    public PairedPeerStore(TimeProvider? timeProvider, IEnumerable<PairedPeer>? initialPeers, Action<IReadOnlyList<PairedPeer>>? onChanged)
+    {
+        _time = timeProvider ?? TimeProvider.System;
+        _onChanged = onChanged;
+        if (initialPeers is not null)
+        {
+            foreach (var peer in initialPeers)
+            {
+                _byThumbprint[peer.CertThumbprint] = peer;
+                _byPeerId[peer.PeerId] = peer;
+            }
+        }
+    }
+
+    /// <summary>Snapshot of all paired peers (for persistence).</summary>
+    /// <returns>The current peer records.</returns>
+    public IReadOnlyList<PairedPeer> ExportPeers()
+    {
+        lock (_gate)
+        {
+            return _byPeerId.Values.ToList();
+        }
+    }
+
+    /// <summary>True when at least one non-revoked peer is paired (used by the boot-time pairing check).</summary>
+    public bool HasPairedPeer()
+    {
+        lock (_gate)
+        {
+            return _byPeerId.Values.Any(p => !p.Revoked);
+        }
+    }
 
     /// <inheritdoc />
     public string IssuePairingCode(TimeSpan ttl)
@@ -127,8 +172,11 @@ public sealed class PairedPeerStore : IPairedPeerStore
             _byPeerId[peerId] = peer;
         }
 
+        NotifyChanged();
         return peer;
     }
+
+    private void NotifyChanged() => _onChanged?.Invoke(ExportPeers());
 
     /// <inheritdoc />
     public PairedPeer? FindByThumbprint(string certThumbprint)
@@ -161,8 +209,10 @@ public sealed class PairedPeerStore : IPairedPeerStore
             var revoked = peer with { Revoked = true };
             _byPeerId[peerId] = revoked;
             _byThumbprint[peer.CertThumbprint] = revoked;
-            return true;
         }
+
+        NotifyChanged();
+        return true;
     }
 
     /// <inheritdoc />
