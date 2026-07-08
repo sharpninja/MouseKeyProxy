@@ -55,11 +55,27 @@ public class LoggingTests
     [Trait("Category", "Logging")]
     public void Service_Configures_Dedicated_MouseKeyProxy_EventLog()
     {
-        var sourcePath = Path.Combine(RepoRoot, "src", "MouseKeyProxy.Service", "Program.cs");
+        // EventLog configuration moved into the platform-aware ServiceHostConfiguration helper.
+        var sourcePath = Path.Combine(RepoRoot, "src", "MouseKeyProxy.Service", "ServiceHostConfiguration.cs");
         var source = File.ReadAllText(sourcePath);
 
         Assert.Contains("options.SourceName = \"MouseKeyProxy\"", source, StringComparison.Ordinal);
         Assert.Contains("options.LogName = \"MouseKeyProxy\"", source, StringComparison.Ordinal);
         Assert.DoesNotContain("options.LogName = \"Application\"", source, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    [Trait("Category", "Logging")]
+    public void Service_Uses_Journald_On_NonWindows()
+    {
+        // The Linux/Pi path must use the systemd console (journald) and not the Windows Event Log.
+        var sourcePath = Path.Combine(RepoRoot, "src", "MouseKeyProxy.Service", "ServiceHostConfiguration.cs");
+        var source = File.ReadAllText(sourcePath);
+
+        Assert.Contains("AddSystemdConsole()", source, StringComparison.Ordinal);
+        var programPath = Path.Combine(RepoRoot, "src", "MouseKeyProxy.Service", "Program.cs");
+        var program = File.ReadAllText(programPath);
+        Assert.Contains("OperatingSystem.IsWindows()", program, StringComparison.Ordinal);
+        Assert.Contains("UseWindowsService()", program, StringComparison.Ordinal);
     }
 }

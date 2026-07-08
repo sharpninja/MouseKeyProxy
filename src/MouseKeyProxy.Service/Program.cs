@@ -9,8 +9,9 @@ using MouseKeyProxy.Common;
 namespace MouseKeyProxy.Service;
 
 /// <summary>
-/// SHIPPED Service host with full ILogger support writing to Windows Event Viewer (source "MouseKeyProxy").
-/// Uses WebApplication + UseWindowsService for real gRPC + EventLog.
+/// SHIPPED Service host with full ILogger support. Logs to the Windows Event Log on Windows and
+/// to journald (systemd console) on Linux/Raspberry Pi. Uses WebApplication + UseWindowsService
+/// or UseSystemd for real gRPC hosting per platform.
 /// </summary>
 internal static class Program
 {
@@ -32,18 +33,15 @@ internal static class Program
         builder.WebHost.UseSetting(WebHostDefaults.ServerUrlsKey, string.Empty);
         builder.WebHost.PreferHostingUrls(false);
 
-        builder.Host.UseWindowsService();
-
-        builder.Logging.ClearProviders();
-        builder.Logging.AddEventLog(options =>
+        if (OperatingSystem.IsWindows())
         {
-            options.SourceName = "MouseKeyProxy";
-            options.LogName = "MouseKeyProxy";
-            options.Filter = (_, level) => level >= LogLevel.Information;
-        });
-        builder.Logging.AddFilter<Microsoft.Extensions.Logging.EventLog.EventLogLoggerProvider>(
-            level => level >= LogLevel.Information);
-        builder.Logging.AddConsole();
+            builder.Host.UseWindowsService();
+        }
+
+        // On Linux the process runs under systemd directly; journald ingests stdout from the
+        // systemd console logger configured below. Full systemd lifetime integration
+        // (UseSystemd, sd_notify) is a first-party follow-up package for the Pi host slice.
+        ServiceHostConfiguration.ConfigureLogging(builder.Logging, OperatingSystem.IsWindows());
 
         builder.Services.AddSingleton<AgentControlPipeClient>();
         builder.Services.AddSingleton<IInputInjector, AgentPipeInputInjector>();
@@ -51,6 +49,14 @@ internal static class Program
         builder.Services.AddSingleton<IEmergencyReleaseController, AgentPipeEmergencyReleaseController>();
         builder.Services.AddSingleton<IModifierReleaseController, AgentPipeModifierReleaseController>();
         builder.Services.AddSingleton<IScreenshotCapture, AgentPipeScreenshotCapture>();
+        if (OperatingSystem.IsLinux())
+        {
+            builder.Services.AddSingleton<ISystemPowerController, SystemctlPowerController>();
+        }
+        else
+        {
+            builder.Services.AddSingleton<ISystemPowerController, UnsupportedPowerController>();
+        }
         builder.Services.AddSingleton<SessionFrameDispatcher>(sp =>
             new SessionFrameDispatcher(sp.GetRequiredService<IInputInjector>(), new ToggleStateMachine()));
 
@@ -61,7 +67,8 @@ internal static class Program
         app.MapGrpcService<MouseKeyProxyImpl>();
 
         var logger = app.Services.GetRequiredService<ILoggerFactory>().CreateLogger("MouseKeyProxy.Service");
-        logger.LogInformation("MouseKeyProxy service starting (EventLog source=MouseKeyProxy, log=MouseKeyProxy)");
+        logger.LogInformation("MouseKeyProxy service starting (logging via {Sink})",
+            OperatingSystem.IsWindows() ? "Windows Event Log" : "journald");
 
         app.Run();
     }

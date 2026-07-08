@@ -10,11 +10,11 @@
     <IsPackable>false</IsPackable>
   </PropertyGroup>
   <ItemGroup>
-    <PackageReference Include="Nuke.Common" Version="9.0.4" />
-    <PackageReference Include="Microsoft.Build" Version="18.7.1" PrivateAssets="all" />
-    <PackageReference Include="Microsoft.Build.Tasks.Core" Version="18.7.1" PrivateAssets="all" />
-    <PackageReference Include="Microsoft.Build.Utilities.Core" Version="18.7.1" PrivateAssets="all" />
-    <PackageReference Include="NuGet.Packaging" Version="7.6.0" PrivateAssets="all" />
-    <PackageReference Include="System.Security.Cryptography.Xml" Version="10.0.9" PrivateAssets="all" />
+    <PackageReference Include="Nuke.Common" />
+    <PackageReference Include="Microsoft.Build" PrivateAssets="all" />
+    <PackageReference Include="Microsoft.Build.Tasks.Core" PrivateAssets="all" />
+    <PackageReference Include="Microsoft.Build.Utilities.Core" PrivateAssets="all" />
+    <PackageReference Include="NuGet.Packaging" PrivateAssets="all" />
+    <PackageReference Include="System.Security.Cryptography.Xml" PrivateAssets="all" />
   </ItemGroup>
 </Project>

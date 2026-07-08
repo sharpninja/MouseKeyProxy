@@ -1016,15 +1016,11 @@ internal static class Program
             return _activeRemoteGrpcUrl;
         }
 
-        try
-        {
-            var (_, remotePeer) = LabTopology.ResolvePeers();
-            return LabTopology.GrpcUrl(remotePeer);
-        }
-        catch
-        {
-            return "http://payton-desktop:50051";
-        }
+        var (_, remotePeer) = LabTopology.ResolvePeers();
+        var url = LabTopology.GrpcUrl(remotePeer);
+        // No remote configured yet (standalone/unpaired): keep the legacy lab default until a
+        // settings-backed remote lands (Phase 4). This URL is only used when nothing is paired.
+        return string.IsNullOrWhiteSpace(url) ? LabTopology.GrpcUrl(LabTopology.Desktop) : url;
     }
 
     private enum RemoteConnectionState

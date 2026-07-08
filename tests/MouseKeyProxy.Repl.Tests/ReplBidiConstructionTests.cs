@@ -35,12 +35,36 @@ public class ReplBidiConstructionTests
 
     [Fact]
     [Trait("Category", "REPL")]
-    public void Repl_Main_Drives_Real_Path_No_Crash()
+    public void Repl_Main_InjectText_UsesMockedService_NoLiveInjection()
     {
-        // AC3 evidence: Repl Main runs --help / commands without crash (observable behavior)
-        // AC4 framing proof centralized to Commands.Tests (LastSentFrame on real transport, not console strings from Main)
-        int code = MouseKeyProxy.Repl.Program.Main(new[] { "inject-text", "real-frame-from-main" });
-        Assert.True(code == 0 || code == 1);
+        // Hermetic: mock the gRPC service via the Program test seam so Main never opens a socket
+        // nor injects real OS keystrokes into the host session. Verifies Main dispatches the
+        // inject-text command to InjectInput with the expected text, and returns success.
+        var client = Substitute.For<MouseKeyProxy.Network.V1.MouseKeyProxy.MouseKeyProxyClient>();
+        client.InjectInput(
+                Arg.Any<MouseKeyProxy.Network.V1.InjectInputRequest>(),
+                Arg.Any<Grpc.Core.Metadata>(),
+                Arg.Any<DateTime?>(),
+                Arg.Any<System.Threading.CancellationToken>())
+            .Returns(new MouseKeyProxy.Network.V1.CommandResult { Ok = true });
+
+        MouseKeyProxy.Repl.Program.TestGrpcClientFactory = _ => client;
+        try
+        {
+            var code = MouseKeyProxy.Repl.Program.Main(new[] { "inject-text", "sentinel-text" });
+
+            Assert.Equal(0, code);
+            client.Received(1).InjectInput(
+                Arg.Is<MouseKeyProxy.Network.V1.InjectInputRequest>(r =>
+                    r.Events.Count == 1 && r.Events[0].Text == "sentinel-text"),
+                Arg.Any<Grpc.Core.Metadata>(),
+                Arg.Any<DateTime?>(),
+                Arg.Any<System.Threading.CancellationToken>());
+        }
+        finally
+        {
+            MouseKeyProxy.Repl.Program.TestGrpcClientFactory = null;
+        }
     }
 
     [Fact]

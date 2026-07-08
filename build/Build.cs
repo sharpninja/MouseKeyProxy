@@ -78,7 +78,18 @@ class Build : NukeBuild
         .DependsOn(Compile)
         .Executes(() =>
         {
-            RunDotNetCommand($"test {Quote(SolutionPath)} -c {Configuration} --no-restore --no-build {VersionMsBuildProperties}");
+            // Default CI/dev run: everything except the two-machine lab E2E, which needs live lab
+            // hardware. Those run via the opt-in IntegrationTest target.
+            RunDotNetCommand($"test {Quote(SolutionPath)} -c {Configuration} --no-restore --no-build --filter \"Category!=TwoMachineE2E\" {VersionMsBuildProperties}");
+        });
+
+    Target IntegrationTest => _ => _
+        .DependsOn(Compile)
+        .Executes(() =>
+        {
+            // Opt-in lab run: only meaningful on a named lab peer with the service live on both ends.
+            Environment.SetEnvironmentVariable("MKP_LAB_E2E", "1");
+            RunDotNetCommand($"test {Quote(SolutionPath)} -c {Configuration} --no-restore --no-build --filter \"Category=TwoMachineE2E\" {VersionMsBuildProperties}");
         });
 
     Target ShowVersion => _ => _

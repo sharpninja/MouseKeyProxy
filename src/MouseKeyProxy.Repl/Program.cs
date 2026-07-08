@@ -31,6 +31,10 @@ public static class Program
     private const string EventLogSourceName = "MouseKeyProxy";
     private const string EventLogName = "MouseKeyProxy";
 
+    // Test seam: when set, network commands use this gRPC client instead of dialing a live
+    // endpoint. Keeps unit tests hermetic - no sockets, no real OS input injection.
+    internal static Func<string, Wire.MouseKeyProxy.MouseKeyProxyClient>? TestGrpcClientFactory;
+
     public static int Main(string[] args)
     {
         if (args.Length == 0 || args[0] is "--help" or "-h" or "help")
@@ -51,6 +55,7 @@ Commands:
   mkp capture-screenshot --remote <peer> --target desktop|foreground|hwnd --hwnd <hex> --clipboard --out <path>
   mkp hid status | provision-check | clear-modifiers | test-key --chord alt+space|win+left|win+right | test-mouse --dx 40 --dy 0 | capture-proof --out <path>
   mkp pi provision [--url URL] [--sha256 HASH] [--stage-root DIR] [--profile NAME] [--force] [--no-launch]
+  mkp pi shutdown [--reboot] [--remote <host>]   (Linux/Pi appliance only)
   mkp logs
   mkp clipboard list | clear
   mkp set-mouse --display X --x 100 --y 200
@@ -177,11 +182,14 @@ Explicit 'mkp service install' does NOT happen on 'dotnet tool install'.
             case "focus-hwnd":
                 try
                 {
-                    using var channel = GrpcChannel.ForAddress(baseUrl, new GrpcChannelOptions
-                    {
-                        HttpHandler = new System.Net.Http.SocketsHttpHandler { EnableMultipleHttp2Connections = true }
-                    });
-                    var client = new Wire.MouseKeyProxy.MouseKeyProxyClient(channel);
+                    using var channel = TestGrpcClientFactory is null
+                        ? GrpcChannel.ForAddress(baseUrl, new GrpcChannelOptions
+                        {
+                            HttpHandler = new System.Net.Http.SocketsHttpHandler { EnableMultipleHttp2Connections = true }
+                        })
+                        : null;
+                    var client = TestGrpcClientFactory?.Invoke(baseUrl)
+                        ?? new Wire.MouseKeyProxy.MouseKeyProxyClient(channel!);
                     using var transport = new MouseKeyProxy.Commands.BidiSessionTransport(client);
                     if (cmd == "inject-text")
                     {
@@ -346,9 +354,15 @@ Explicit 'mkp service install' does NOT happen on 'dotnet tool install'.
     private static int DoPi(string[] args)
     {
         var sub = args.Length > 1 ? args[1].ToLowerInvariant() : "provision";
+        if (sub is "shutdown" or "reboot")
+        {
+            var reboot = sub == "reboot" || args.Any(static a => a.Equals("--reboot", StringComparison.OrdinalIgnoreCase));
+            return DoPiShutdown(args, reboot);
+        }
+
         if (sub != "provision")
         {
-            Console.WriteLine($"unknown pi cmd: {sub}. Use mkp pi provision.");
+            Console.WriteLine($"unknown pi cmd: {sub}. Use mkp pi provision | shutdown | reboot.");
             return 1;
         }
 
@@ -382,6 +396,39 @@ Explicit 'mkp service install' does NOT happen on 'dotnet tool install'.
         catch (Exception ex)
         {
             Console.WriteLine($"[mkp pi provision] failed: {ex.Message}");
+            return 1;
+        }
+    }
+
+    private static int DoPiShutdown(string[] args, bool reboot)
+    {
+        // NOTE (audit/WIP): the server-side Shutdown RPC is not yet isolated by pairing auth
+        // (TR-MKP-SEC-001). This command is parked and must not be relied on until that lands.
+        var remote = GetOption(args, "--remote", string.Empty);
+        var baseUrl = !string.IsNullOrWhiteSpace(remote)
+            ? (remote.StartsWith("http", StringComparison.OrdinalIgnoreCase) ? remote : Cmn.LabTopology.GrpcUrl(remote))
+            : (Environment.GetEnvironmentVariable("MKP_GRPC") ?? "http://localhost:50051");
+        var label = reboot ? "reboot" : "shutdown";
+        try
+        {
+            using var channel = GrpcChannel.ForAddress(baseUrl, new GrpcChannelOptions
+            {
+                HttpHandler = new System.Net.Http.SocketsHttpHandler { EnableMultipleHttp2Connections = true }
+            });
+            var client = new Wire.MouseKeyProxy.MouseKeyProxyClient(channel);
+            var resp = client.Shutdown(new Wire.ShutdownRequest
+            {
+                ProtocolVersion = "v1",
+                PeerId = "repl-peer",
+                Mode = reboot ? Wire.ShutdownMode.Reboot : Wire.ShutdownMode.Poweroff,
+                CorrelationId = Guid.NewGuid().ToString("N")
+            });
+            Console.WriteLine($"[mkp pi {label}] ok={resp.Ok} err={resp.Err} msg={resp.Msg}");
+            return resp.Ok ? 0 : 1;
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"[mkp pi {label}] {ex.Message}");
             return 1;
         }
     }

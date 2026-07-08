@@ -7,10 +7,14 @@
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="Google.Protobuf" Version="3.28.3" />
-    <PackageReference Include="Grpc.Net.Client" Version="2.66.0" />
-    <PackageReference Include="System.Diagnostics.EventLog" Version="9.0.0" />
-    <PackageReference Include="System.ServiceProcess.ServiceController" Version="9.0.0" />
+    <InternalsVisibleTo Include="MouseKeyProxy.Repl.Tests" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Google.Protobuf" />
+    <PackageReference Include="Grpc.Net.Client" />
+    <PackageReference Include="System.Diagnostics.EventLog" />
+    <PackageReference Include="System.ServiceProcess.ServiceController" />
   </ItemGroup>
 
   <PropertyGroup>

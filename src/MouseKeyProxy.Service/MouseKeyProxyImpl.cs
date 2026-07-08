@@ -27,6 +27,7 @@ public class MouseKeyProxyImpl : MouseKeyProxy.Network.V1.MouseKeyProxy.MouseKey
     private readonly IEmergencyReleaseController? _emergencyReleaseController;
     private readonly IModifierReleaseController? _modifierReleaseController;
     private readonly IScreenshotCapture? _screenshotCapture;
+    private readonly ISystemPowerController _powerController;
 
     public MouseKeyProxyImpl(
         ILogger<MouseKeyProxyImpl> logger,
@@ -34,7 +35,8 @@ public class MouseKeyProxyImpl : MouseKeyProxy.Network.V1.MouseKeyProxy.MouseKey
         IRemoteDesktopController? desktopController = null,
         IEmergencyReleaseController? emergencyReleaseController = null,
         IModifierReleaseController? modifierReleaseController = null,
-        IScreenshotCapture? screenshotCapture = null)
+        IScreenshotCapture? screenshotCapture = null,
+        ISystemPowerController? powerController = null)
     {
         _logger = logger;
         _dispatcher = dispatcher;
@@ -42,6 +44,7 @@ public class MouseKeyProxyImpl : MouseKeyProxy.Network.V1.MouseKeyProxy.MouseKey
         _emergencyReleaseController = emergencyReleaseController;
         _modifierReleaseController = modifierReleaseController;
         _screenshotCapture = screenshotCapture;
+        _powerController = powerController ?? new UnsupportedPowerController();
     }
 
     public override Task<PairResponse> Pair(PairRequest request, ServerCallContext context)
@@ -284,6 +287,40 @@ public class MouseKeyProxyImpl : MouseKeyProxy.Network.V1.MouseKeyProxy.MouseKey
 
         var result = _emergencyReleaseController.EmergencyRelease(request.PeerId, request.CorrelationId);
         return Task.FromResult(ToCommandResult(result));
+    }
+
+    /// <summary>
+    /// Linux/Pi appliance only: safely powers off or reboots the device. On non-Linux hosts the
+    /// injected power controller reports PLATFORM_NOT_SUPPORTED, so the Windows service never
+    /// powers down the machine.
+    /// </summary>
+    public override Task<CommandResult> Shutdown(
+        ShutdownRequest request,
+        ServerCallContext context)
+    {
+        var reboot = request.Mode == ShutdownMode.Reboot;
+        _logger.LogWarning(
+            "Shutdown requested by PeerId={PeerId}, mode={Mode}, correlationId={CorrelationId}",
+            request.PeerId,
+            request.Mode,
+            request.CorrelationId);
+
+        var result = _powerController.Trigger(reboot);
+        if (result.Ok)
+        {
+            _logger.LogInformation("Shutdown initiated ({Action})", reboot ? "reboot" : "poweroff");
+        }
+        else
+        {
+            _logger.LogWarning("Shutdown not performed: {Error}", result.Error);
+        }
+
+        return Task.FromResult(new CommandResult
+        {
+            Ok = result.Ok,
+            Err = result.Ok ? string.Empty : result.Error,
+            Msg = result.Ok ? (reboot ? "rebooting" : "powering off") : string.Empty
+        });
     }
 
     private static CommandResult ToCommandResult(RemoteControlResult result)
