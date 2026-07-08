@@ -171,6 +171,19 @@ public class MouseKeyProxyImpl : MouseKeyProxy.Network.V1.MouseKeyProxy.MouseKey
                         await _dispatcher.HandleModifierResyncAsync(frame.Control.Mods.Ups, context.CancellationToken);
                     }
                 }
+                else if (frame.Control?.Hello is not null)
+                {
+                    var clientVersion = frame.Control.Hello.MyVer;
+                    _logger.LogInformation("Received VersionHello myVer={MyVer} peerVer={PeerVer}",
+                        clientVersion, frame.Control.Hello.PeerVer);
+
+                    var mismatch = VersionHandshake.CheckCompatibility(VersionHandshake.CurrentVersion, clientVersion);
+                    if (mismatch is not null)
+                    {
+                        _logger.LogWarning("OpenSession rejected: {Mismatch}", mismatch);
+                        throw new RpcException(new Status(StatusCode.FailedPrecondition, mismatch));
+                    }
+                }
                 else if (frame.Control?.Toggle is not null)
                 {
                     _logger.LogInformation("Received Toggle active={Active} seq={Seq}", frame.Control.Toggle.Active, frame.Control.Seq);

@@ -121,6 +121,36 @@ public sealed class PairingMtlsE2ETests : IAsyncLifetime
         Assert.Equal(StatusCode.Unauthenticated, ex.StatusCode);
     }
 
+    /// <summary>A paired peer that opens a session declaring an incompatible major version is rejected.</summary>
+    [Fact]
+    [Trait("Category", "SecurityE2E")]
+    public async Task PairedPeer_OpenSession_VersionMismatch_IsRejected()
+    {
+        var code = _store.IssuePairingCode(TimeSpan.FromMinutes(5));
+        var credential = await PairingClient.PairAsync(Address, "peer-ver", code, cancellationToken: Ct);
+
+        using var channel = PairingClient.CreateAuthenticatedChannel(Address, credential);
+        var client = new Wire.MouseKeyProxy.MouseKeyProxyClient(channel);
+
+        using var call = client.OpenSession(cancellationToken: Ct);
+        await call.RequestStream.WriteAsync(new Wire.SessionFrame
+        {
+            Seq = 1,
+            Control = new Wire.ControlMsg { Seq = 1, Hello = new Wire.VersionHello { MyVer = "2.0", PeerVer = "1.0" } },
+        }, Ct);
+        await call.RequestStream.CompleteAsync();
+
+        var ex = await Assert.ThrowsAsync<RpcException>(async () =>
+        {
+            await foreach (var _ in call.ResponseStream.ReadAllAsync(Ct))
+            {
+            }
+        });
+
+        Assert.Equal(StatusCode.FailedPrecondition, ex.StatusCode);
+        Assert.Contains("VERSION_MISMATCH", ex.Status.Detail);
+    }
+
     private static Grpc.Net.Client.GrpcChannelOptions InsecureClientOptions()
     {
         var handler = new System.Net.Http.SocketsHttpHandler
