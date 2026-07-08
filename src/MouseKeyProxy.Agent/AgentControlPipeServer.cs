@@ -1,6 +1,8 @@
 using System;
 using System.IO;
 using System.IO.Pipes;
+using System.Security.AccessControl;
+using System.Security.Principal;
 using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
@@ -12,6 +14,7 @@ internal sealed class AgentControlPipeServer : IDisposable
 {
     private static readonly JsonSerializerOptions JsonOptions = new(JsonSerializerDefaults.Web);
 
+    private readonly string _authToken;
     private readonly IRemoteDesktopController _desktopController;
     private readonly IInputInjector _inputInjector;
     private readonly IScreenshotCapture? _screenshotCapture;
@@ -35,7 +38,23 @@ internal sealed class AgentControlPipeServer : IDisposable
         _pairingStateNotifier = pairingStateNotifier;
         _statusProvider = statusProvider;
         _emergencyReleaseHandler = emergencyReleaseHandler;
+        _authToken = ResolveAuthToken();
         _loop = Task.Run(RunAsync);
+    }
+
+    /// <summary>Reads the persisted control token, minting and persisting one on first run.</summary>
+    private static string ResolveAuthToken()
+    {
+        var path = AgentControlTokenStore.DefaultPath();
+        var existing = AgentControlTokenStore.Read(path);
+        if (existing is not null)
+        {
+            return existing;
+        }
+
+        var token = AgentControlAuth.GenerateToken();
+        AgentControlTokenStore.Write(path, token);
+        return token;
     }
 
     public static AgentControlPipeServer Start(
@@ -70,12 +89,7 @@ internal sealed class AgentControlPipeServer : IDisposable
         {
             try
             {
-                await using var pipe = new NamedPipeServerStream(
-                    AgentControlPipe.PipeName,
-                    PipeDirection.InOut,
-                    1,
-                    PipeTransmissionMode.Byte,
-                    PipeOptions.Asynchronous);
+                await using var pipe = CreatePipe();
 
                 await pipe.WaitForConnectionAsync(_stop.Token);
                 using var reader = new StreamReader(pipe, leaveOpen: true);
@@ -96,6 +110,37 @@ internal sealed class AgentControlPipeServer : IDisposable
         }
     }
 
+    /// <summary>Creates the control pipe, ACL-restricted to the current user on Windows.</summary>
+    private static NamedPipeServerStream CreatePipe()
+    {
+        if (OperatingSystem.IsWindows())
+        {
+            var security = new PipeSecurity();
+            var owner = WindowsIdentity.GetCurrent().User!;
+            security.AddAccessRule(new PipeAccessRule(
+                owner,
+                PipeAccessRights.ReadWrite | PipeAccessRights.CreateNewInstance,
+                AccessControlType.Allow));
+
+            return NamedPipeServerStreamAcl.Create(
+                AgentControlPipe.PipeName,
+                PipeDirection.InOut,
+                1,
+                PipeTransmissionMode.Byte,
+                PipeOptions.Asynchronous,
+                inBufferSize: 0,
+                outBufferSize: 0,
+                security);
+        }
+
+        return new NamedPipeServerStream(
+            AgentControlPipe.PipeName,
+            PipeDirection.InOut,
+            1,
+            PipeTransmissionMode.Byte,
+            PipeOptions.Asynchronous);
+    }
+
     private AgentControlResponse Handle(string? line)
     {
         if (string.IsNullOrWhiteSpace(line))
@@ -109,6 +154,11 @@ internal sealed class AgentControlPipeServer : IDisposable
             if (request is null)
             {
                 return AgentControlResponse.Failure("BAD_REQUEST", "Agent control request could not be parsed.");
+            }
+
+            if (!AgentControlAuth.Validate(_authToken, request.AuthToken))
+            {
+                return AgentControlResponse.Failure("AUTH_FAILED", "Agent control authentication failed.");
             }
 
             return request.Operation switch

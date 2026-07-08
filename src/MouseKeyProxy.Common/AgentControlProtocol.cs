@@ -20,6 +20,9 @@ public static class AgentControlPipe
 
 public sealed class AgentControlRequest
 {
+    /// <summary>TR-MKP-SEC-001: per-session auth token proving the caller is the local paired service.</summary>
+    public string AuthToken { get; set; } = string.Empty;
+
     public string Operation { get; set; } = string.Empty;
     public string DisplayId { get; set; } = string.Empty;
     public int X { get; set; }

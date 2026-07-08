@@ -21,6 +21,10 @@ internal sealed class AgentControlPipeClient
     {
         try
         {
+            // TR-MKP-SEC-001: present the per-session token the agent minted (read fresh so a token
+            // rotation on agent restart is picked up without restarting the service).
+            request.AuthToken = AgentControlTokenStore.Read(AgentControlTokenStore.DefaultPath()) ?? string.Empty;
+
             using var pipe = new NamedPipeClientStream(
                 ".",
                 AgentControlPipe.PipeName,
