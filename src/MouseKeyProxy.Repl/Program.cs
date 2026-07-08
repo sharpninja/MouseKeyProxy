@@ -73,7 +73,8 @@ Commands:
   mkp --help
   mkp --version
   mkp status [--json]
-  mkp service status | install | uninstall | start | stop   (uses sc.exe, netsh, schtasks; elevation via runas)
+  mkp service status | install | uninstall | update | start | stop   (uses sc.exe, netsh, schtasks; elevation via runas)
+  mkp settings show [--json] | set <key> <value> | clear    (remotePeer, remoteGrpcUrl, clipboardRetentionDays, logLevel)
   mkp agent status [--json] | emergency-release [--json]
   mkp pair discover | pair <code> | pair status [--json]
   mkp pair mint [ttlSeconds]                                 (service host mints a one-time pairing code)
@@ -125,10 +126,17 @@ Explicit 'mkp service install' does NOT happen on 'dotnet tool install'.
                 {
                     "install" => DoServiceInstall(),
                     "uninstall" => DoServiceUninstall(),
+                    "update" => DoServiceUpdate(),
                     "start" => DoServiceStart(),
                     "stop" => DoServiceStop(),
                     _ => DoServiceStatus()
                 };
+            case "settings":
+            {
+                var code = SettingsCommand.Run(args, Cmn.SettingsStore.DefaultPath(), out var settingsOutput);
+                Console.WriteLine(settingsOutput);
+                return code;
+            }
             case "pair":
                 if (args.Length > 1 && args[1].Equals("status", StringComparison.OrdinalIgnoreCase))
                 {
@@ -883,6 +891,23 @@ Explicit 'mkp service install' does NOT happen on 'dotnet tool install'.
         }
 
         var result = ServiceInstaller.Install(CreateInstallContext(), new SystemProcessRunner());
+        return result.ExitCode;
+    }
+
+    // FR-MKP-006: update = clean reinstall (uninstall then install, install rolls back on partial failure).
+    private static int DoServiceUpdate()
+    {
+        if (!IsAdministrator())
+        {
+            Console.WriteLine("Elevation required. Relaunching as administrator...");
+            return RelaunchAsAdmin("service update") ? 1 : 2;
+        }
+
+        Console.WriteLine("Updating MouseKeyProxy service (uninstall + reinstall)...");
+        var runner = new SystemProcessRunner();
+        var ctx = CreateInstallContext();
+        ServiceInstaller.Uninstall(ctx, runner);
+        var result = ServiceInstaller.Install(ctx, runner);
         return result.ExitCode;
     }
 

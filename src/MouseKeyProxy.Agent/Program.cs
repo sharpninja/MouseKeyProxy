@@ -45,6 +45,7 @@ internal static class Program
     private static Label? _pairingStatusValue;
     private static Label? _activePeerValue;
     private static Label? _remoteEndpointValue;
+    private static Label? _recentErrorsValue;
     private static Button? _primaryRemoteButton;
 
     [STAThread]
@@ -208,7 +209,7 @@ internal static class Program
         _activePeerValue = AddDashboardRow(layout, "Active peer", RemoteActivePeerText());
         _remoteEndpointValue = AddDashboardRow(layout, "Remote endpoint", RemoteEndpointStatusText());
         AddDashboardRow(layout, "Clipboard", "Idle");
-        AddDashboardRow(layout, "Recent errors", "None recorded this session");
+        _recentErrorsValue = AddDashboardRow(layout, "Recent errors", RecentErrorsText());
 
         var actions = new FlowLayoutPanel
         {
@@ -381,6 +382,22 @@ internal static class Program
         {
             _remoteEndpointValue.Text = RemoteEndpointStatusText();
         }
+
+        if (_recentErrorsValue is not null && !_recentErrorsValue.IsDisposed)
+        {
+            _recentErrorsValue.Text = RecentErrorsText();
+        }
+    }
+
+    // TR-MKP-UI-001: surface the last remote error (audit: _lastRemoteError was tracked but never shown).
+    private static string RecentErrorsText()
+    {
+        if (string.IsNullOrWhiteSpace(_lastRemoteError))
+        {
+            return "None recorded this session";
+        }
+
+        return _lastRemoteError.Length > 80 ? _lastRemoteError[..80] + "..." : _lastRemoteError;
     }
 
     private static string RemoteActionBlockReason()

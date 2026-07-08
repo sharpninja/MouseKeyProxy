@@ -1,5 +1,6 @@
 using System.Diagnostics;
 using System.IO;
+using System.Linq;
 using System.Security.AccessControl;
 using System.Security.Principal;
 
@@ -68,6 +69,46 @@ public static class ServiceInstaller
         var copied = new List<string>();
         var calls = new List<(string, string)>();
         var stepResults = new List<ProcessRunResult>();
+        var rollback = new List<(string FileName, string Arguments)>();
+
+        // FR-MKP-006: on partial failure, reverse the applied steps (in reverse order) and remove any
+        // copied payloads so a failed install does not leave the machine half-configured.
+        void RollbackAll()
+        {
+            foreach (var (fileName, arguments) in Enumerable.Reverse(rollback))
+            {
+                try
+                {
+                    var r = runner.Run(fileName, arguments);
+                    calls.Add((fileName, arguments));
+                    stepResults.Add(r);
+                    log($"rollback: {fileName} {arguments}");
+                }
+                catch (Exception ex)
+                {
+                    log($"rollback step failed: {fileName} {arguments}: {ex.Message}");
+                }
+            }
+
+            rollback.Clear();
+
+            foreach (var file in copied)
+            {
+                try
+                {
+                    if (File.Exists(file))
+                    {
+                        File.Delete(file);
+                    }
+                }
+                catch (Exception ex)
+                {
+                    log($"rollback file delete failed: {file}: {ex.Message}");
+                }
+            }
+
+            copied.Clear();
+        }
 
         ServiceInstallResult Fail(int exitCode, string? detail = null)
         {
@@ -75,6 +116,8 @@ public static class ServiceInstaller
             {
                 log(detail);
             }
+
+            RollbackAll();
 
             return new ServiceInstallResult
             {
@@ -151,6 +194,8 @@ public static class ServiceInstaller
             return Fail(eval.ExitCode, eval.FailureDetail);
         }
 
+        rollback.Add(("sc.exe", $"delete {ctx.ServiceName}"));
+
         if (!TryRun("sc.exe", $"description {ctx.ServiceName} \"MouseKeyProxy - Free hotkey-only alternative to PowerToys Mouse Without Borders\""))
         {
             var eval = ServiceInstallSteps.EvaluateStepResults(stepResults);
@@ -162,6 +207,8 @@ public static class ServiceInstaller
             var eval = ServiceInstallSteps.EvaluateStepResults(stepResults);
             return Fail(eval.ExitCode, eval.FailureDetail);
         }
+
+        rollback.Add(("netsh", $"advfirewall firewall delete rule name=\"{ctx.FirewallRuleName}\""));
 
         if (!TryRun("sc.exe", $"start {ctx.ServiceName}"))
         {
@@ -181,6 +228,8 @@ public static class ServiceInstaller
                 var eval = ServiceInstallSteps.EvaluateStepResults(stepResults);
                 return Fail(eval.ExitCode, eval.FailureDetail);
             }
+
+            rollback.Add(("schtasks.exe", $"/Delete /TN \"{ctx.TrayTaskName}\" /F"));
 
             log("Tray scheduled task created for logon.");
             if (!TryRun("schtasks.exe", $"/Run /TN \"{ctx.TrayTaskName}\""))
