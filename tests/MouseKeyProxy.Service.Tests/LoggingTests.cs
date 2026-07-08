@@ -83,9 +83,10 @@ public class LoggingTests
         var source = File.ReadAllText(sourcePath);
 
         Assert.Contains("AddSystemdConsole()", source, StringComparison.Ordinal);
-        var programPath = Path.Combine(RepoRoot, "src", "MouseKeyProxy.Service", "Program.cs");
-        var program = File.ReadAllText(programPath);
-        Assert.Contains("OperatingSystem.IsWindows()", program, StringComparison.Ordinal);
-        Assert.Contains("UseWindowsService()", program, StringComparison.Ordinal);
+        // The mTLS host was factored into ServiceHost.cs; the platform-aware lifetime lives there.
+        var hostPath = Path.Combine(RepoRoot, "src", "MouseKeyProxy.Service", "ServiceHost.cs");
+        var host = File.ReadAllText(hostPath);
+        Assert.Contains("OperatingSystem.IsWindows()", host, StringComparison.Ordinal);
+        Assert.Contains("UseWindowsService()", host, StringComparison.Ordinal);
     }
 }

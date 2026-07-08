@@ -23,6 +23,8 @@
   <ItemGroup>
     <ProjectReference Include="..\..\src\MouseKeyProxy.Common\MouseKeyProxy.Common.csproj" />
     <ProjectReference Include="..\..\src\MouseKeyProxy.Commands\MouseKeyProxy.Commands.csproj" />
+    <ProjectReference Include="..\..\src\MouseKeyProxy.Network\MouseKeyProxy.Network.csproj" />
+    <ProjectReference Include="..\..\src\MouseKeyProxy.Service\MouseKeyProxy.Service.csproj" />
   </ItemGroup>
 
 </Project>
