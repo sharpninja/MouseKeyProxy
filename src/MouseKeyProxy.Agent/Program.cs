@@ -968,11 +968,11 @@ internal static class Program
     {
         if (active)
         {
-            _clip!.ClipToPoint(100, 100);
+            _clip?.ClipToPoint(100, 100);
         }
         else
         {
-            _clip!.Release();
+            _clip?.Release();
         }
     }
 
@@ -992,13 +992,15 @@ internal static class Program
             bool active = InputCommandHandler.ToggleAsync(_state!, null, activePeer).GetAwaiter().GetResult();
             if (active)
             {
-                _clip?.Release();
+                // Engage the cursor clip so the local pointer is confined while input forwards to the
+                // remote (previously ApplyClipForActive(true) was never called - the clip never engaged).
+                ApplyClipForActive(true);
                 _forwarder!.Start(remoteUrl);
             }
             else
             {
                 _forwarder?.Stop();
-                _clip?.Release();
+                ApplyClipForActive(false);
                 ClearLocalModifiers();
                 TryRequestPeerClearModifiers();
             }
