@@ -3,6 +3,7 @@
   <ItemGroup>
     <ProjectReference Include="..\MouseKeyProxy.Common\MouseKeyProxy.Common.csproj" />
     <ProjectReference Include="..\MouseKeyProxy.Network\MouseKeyProxy.Network.csproj" />
+    <ProjectReference Include="..\MouseKeyProxy.PiHid\MouseKeyProxy.PiHid.csproj" />
   </ItemGroup>
 
   <ItemGroup>

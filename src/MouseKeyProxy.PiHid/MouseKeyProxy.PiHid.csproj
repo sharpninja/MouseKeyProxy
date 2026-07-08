@@ -8,4 +8,8 @@
     <SelfContained Condition="'$(RuntimeIdentifier)' != ''">true</SelfContained>
   </PropertyGroup>
 
+  <ItemGroup>
+    <ProjectReference Include="..\MouseKeyProxy.Common\MouseKeyProxy.Common.csproj" />
+  </ItemGroup>
+
 </Project>

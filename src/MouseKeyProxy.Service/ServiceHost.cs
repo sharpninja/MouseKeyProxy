@@ -71,17 +71,24 @@ public static class ServiceHost
         ServiceHostConfiguration.ConfigureLogging(builder.Logging, OperatingSystem.IsWindows());
 
         builder.Services.AddSingleton<AgentControlPipeClient>();
-        builder.Services.AddSingleton<IInputInjector, AgentPipeInputInjector>();
         builder.Services.AddSingleton<IRemoteDesktopController, AgentPipeRemoteDesktopController>();
         builder.Services.AddSingleton<IEmergencyReleaseController, AgentPipeEmergencyReleaseController>();
         builder.Services.AddSingleton<IModifierReleaseController, AgentPipeModifierReleaseController>();
         builder.Services.AddSingleton<IScreenshotCapture, AgentPipeScreenshotCapture>();
         if (OperatingSystem.IsLinux())
         {
+            // FR-MKP-012 / TR-MKP-HID-001: on the Pi the service injects via the USB HID gadget rather
+            // than the Windows agent pipe. Device paths are overridable via environment.
+            var keyboardDevice = Environment.GetEnvironmentVariable("MKP_HID_KEYBOARD_DEVICE") ?? "/dev/hidg0";
+            var mouseDevice = Environment.GetEnvironmentVariable("MKP_HID_MOUSE_DEVICE") ?? "/dev/hidg1";
+            builder.Services.AddSingleton<MouseKeyProxy.PiHid.IHidReportWriter>(
+                new MouseKeyProxy.PiHid.FileHidReportWriter(keyboardDevice, mouseDevice));
+            builder.Services.AddSingleton<IInputInjector, MouseKeyProxy.PiHid.HidGadgetInputInjector>();
             builder.Services.AddSingleton<ISystemPowerController, SystemctlPowerController>();
         }
         else
         {
+            builder.Services.AddSingleton<IInputInjector, AgentPipeInputInjector>();
             builder.Services.AddSingleton<ISystemPowerController, UnsupportedPowerController>();
         }
         builder.Services.AddSingleton<SessionFrameDispatcher>(sp =>
