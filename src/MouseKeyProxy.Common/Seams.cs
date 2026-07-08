@@ -50,6 +50,22 @@ public interface IClipboardAccessor
     void SetClipboard(ClipboardEntry entry);
 }
 
+/// <summary>
+/// FR-MKP-004 / TR-MKP-CLIP-001: captures local OS clipboard changes so they can be forwarded to the
+/// peer. Distinct from <see cref="IClipboardAccessor"/> (which sets the peer clipboard on receive).
+/// </summary>
+public interface IClipboardListener
+{
+    /// <summary>Raised when the local clipboard content changes, carrying the captured entry.</summary>
+    event EventHandler<ClipboardEventArgs> ClipboardCaptured;
+
+    /// <summary>Starts listening for clipboard changes.</summary>
+    void StartListening();
+
+    /// <summary>Stops listening for clipboard changes.</summary>
+    void StopListening();
+}
+
 public class ClipboardEventArgs : EventArgs
 {
     public ClipboardEntry Entry { get; }

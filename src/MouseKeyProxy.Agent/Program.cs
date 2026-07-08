@@ -24,6 +24,7 @@ internal static class Program
     private static Win32HotkeyMonitor? _hotkey;
     private static AgentControlPipeServer? _controlPipe;
     private static RemoteInputForwarder? _forwarder;
+    private static Win32ClipboardListener? _clipboardListener;
     private static NotifyIcon? _tray;
     private static HotkeyMessageForm? _hotkeyWindow;
     private static Form? _dashboardForm;
@@ -84,6 +85,11 @@ internal static class Program
         _hotkey.ToggleRequested += (_, _) => DoRealToggle();
         _hotkey.EmergencyReleaseRequested += (_, _) => EmergencyRelease();
         _hotkey.StartMonitoring();
+
+        // FR-MKP-004: forward local clipboard changes to the connected peer.
+        _clipboardListener = new Win32ClipboardListener();
+        _clipboardListener.ClipboardCaptured += OnLocalClipboardCaptured;
+        _clipboardListener.StartListening();
 
         _hotkeyWindow = new HotkeyMessageForm(() => _hotkey.RaiseToggle("Ctrl-Alt-F1", false));
         _hotkey.RegisterForWindow(_hotkeyWindow.Handle, 0x0003, (uint)Keys.F1);
@@ -501,6 +507,40 @@ internal static class Program
     {
         _peerCredential ??= PeerCredentialStore.Load(PeerCredentialStore.DefaultPath());
         return _peerCredential is null ? null : PairingClient.CreateAuthenticatedChannel(remoteUrl, _peerCredential);
+    }
+
+    /// <summary>
+    /// FR-MKP-004: when a local clipboard change is captured and a remote is connected, forward the
+    /// entry to the peer over the authenticated channel (fire-and-forget so the message loop is never
+    /// blocked).
+    /// </summary>
+    private static void OnLocalClipboardCaptured(object? sender, ClipboardEventArgs e)
+    {
+        if (_remoteState != RemoteConnectionState.Connected)
+        {
+            return;
+        }
+
+        _ = System.Threading.Tasks.Task.Run(async () =>
+        {
+            try
+            {
+                var url = ResolveRemoteGrpcUrl();
+                using var channel = CreateRemoteChannel(url);
+                if (channel is null)
+                {
+                    return;
+                }
+
+                var client = new Wire.MouseKeyProxy.MouseKeyProxyClient(channel);
+                using var transport = new BidiSessionTransport(client);
+                await transport.SendClipboardAsync(e.Entry);
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"MouseKeyProxy clipboard forward failed: {ex.Message}");
+            }
+        });
     }
 
     private static AgentControlResponse NotifyPairingState(AgentControlRequest request)
@@ -958,6 +998,7 @@ internal static class Program
         _forwarder?.Stop();
         _clip?.Release();
         ClearLocalModifiers();
+        _clipboardListener?.Dispose();
         _tray?.Dispose();
         _hotkeyWindow?.Dispose();
         _dashboardForm?.Dispose();

@@ -190,10 +190,15 @@ public class MouseKeyProxyImpl : MouseKeyProxy.Network.V1.MouseKeyProxy.MouseKey
                     _logger.LogInformation("Received Toggle active={Active} seq={Seq}", frame.Control.Toggle.Active, frame.Control.Seq);
                     _dispatcher?.HandleToggle(context.Peer);
                 }
-                else if (frame.Clipboard != null)
+                else if (frame.Clipboard?.Entry != null)
                 {
                     _logger.LogInformation("Received ClipboardPush seq={Seq} from source={Source}",
-                        frame.Clipboard.Seq, frame.Clipboard.Entry?.Source);
+                        frame.Clipboard.Seq, frame.Clipboard.Entry.Source);
+                    if (_dispatcher != null)
+                    {
+                        var entry = ToCommonClipboardEntry(frame.Clipboard.Entry, frame.Clipboard.Seq);
+                        await _dispatcher.HandleClipboardAsync(entry, context.CancellationToken);
+                    }
                 }
 
                 var ack = new SessionFrame { Seq = frame.Seq, Ack = new Ack { Last = frame.Seq } };
@@ -463,6 +468,21 @@ public class MouseKeyProxyImpl : MouseKeyProxy.Network.V1.MouseKeyProxy.MouseKey
         }
 
         return result;
+    }
+
+    private static MouseKeyProxy.Common.ClipboardEntry ToCommonClipboardEntry(global::MouseKeyProxy.Network.V1.ClipboardEntry wire, ulong pushSeq)
+    {
+        var formats = new List<MouseKeyProxy.Common.ClipboardFormat>();
+        foreach (var f in wire.Formats)
+        {
+            formats.Add(new MouseKeyProxy.Common.ClipboardFormat(f.Name, f.Data.ToByteArray()));
+        }
+
+        var timestamp = wire.TsMs == 0
+            ? DateTimeOffset.UtcNow
+            : DateTimeOffset.FromUnixTimeMilliseconds((long)wire.TsMs);
+
+        return new MouseKeyProxy.Common.ClipboardEntry(wire.Id, timestamp, wire.Source, formats, pushSeq);
     }
 
     private static MouseKeyProxy.Common.InputEvent ToCommonInputEvent(global::MouseKeyProxy.Network.V1.InputEvent wireEvent)

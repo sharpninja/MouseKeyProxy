@@ -150,12 +150,37 @@ public class BidiSessionTransport : IDisposable
         await DeliverFrameAsync(frame, ct);
     }
 
-    public async Task SendClipboardAsync(Cmn.ClipboardEntry entry, CancellationToken ct = default)
+    public virtual async Task SendClipboardAsync(Cmn.ClipboardEntry entry, CancellationToken ct = default)
     {
-        if (_call == null) await OpenAsync(ct);
-        var push = new Wire.ClipboardPush { Seq = _nextSeq, Entry = new Wire.ClipboardEntry { Id = entry.Id } };
+        // FR-MKP-004: fully marshal the domain entry (id, timestamp, source, all formats) into the wire
+        // type - previously only Id was sent. Build+record first (probe), then optionally deliver.
+        var wireEntry = new Wire.ClipboardEntry
+        {
+            Id = entry.Id,
+            TsMs = (ulong)entry.Timestamp.ToUnixTimeMilliseconds(),
+            Source = entry.SourcePeer ?? string.Empty,
+        };
+        foreach (var fmt in entry.Formats)
+        {
+            wireEntry.Formats.Add(new Wire.ClipboardFormat
+            {
+                Name = fmt.Name,
+                Data = Google.Protobuf.ByteString.CopyFrom(fmt.Data ?? Array.Empty<byte>()),
+            });
+        }
+
+        var push = new Wire.ClipboardPush { Seq = _nextSeq, Entry = wireEntry };
         var frame = new Wire.SessionFrame { Seq = _nextSeq++, Clipboard = push };
-        await _call!.RequestStream.WriteAsync(frame);
+        _sentFrames.Add(frame);
+        LastSentFrame = frame;
+        _gaps.OnSendFrame(frame.Seq);
+
+        if (_client == null)
+        {
+            return;
+        }
+
+        await DeliverFrameAsync(frame, ct);
     }
 
     // For test red/green roundtrip: expose to receive acks or drain.
