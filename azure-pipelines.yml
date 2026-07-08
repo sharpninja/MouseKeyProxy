@@ -45,6 +45,9 @@ steps:
   - pwsh: dotnet run --project build/MouseKeyProxy.Build.csproj -- --target Test --configuration Release
     displayName: Nuke Test
 
+  - pwsh: dotnet run --project build/MouseKeyProxy.Build.csproj -- --target TestPowerShell --configuration Release
+    displayName: Nuke TestPowerShell
+
   - pwsh: dotnet run --project build/MouseKeyProxy.Build.csproj -- --target PackRepl --configuration Release
     displayName: Nuke PackRepl
 

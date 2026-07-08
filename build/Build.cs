@@ -183,6 +183,14 @@ class Build : NukeBuild
             Console.WriteLine($"Traceability OK: {defined.Count} defined requirement IDs; {matrixIds.Count} matrix rows validated.");
         });
 
+    // FR-MKP-011 / TEST-MKP-017 / TEST-MKP-018: run the Pester tests over the operator tooling scripts.
+    Target TestPowerShell => _ => _
+        .Executes(() =>
+        {
+            var script = TestsDirectory / "powershell" / "Run-PesterTests.ps1";
+            RunProcess("pwsh", $"-NoProfile -NonInteractive -File {Quote(script)}", captureOutput: false);
+        });
+
     Target ShowVersion => _ => _
         .DependsOn(Restore)
         .Executes(() =>
