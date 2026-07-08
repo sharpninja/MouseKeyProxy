@@ -5,8 +5,14 @@
     <Nullable>enable</Nullable>
     <LangVersion>preview</LangVersion>
     <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+    <!--
+      CA1416 (platform compatibility) is demoted to a non-fatal warning but NOT silenced: the
+      Windows-only surfaces (DPAPI, Win32 seams) are annotated with [SupportedOSPlatform("windows")]
+      so genuine cross-platform misuse still surfaces as a visible warning. The Agent targets
+      net10.0-windows (its Win32 code is implicitly Windows-scoped). Full promotion of CA1416 to an
+      error across every P/Invoke is tracked as a follow-up.
+    -->
     <WarningsNotAsErrors>$(WarningsNotAsErrors);CA1416</WarningsNotAsErrors>
-    <NoWarn>$(NoWarn);CA1416</NoWarn>
     <Authors>SharpNinja</Authors>
     <Company>SharpNinja</Company>
     <Product>MouseKeyProxy</Product>

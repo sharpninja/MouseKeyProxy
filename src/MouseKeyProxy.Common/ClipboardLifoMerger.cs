@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Runtime.Versioning;
 using System.Security.Cryptography;
 using System.Text.Json;
 
@@ -94,7 +95,8 @@ public static class ClipboardLifoMerger
         return Convert.ToHexString(h) + "|" + e.Formats[0].Name;
     }
 
-    // DPAPI for AC4 at-rest
+    // DPAPI for AC4 at-rest (Windows-only; the Linux/Pi peer keeps clipboard history in memory).
+    [SupportedOSPlatform("windows")]
     public static byte[] ProtectForPersist(ClipboardEntry entry)
     {
         var json = JsonSerializer.Serialize(entry);
@@ -102,6 +104,7 @@ public static class ClipboardLifoMerger
         return ProtectedData.Protect(bytes, optionalEntropy: null, scope: DataProtectionScope.CurrentUser);
     }
 
+    [SupportedOSPlatform("windows")]
     public static ClipboardEntry UnprotectFromPersist(byte[] protectedBytes)
     {
         var bytes = ProtectedData.Unprotect(protectedBytes, optionalEntropy: null, scope: DataProtectionScope.CurrentUser);
@@ -110,12 +113,14 @@ public static class ClipboardLifoMerger
     }
 
     // Component test helper: persist to isolated path (real LocalAppData style)
+    [SupportedOSPlatform("windows")]
     public static void PersistHistory(IReadOnlyList<ClipboardEntry> history, string filePath)
     {
         var protectedList = history.Select(ProtectForPersist).ToList();
         File.WriteAllBytes(filePath, JsonSerializer.SerializeToUtf8Bytes(protectedList));
     }
 
+    [SupportedOSPlatform("windows")]
     public static List<ClipboardEntry> LoadHistory(string filePath)
     {
         if (!File.Exists(filePath)) return new List<ClipboardEntry>();

@@ -1,7 +1,9 @@
 using System;
+using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
+using System.Text.RegularExpressions;
 using Nuke.Common;
 using Nuke.Common.CI;
 using Nuke.Common.Execution;
@@ -90,6 +92,95 @@ class Build : NukeBuild
             // Opt-in lab run: only meaningful on a named lab peer with the service live on both ends.
             Environment.SetEnvironmentVariable("MKP_LAB_E2E", "1");
             RunDotNetCommand($"test {Quote(SolutionPath)} -c {Configuration} --no-restore --no-build --filter \"Category=TwoMachineE2E\" {VersionMsBuildProperties}");
+        });
+
+    // FR-MKP-011: parse the requirement docs + matrix and fail on malformed rows, orphan matrix
+    // entries, or dangling trace links. Replaces the prior brittle Assert.Contains source scans.
+    Target ValidateTraceability => _ => _
+        .Executes(() =>
+        {
+            var projectDocs = RootDirectory / "docs" / "Project";
+            var requirementDocs = new[]
+            {
+                projectDocs / "Functional-Requirements.md",
+                projectDocs / "Technical-Requirements.md",
+                projectDocs / "Testing-Requirements.md",
+            };
+
+            var idRegex = new Regex(@"\b(?:FR|TR|TEST)-[A-Z0-9]+(?:-[A-Z0-9]+)+\b");
+            var defined = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            foreach (var doc in requirementDocs)
+            {
+                if (!File.Exists(doc))
+                {
+                    throw new InvalidOperationException($"Missing requirement doc: {doc}");
+                }
+
+                foreach (Match m in idRegex.Matches(File.ReadAllText(doc)))
+                {
+                    defined.Add(m.Value);
+                }
+            }
+
+            var matrixPath = projectDocs / "Requirements-Matrix.md";
+            if (!File.Exists(matrixPath))
+            {
+                throw new InvalidOperationException($"Missing requirements matrix: {matrixPath}");
+            }
+
+            var errors = new List<string>();
+            var matrixIds = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            var lines = File.ReadAllLines(matrixPath);
+            for (var i = 0; i < lines.Length; i++)
+            {
+                var line = lines[i].Trim();
+                if (!line.StartsWith("|"))
+                {
+                    continue;
+                }
+
+                var cells = line.Trim('|').Split('|').Select(c => c.Trim()).ToArray();
+
+                // Skip the separator row (all dashes) and the header row.
+                if (cells.All(c => c.Length == 0 || c.All(ch => ch == '-')))
+                {
+                    continue;
+                }
+
+                if (cells[0].Equals("Requirement", StringComparison.OrdinalIgnoreCase))
+                {
+                    continue;
+                }
+
+                if (cells.Length != 5)
+                {
+                    errors.Add($"line {i + 1}: malformed matrix row (expected 5 columns, got {cells.Length}): {line}");
+                    continue;
+                }
+
+                var requirementId = cells[0];
+                matrixIds.Add(requirementId);
+                if (!defined.Contains(requirementId))
+                {
+                    errors.Add($"line {i + 1}: matrix requirement '{requirementId}' is not defined in any requirement doc (orphan)");
+                }
+
+                foreach (Match m in idRegex.Matches(cells[4]))
+                {
+                    if (!defined.Contains(m.Value))
+                    {
+                        errors.Add($"line {i + 1}: trace link '{m.Value}' (for {requirementId}) is not defined in any requirement doc (dangling)");
+                    }
+                }
+            }
+
+            if (errors.Count > 0)
+            {
+                throw new InvalidOperationException(
+                    "Traceability validation failed:" + Environment.NewLine + string.Join(Environment.NewLine, errors));
+            }
+
+            Console.WriteLine($"Traceability OK: {defined.Count} defined requirement IDs; {matrixIds.Count} matrix rows validated.");
         });
 
     Target ShowVersion => _ => _

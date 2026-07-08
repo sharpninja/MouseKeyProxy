@@ -39,6 +39,9 @@ steps:
   - pwsh: dotnet run --project build/MouseKeyProxy.Build.csproj -- --target ShowVersion --configuration Release
     displayName: Nuke ShowVersion
 
+  - pwsh: dotnet run --project build/MouseKeyProxy.Build.csproj -- --target ValidateTraceability --configuration Release
+    displayName: Nuke ValidateTraceability
+
   - pwsh: dotnet run --project build/MouseKeyProxy.Build.csproj -- --target Test --configuration Release
     displayName: Nuke Test
 

@@ -10,77 +10,100 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Build & Test Commands
 
-```bash
-# Build (Nuke orchestrator)
-./build.ps1 Compile
-# or: dotnet build src/McpServer.Support.Mcp -c Debug
+The build is orchestrated by Nuke. There is no `./build.ps1`; invoke the build project directly:
 
-# Run all unit tests (excludes integration tests)
-./build.ps1 Test
+```pwsh
+# Compile the solution (MouseKeyProxy.slnx)
+dotnet run --project build/MouseKeyProxy.Build.csproj -- --target Compile
 
-# Run a specific test project
-dotnet test tests/McpServer.Support.Mcp.Tests -c Debug
+# Run all unit + in-process integration tests (excludes the two-machine lab E2E)
+dotnet run --project build/MouseKeyProxy.Build.csproj -- --target Test
 
-# Run a single test by name
-dotnet test tests/McpServer.Support.Mcp.Tests -c Debug --filter "FullyQualifiedName~TodoServiceTests.QueryAsync_NoFilters_ReturnsAllItems"
+# Opt-in two-machine lab E2E (sets MKP_LAB_E2E=1; needs the service live on both lab peers)
+dotnet run --project build/MouseKeyProxy.Build.csproj -- --target IntegrationTest
 
-# Run all tests in a class
-dotnet test tests/McpServer.Support.Mcp.Tests -c Debug --filter "FullyQualifiedName~TodoServiceTests"
+# Requirements traceability (parses the requirement docs + matrix; fails on orphan/malformed rows)
+dotnet run --project build/MouseKeyProxy.Build.csproj -- --target ValidateTraceability
 
-# Integration tests (CustomWebApplicationFactory, in-memory EF)
-dotnet test tests/McpServer.Support.Mcp.IntegrationTests -c Debug
+# Show the GitVersion-derived version numbers
+dotnet run --project build/MouseKeyProxy.Build.csproj -- --target ShowVersion
 
-# Validate appsettings configuration
-./build.ps1 ValidateConfig
-
-# Validate requirements traceability (FR/TR/TEST mapping)
-./build.ps1 ValidateTraceability
-
-# Start server
-./build.ps1 StartServer --instance default
-# or: dotnet run --project src/McpServer.Support.Mcp/McpServer.Support.Mcp.csproj -c Staging -- --instance default
+# Publish self-contained payloads / pack + publish the REPL dotnet tool
+dotnet run --project build/MouseKeyProxy.Build.csproj -- --target PublishSelfContained
+dotnet run --project build/MouseKeyProxy.Build.csproj -- --target PackRepl
+dotnet run --project build/MouseKeyProxy.Build.csproj -- --target PublishToolToNuGet
 ```
 
-Swagger UI: `http://localhost:7147/swagger`
+Nuke targets: `Clean`, `Restore`, `Compile`, `Test`, `IntegrationTest`, `ValidateTraceability`,
+`ShowVersion`, `PackRepl`, `PublishService`, `PublishAgent`, `PublishSelfContained`,
+`PublishToolToNuGet`, `FullBuild`.
+
+Run a single test project or test directly with `dotnet test`:
+
+```pwsh
+dotnet test tests/MouseKeyProxy.Service.Tests -c Debug
+dotnet test tests/MouseKeyProxy.Service.Tests -c Debug --filter "FullyQualifiedName~SecurityNegativeTests"
+```
 
 ## Architecture
 
-**McpServer** is an ASP.NET Core 9 server (.NET 9.0) providing workspace-scoped context retrieval, TODO management, session logging, repository operations, GraphRAG, and GitHub automation for AI agents.
+**MouseKeyProxy** is a free, hotkey-only alternative to PowerToys "Mouse Without Borders": it forwards
+keyboard and mouse input from one machine to another over an authenticated gRPC channel. It targets
+**.NET 10** and consists of three cooperating processes plus a Raspberry Pi HID peer.
 
-### Transports
+### Processes
 
-- **HTTP REST** — Controllers at `/mcpserver/*` in `src/McpServer.Support.Mcp/Controllers/`
-- **MCP Streamable HTTP** — JSON-RPC wire protocol at `/mcp-transport`
-- **MCP STDIO** — `--transport stdio` flag; tools in `McpStdio/FwhMcpTools.cs`
+- **Service** (`MouseKeyProxy.Service`) — the gRPC host. Kestrel over **mTLS on port 50051**
+  (`LabTopology.GrpcPort`). Owns pairing (service-issued one-time codes, per-peer X509 client certs),
+  the `PairingAuthorizationInterceptor` (rejects unpaired/revoked/untrusted peers before any effect),
+  input injection, clipboard receive, and (Linux only) a safe `Shutdown` RPC. Runs as a Windows
+  service on Windows and under systemd (journald logging) on Linux.
+- **Agent** (`MouseKeyProxy.Agent`) — the Windows user-session WinForms tray app. Owns the Win32 seams
+  (low-level keyboard/mouse hooks, `ClipCursor`, `SendInput`, clipboard listener), the configurable
+  toggle + dedicated emergency-release hotkeys, and the authenticated local IPC pipe to the service.
+- **Repl** (`MouseKeyProxy.Repl`) — the `mkp` dotnet tool / operator console (pairing, toggle, inject,
+  screenshot, service install/update, settings, Pi provisioning).
+- **Pi peer** — the same cross-platform `MouseKeyProxy.Service` published to `linux-arm64`, injecting
+  through the USB HID gadget (`HidGadgetInputInjector` -> `/dev/hidg0` / `/dev/hidg1`) instead of the
+  Windows agent pipe. It pairs over the same mTLS + one-time-code flow as any peer.
 
-### Workspace Model
+### Transport & pairing
 
-A single host process manages multiple workspaces. Each workspace gets its own in-process Kestrel `WebApplication` via `WorkspaceAppFactory` (not child processes). The primary workspace is served directly by the host. Workspace targeting uses the `X-Workspace-Path` header. Config lives in `appsettings.yaml` under `Mcp:Workspaces`. Per-instance overrides: `Mcp:Instances:{name}:*` resolved by `McpInstanceResolver`.
+gRPC over HTTP/2 with mTLS. A peer calls `RequestPairingCode` (bootstrap) then `Pair` with its public
+key + the one-time code; the service returns a CA-signed client certificate. Effect RPCs (`InjectInput`,
+`OpenSession`, `SetMousePosition`, `SetFocusByHwnd`, `CaptureScreenshot`, `ClearModifiers`,
+`EmergencyRelease`, `Shutdown`) require that certificate. `OpenSession` enforces an exact major-version
+handshake (`VERSION_MISMATCH`). Contract: `src/MouseKeyProxy.Network/mousekeyproxy.proto` (live
+`Grpc.Tools` codegen).
 
-### Search Pipeline
+### Topology
 
-Hybrid search combining SQLite FTS5 full-text with HNSW vector similarity (384-dim all-MiniLM-L6-v2 ONNX embeddings). `HybridSearchService` fuses results with BM25 scoring.
-
-### Storage
-
-EF Core with SQLite (`McpDbContext`), with migration projects for SQLite, PostgreSQL, and SQL Server. TODO items use a pluggable backend: YAML file-backed (`TodoService`) or SQLite table-backed (`SqliteTodoService`), selected via `Mcp:TodoStorage:Provider`.
+`src/MouseKeyProxy.Common/LabTopology.cs` resolves peers from config/environment
+(`MKP_LOCAL_PEER`, `MKP_REMOTE_PEER`, `MKP_GRPC`, `MKP_GRPC_PORT`) and falls back to standalone off-lab,
+so the product runs anywhere - not only on the two named lab machines.
 
 ### Key Projects
 
-- `McpServer.Support.Mcp` — main server application
-- `McpServer.Services` — ingestion, context search, models
-- `McpServer.Storage` — EF Core with SQLite FTS5 + HNSW vector search
-- `McpServer.Cqrs` — CQRS command/query handlers
-- `McpServer.McpAgent` — agent hosting & tool execution framework
-- `McpServer.Client` — typed REST client (published as NuGet `SharpNinja.McpServer.Client`)
-- `McpServer.GraphRag` — GraphRAG indexing & query (workspace-scoped, disabled by default)
-- `McpServer.Repl.Core` / `McpServer.Repl.Host` — REPL command interpreter and dotnet tool
+- `MouseKeyProxy.Common` — seams (`IInputInjector`, `IHotkeyMonitor`, `IClipboardListener`, ...),
+  domain models, `SessionFrameDispatcher`, `ClipboardLifoMerger`, `LabTopology`, `ConnectionFailsafe`,
+  config/credential stores.
+- `MouseKeyProxy.Network` — the gRPC contract + generated client/server.
+- `MouseKeyProxy.Commands` — shared command implementations, `BidiSessionTransport`, `PairingClient`,
+  `SeqGapDetector`, `PeerCredentialStore`.
+- `MouseKeyProxy.Service` — the mTLS gRPC host (`ServiceHost.Build`), `MouseKeyProxyImpl`, pairing
+  authority/interceptor.
+- `MouseKeyProxy.Agent` — the Windows tray agent + Win32 seam implementations.
+- `MouseKeyProxy.Repl` — the `mkp` dotnet tool.
+- `MouseKeyProxy.PiHid` — HID report encoding (`PiHidEncoder`, `HidGadgetInputInjector`) + the
+  diagnostic HTTP appliance.
 
 ### Test Projects
 
-- Unit tests: `McpServer.Support.Mcp.Tests`, `McpServer.Client.Tests`, `McpServer.Cqrs.Tests`, `McpServer.Launcher.Tests`, `McpServer.McpAgent.Tests`, `McpServer.Repl.Core.Tests`, `Build.Tests`
-- Integration: `McpServer.Support.Mcp.IntegrationTests`, `McpServer.Repl.IntegrationTests`
-- BDD/Validation (Reqnroll): `McpServer.Context.Validation`, `McpServer.GitHub.Validation`, `McpServer.Repo.Validation`, `McpServer.SessionLog.Validation`, `McpServer.Todo.Validation`, `McpServer.ToolRegistry.Validation`, `McpServer.Workspace.Validation`
+- Unit: `MouseKeyProxy.Common.Tests`, `MouseKeyProxy.Commands.Tests`, `MouseKeyProxy.Agent.Tests`,
+  `MouseKeyProxy.Repl.Tests`, `MouseKeyProxy.Service.Tests`, `MouseKeyProxy.PiHid.Tests`,
+  `MouseKeyProxy.Compliance.Tests`.
+- Integration: `MouseKeyProxy.Integration` (in-process mTLS E2E; the two-machine lab tests are tagged
+  `Category=TwoMachineE2E` and excluded from the default `Test` target).
 
 ## Coding Conventions
 
@@ -90,15 +113,17 @@ EF Core with SQLite (`McpDbContext`), with migration projects for SQLite, Postgr
 
 ### Requirement Traceability
 
-All source files reference FR/TR requirement IDs in doc comments (e.g., `/// <summary>TR-PLANNED-CORE-013: Constructor.</summary>`). When adding new functionality, reference the relevant ID from `docs/Project/Functional-Requirements.md` and `docs/Project/Technical-Requirements.md`. Requirements traceability is validated in CI via `./build.ps1 ValidateTraceability`.
+Source and test files reference FR/TR/TEST requirement IDs in doc comments (e.g., `/// <summary>TR-MKP-SEC-001: ...</summary>`). When adding functionality, reference the relevant ID from `docs/Project/Functional-Requirements.md` and `docs/Project/Technical-Requirements.md`. Traceability is validated in CI via the Nuke `ValidateTraceability` target.
 
 ### Central Package Management
 
-NuGet package versions are centralized in `Directory.Packages.props`. Use `<PackageReference Include="..." />` without `Version` in `.csproj` files.
+NuGet package versions are centralized in `Directory.Packages.props` (`ManagePackageVersionsCentrally=true`). Use `<PackageReference Include="..." />` without `Version` in `.csproj` files.
 
 ### Configuration
 
-Configuration uses YAML format (`appsettings.yaml`) via `NetEscapades.Configuration.Yaml`. Primary config section is `Mcp`.
+Runtime configuration is environment-driven (`MKP_*` variables resolved by `LabTopology` and the
+service/agent) rather than an `appsettings` file. HID device paths on the Pi are `MKP_HID_KEYBOARD_DEVICE`
+/ `MKP_HID_MOUSE_DEVICE`.
 
 ### Shell
 
@@ -106,14 +131,14 @@ Use `pwsh.exe` (PowerShell 7+) for all scripts. Do not use `powershell.exe`.
 
 ## Key Documentation
 
-- `docs/MCP-SERVER.md` — operational guide, configuration details
-- `docs/USER-GUIDE.md` — user documentation
-- `docs/CLIENT-INTEGRATION.md` — client library usage
-- `docs/Development-Process.md` — development workflow
-- `docs/Project/Functional-Requirements.md` — FR-MCP-* requirements
-- `docs/Project/Technical-Requirements.md` — TR-MCP-* requirements
-- `docs/Project/TODO.yaml` — canonical task list
-- `AGENTS.md` — agent workspace policy and session logging conventions
+- `README.md` — project overview and usage.
+- `docs/Project/Functional-Requirements.md` — FR-MKP-* requirements.
+- `docs/Project/Technical-Requirements.md` — TR-MKP-* requirements.
+- `docs/Project/Testing-Requirements.md` — TEST-MKP-* requirements.
+- `docs/Project/Requirements-Matrix.md` — requirement/status/traceability matrix.
+- `docs/deployment/Pi-Service-Deployment.md` — Raspberry Pi HID-gadget deployment.
+- `docs/AUDIT-20260707.md` — the code + requirements audit that drove the remediation.
+- `AGENTS.md` — agent workspace policy and session logging conventions.
 
 ## MCP Session Logging — Mandatory Precondition
 
@@ -174,36 +199,22 @@ All `/mcpserver/*` endpoints require a per-workspace auth token (from `AGENTS-RE
 
 ## Requirements Tracking
 
-When you discover or agree on new requirements during a session, update the files in `docs/Project/`:
-- `Functional-Requirements.md` — append FR-MCP-* entries
-- `Technical-Requirements.md` — append TR-MCP-* entries
-- `TR-per-FR-Mapping.md` — append mapping rows
-- `Requirements-Matrix.md` — append status rows
-- `Testing-Requirements.md` — append TEST-MCP-* entries
+Requirements are owned by the MCP Server requirements store for this workspace; route changes through
+the supported requirements workflow (do not hand-edit the storage). The on-disk mirrors under
+`docs/Project/` are regenerated from the store:
+- `Functional-Requirements.md` — FR-MKP-* entries
+- `Technical-Requirements.md` — TR-MKP-* entries
+- `TR-per-FR-Mapping.md` — mapping rows
+- `Requirements-Matrix.md` — status + traceability rows
+- `Testing-Requirements.md` — TEST-MKP-* entries
 
 Include the requirement ID in your session log turn's tags. Capture requirements as they emerge — do not defer.
 
-## Context Loading by Task Type
-
-- Session logging: `docs/context/session-log-schema.md` + `docs/context/module-bootstrap.md`
-- TODO management: `docs/context/todo-schema.md` + `docs/context/module-bootstrap.md`
-- API integration: `docs/context/api-capabilities.md` (or `GET /swagger/v1/swagger.json`)
-- Adding dependencies: `docs/context/compliance-rules.md`
-- Logging actions: `docs/context/action-types.md`
-- New to workspace: this file + `docs/context/api-capabilities.md`
-
-## Where Things Live
-
-- `AGENTS-README-FIRST.yaml` — connection details, API key, workspace config (regenerated on server start)
-- `AGENTS.md` — agent conduct, requirements tracking, session continuity, glossary
-- `docs/context/` — on-demand reference docs (schemas, module docs, compliance rules, action types)
-- `docs/Project/` — requirements docs, TODO.yaml, mapping matrices
-- `templates/` — prompt templates (loaded on demand)
-- `tools/powershell/` — PowerShell modules for MCP context operations
-
 ## CI/CD
 
-GitHub Actions (`.github/workflows/build.yml`) on Windows-latest with .NET 9.0. Triggers on push/PR to main/develop. Jobs: build-test, validate, package, msix, publish. The Nuke `Test` target excludes `*.IntegrationTests` projects.
+Azure DevOps Pipelines (`azure-pipelines.yml`) is the CI: it runs `ShowVersion`, `ValidateTraceability`,
+`Test`, and `PackRepl` on Windows with .NET 10 via the Nuke targets above, and publishes the `mkp` tool
+to NuGet on tag builds. `origin` (Azure DevOps) is the source of truth; GitHub is a downstream mirror.
 
 ## MCP Server Claude Plugin and Hook Contract
 

@@ -1,4 +1,4 @@
-# TR per FR Mapping (MCP Server)
+# TR per FR Mapping (MouseKeyProxy)
 
 | FR | Primary TRs | Tests |
 | --- | --- | --- |

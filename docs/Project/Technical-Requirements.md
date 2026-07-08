@@ -1,4 +1,4 @@
-# Technical Requirements (MCP Server)
+# Technical Requirements (MouseKeyProxy)
 
 ## TR-HOTKEY-CONTRACT-001
 

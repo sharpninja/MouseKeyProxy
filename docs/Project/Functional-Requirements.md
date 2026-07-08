@@ -1,4 +1,4 @@
-# Functional Requirements (MCP Server)
+# Functional Requirements (MouseKeyProxy)
 
 ## FR-HOTKEY-001 Hotkey toggle contracts
 
