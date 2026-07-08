@@ -151,6 +151,27 @@ public sealed class PairingMtlsE2ETests : IAsyncLifetime
         Assert.Contains("VERSION_MISMATCH", ex.Status.Detail);
     }
 
+    /// <summary>When a session ends, the receiving host clears modifiers so none stay stuck down.</summary>
+    [Fact]
+    [Trait("Category", "SecurityE2E")]
+    public async Task OpenSession_Teardown_ClearsModifiers()
+    {
+        var code = _store.IssuePairingCode(TimeSpan.FromMinutes(5));
+        var credential = await PairingClient.PairAsync(Address, "peer-teardown", code, cancellationToken: Ct);
+
+        using var channel = PairingClient.CreateAuthenticatedChannel(Address, credential);
+        var client = new Wire.MouseKeyProxy.MouseKeyProxyClient(channel);
+
+        using var call = client.OpenSession(cancellationToken: Ct);
+        await call.RequestStream.CompleteAsync();
+        await foreach (var _ in call.ResponseStream.ReadAllAsync(Ct))
+        {
+        }
+
+        // Teardown ran: a modifier-clear batch (all KEY_UP) was injected on the receiving host.
+        Assert.Contains(_injector.Batches, b => b.Count > 0 && b.TrueForAll(e => e.Kind == InputKind.KEY_UP));
+    }
+
     private static Grpc.Net.Client.GrpcChannelOptions InsecureClientOptions()
     {
         var handler = new System.Net.Http.SocketsHttpHandler

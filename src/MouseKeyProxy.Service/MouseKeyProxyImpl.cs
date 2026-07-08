@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.Security.Cryptography.X509Certificates;
+using System.Threading;
 using System.Threading.Tasks;
 using Google.Protobuf;
 using Grpc.Core;
@@ -206,6 +207,20 @@ public class MouseKeyProxyImpl : MouseKeyProxy.Network.V1.MouseKeyProxy.MouseKey
         }
         finally
         {
+            // TR-MKP-RELI-001: a remote that drops mid-hold must not leave modifiers stuck down on
+            // the receiving host. Clear them on session teardown regardless of how the stream ended.
+            if (_dispatcher is not null)
+            {
+                try
+                {
+                    await _dispatcher.ClearModifiersAsync(CancellationToken.None);
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogWarning(ex, "OpenSession teardown modifier clear failed");
+                }
+            }
+
             _logger.LogInformation("OpenSession ended (remote disconnected)");
         }
     }

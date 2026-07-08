@@ -40,20 +40,23 @@ public class BidiRoundtripTests
 
         Assert.NotEmpty(responseStream.Responses);
         Assert.Equal(7u, responseStream.Responses[0].Ack.Last);
-        var eventFromBatch = Assert.Single(injector.LastBatch);
-        Assert.Equal(Cmn.InputKind.KEY_DOWN, eventFromBatch.Kind);
-        Assert.Equal(65u, eventFromBatch.Vk);
+
+        // The forwarded input batch was injected.
+        Assert.Contains(injector.Batches, b => b.Count == 1 && b[0].Kind == Cmn.InputKind.KEY_DOWN && b[0].Vk == 65u);
+
+        // TR-MKP-RELI-001: session teardown injects a modifier-clear (all KEY_UP) so nothing sticks.
+        Assert.Contains(injector.Batches, b => b.Count > 0 && b.All(e => e.Kind == Cmn.InputKind.KEY_UP));
     }
 
     private sealed class RecordingInjector : Cmn.IInputInjector
     {
-        public IReadOnlyList<Cmn.InputEvent> LastBatch { get; private set; } = Array.Empty<Cmn.InputEvent>();
+        public List<IReadOnlyList<Cmn.InputEvent>> Batches { get; } = new();
 
-        public void Send(Cmn.InputEvent evt) => LastBatch = new[] { evt };
+        public void Send(Cmn.InputEvent evt) => Batches.Add(new[] { evt });
 
         public bool TryInjectBatch(IEnumerable<Cmn.InputEvent> events, out string? error)
         {
-            LastBatch = events.ToArray();
+            Batches.Add(events.ToArray());
             error = null;
             return true;
         }
