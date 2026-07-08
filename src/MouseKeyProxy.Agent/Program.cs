@@ -923,21 +923,11 @@ internal static class Program
 
         try
         {
+            // TR-MKP-AGENTIPC-001: dispatch through the shared command implementation (same code the REPL uses).
             using var channel = CreateRemoteChannel(_activeRemoteGrpcUrl);
-            if (channel is null)
-            {
-                return RemoteControlResult.Failure("NOT_PAIRED", "No paired credential; pair before clearing remote modifiers.");
-            }
-
-            var client = new Wire.MouseKeyProxy.MouseKeyProxyClient(channel);
-            var response = client.ClearModifiers(new Wire.ClearModifiersRequest
-            {
-                ProtocolVersion = "v1",
-                PeerId = Environment.MachineName.ToLowerInvariant(),
-                CorrelationId = Guid.NewGuid().ToString("N")
-            });
-
-            return new RemoteControlResult(response.Ok, response.Err, response.Msg);
+            var commands = new RemoteServiceCommands(() => channel is null ? null : new Wire.MouseKeyProxy.MouseKeyProxyClient(channel));
+            return commands.ClearModifiersAsync(Environment.MachineName.ToLowerInvariant(), Guid.NewGuid().ToString("N"))
+                .GetAwaiter().GetResult();
         }
         catch (Exception ex)
         {
@@ -967,21 +957,11 @@ internal static class Program
 
         try
         {
+            // TR-MKP-AGENTIPC-001: dispatch through the shared command implementation (same code the REPL uses).
             using var channel = CreateRemoteChannel(_activeRemoteGrpcUrl);
-            if (channel is null)
-            {
-                return RemoteControlResult.Failure("NOT_PAIRED", "No paired credential; pair before requesting remote emergency release.");
-            }
-
-            var client = new Wire.MouseKeyProxy.MouseKeyProxyClient(channel);
-            var response = client.EmergencyRelease(new Wire.EmergencyReleaseRequest
-            {
-                ProtocolVersion = "v1",
-                PeerId = Environment.MachineName.ToLowerInvariant(),
-                CorrelationId = Guid.NewGuid().ToString("N")
-            });
-
-            return new RemoteControlResult(response.Ok, response.Err, response.Msg);
+            var commands = new RemoteServiceCommands(() => channel is null ? null : new Wire.MouseKeyProxy.MouseKeyProxyClient(channel));
+            return commands.EmergencyReleaseAsync(Environment.MachineName.ToLowerInvariant(), Guid.NewGuid().ToString("N"))
+                .GetAwaiter().GetResult();
         }
         catch (Exception ex)
         {
@@ -1167,17 +1147,13 @@ internal static class Program
         string baseUrl = ResolveRemoteGrpcUrl();
         try
         {
+            // TR-MKP-AGENTIPC-001: dispatch through the shared command implementation (same code the REPL uses).
             using var channel = CreateRemoteChannel(baseUrl);
-            if (channel is null)
-            {
-                Console.WriteLine("[SHIPPED observable fail] inject FAILED: NOT_PAIRED");
-                return;
-            }
-
-            var client = new Wire.MouseKeyProxy.MouseKeyProxyClient(channel);
-            using var transport = new BidiSessionTransport(client);
-            await InputCommandHandler.SendInputAsync(transport, InputKind.TEXT_INPUT, payload);
-            Console.WriteLine("[REAL bidi via transport] inject-text sent as SessionFrame/InputBatch SUCCESS");
+            var commands = new RemoteServiceCommands(() => channel is null ? null : new Wire.MouseKeyProxy.MouseKeyProxyClient(channel));
+            var result = await commands.InjectTextAsync(payload);
+            Console.WriteLine(result.Ok
+                ? "[REAL bidi via transport] inject-text sent as SessionFrame/InputBatch SUCCESS"
+                : $"[SHIPPED observable fail] inject FAILED: {result.ErrorCode}");
         }
         catch (Exception ex)
         {

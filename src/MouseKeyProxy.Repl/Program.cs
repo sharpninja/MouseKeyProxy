@@ -311,17 +311,14 @@ Explicit 'mkp service install' does NOT happen on 'dotnet tool install'.
     {
         try
         {
+            // TR-MKP-AGENTIPC-001: dispatch through the shared command implementation (same code the agent uses).
             using var channel = CreateReplChannel(baseUrl);
-            var client = new Wire.MouseKeyProxy.MouseKeyProxyClient(channel);
-            var response = client.ClearModifiers(new Wire.ClearModifiersRequest
-            {
-                ProtocolVersion = "v1",
-                PeerId = "repl-peer",
-                CorrelationId = Guid.NewGuid().ToString("N")
-            });
+            var commands = new MouseKeyProxy.Commands.RemoteServiceCommands(
+                () => new Wire.MouseKeyProxy.MouseKeyProxyClient(channel));
+            var result = commands.ClearModifiersAsync("repl-peer", Guid.NewGuid().ToString("N")).GetAwaiter().GetResult();
 
-            Console.WriteLine($"[REAL gRPC ClearModifiers] ok={response.Ok} err={response.Err} msg={response.Msg}");
-            return response.Ok ? 0 : 1;
+            Console.WriteLine($"[REAL gRPC ClearModifiers] ok={result.Ok} err={result.ErrorCode} msg={result.Message}");
+            return result.Ok ? 0 : 1;
         }
         catch (Exception ex)
         {
