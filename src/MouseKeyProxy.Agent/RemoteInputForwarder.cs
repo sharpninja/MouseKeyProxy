@@ -63,6 +63,8 @@ public sealed class RemoteInputForwarder : IDisposable
     private DateTimeOffset _passThroughUntilUtc;
     private bool _disposed;
     private readonly Func<string, GrpcChannel?>? _channelFactory;
+    private readonly ConnectionFailsafe _failsafe = new();
+    private Task? _watchdog;
 
     /// <summary>Creates the forwarder.</summary>
     /// <param name="channelFactory">
@@ -105,7 +107,9 @@ public sealed class RemoteInputForwarder : IDisposable
                     HttpHandler = new SocketsHttpHandler { EnableMultipleHttp2Connections = true }
                 });
             _client = new Wire.MouseKeyProxy.MouseKeyProxyClient(_channel);
+            _failsafe.OnActivated();
             _sender = Task.Run(() => SendLoopAsync(_stop.Token));
+            _watchdog = Task.Run(() => WatchdogAsync(_stop.Token));
 
             _rawMouseWindow = new RawMouseInputWindow(OnRawMouseDelta);
             _passThroughUntilUtc = DateTimeOffset.UtcNow.AddMilliseconds(300);
@@ -243,6 +247,9 @@ public sealed class RemoteInputForwarder : IDisposable
             }
             catch (Exception ex)
             {
+                // Observe (do not swallow) send faults: mark the channel disconnected so the watchdog
+                // can enforce the reconnect give-up / force-release deadlines.
+                _failsafe.OnDisconnected();
                 Debug.WriteLine($"MouseKeyProxy remote input send failed: {ex.Message}");
             }
             finally
@@ -271,9 +278,45 @@ public sealed class RemoteInputForwarder : IDisposable
         }
 
         var response = await _client.InjectInputAsync(request, cancellationToken: ct).ResponseAsync.ConfigureAwait(false);
-        if (!response.Ok)
+        if (response.Ok)
+        {
+            // Successful ack is proof of peer liveness - resets the force-release deadline.
+            _failsafe.OnHeartbeat();
+        }
+        else
         {
             Debug.WriteLine($"MouseKeyProxy remote input rejected: {response.Err} {response.Msg}");
+        }
+    }
+
+    /// <summary>
+    /// TR-MKP-RELI-001: watchdog that force-releases held modifiers when the peer goes silent past
+    /// the failsafe deadline, so keys cannot remain stuck if the remote stops acking.
+    /// </summary>
+    private async Task WatchdogAsync(CancellationToken ct)
+    {
+        while (!ct.IsCancellationRequested)
+        {
+            try
+            {
+                await Task.Delay(250, ct).ConfigureAwait(false);
+            }
+            catch (OperationCanceledException)
+            {
+                break;
+            }
+
+            if (_failsafe.ShouldForceRelease())
+            {
+                Debug.WriteLine("MouseKeyProxy failsafe: peer silent past deadline; force-releasing modifiers.");
+                TrySendModifierRelease();
+                _failsafe.OnReleased();
+            }
+            else if (_failsafe.ShouldGiveUpReconnect())
+            {
+                Debug.WriteLine("MouseKeyProxy failsafe: reconnect window exceeded; falling back to local input.");
+                _failsafe.OnReleased();
+            }
         }
     }
 
@@ -306,10 +349,13 @@ public sealed class RemoteInputForwarder : IDisposable
             TrySendModifierRelease();
         }
 
+        _failsafe.OnReleased();
         _stop?.Cancel();
         _queue?.CompleteAdding();
         try { _sender?.Wait(TimeSpan.FromSeconds(1)); } catch { }
         _sender = null;
+        try { _watchdog?.Wait(TimeSpan.FromSeconds(1)); } catch { }
+        _watchdog = null;
         _stop?.Dispose();
         _stop = null;
         _queue?.Dispose();
