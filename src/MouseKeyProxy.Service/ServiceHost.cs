@@ -132,6 +132,15 @@ public static class ServiceHost
         builder.Services.AddSingleton<PairingAuthorizer>();
         builder.Services.AddSingleton<PairingAuthorizationInterceptor>();
 
+        // TR-MKP-SEC-001: plug-n-play. When MKP_TOFU=1 the device accepts the first (codeless) pairing
+        // and advertises itself on the LAN while unpaired, so a peer can discover + ToFU-pair it.
+        var pairingOptions = new ServicePairingOptions
+        {
+            TrustOnFirstUse = string.Equals(Environment.GetEnvironmentVariable("MKP_TOFU"), "1", StringComparison.Ordinal),
+        };
+        builder.Services.AddSingleton(pairingOptions);
+        builder.Services.AddHostedService<DiscoveryAdvertiser>();
+
         builder.Services.AddGrpc(options => options.Interceptors.Add<PairingAuthorizationInterceptor>());
 
         // Last-wins test overrides (e.g. a recording IInputInjector) go after the defaults.

@@ -40,6 +40,7 @@ public class MouseKeyProxyImpl : MouseKeyProxy.Network.V1.MouseKeyProxy.MouseKey
     private readonly ISystemPowerController _powerController;
     private readonly IPairedPeerStore _pairedPeerStore;
     private readonly IPairingCertificateAuthority _certificateAuthority;
+    private readonly bool _trustOnFirstUse;
 
     public MouseKeyProxyImpl(
         ILogger<MouseKeyProxyImpl> logger,
@@ -50,7 +51,8 @@ public class MouseKeyProxyImpl : MouseKeyProxy.Network.V1.MouseKeyProxy.MouseKey
         IScreenshotCapture? screenshotCapture = null,
         ISystemPowerController? powerController = null,
         IPairedPeerStore? pairedPeerStore = null,
-        IPairingCertificateAuthority? certificateAuthority = null)
+        IPairingCertificateAuthority? certificateAuthority = null,
+        ServicePairingOptions? pairingOptions = null)
     {
         _logger = logger;
         _dispatcher = dispatcher;
@@ -61,6 +63,7 @@ public class MouseKeyProxyImpl : MouseKeyProxy.Network.V1.MouseKeyProxy.MouseKey
         _powerController = powerController ?? new UnsupportedPowerController();
         _pairedPeerStore = pairedPeerStore ?? new PairedPeerStore();
         _certificateAuthority = certificateAuthority ?? new PairingCertificateAuthority();
+        _trustOnFirstUse = pairingOptions?.TrustOnFirstUse ?? false;
     }
 
     /// <summary>
@@ -102,9 +105,18 @@ public class MouseKeyProxyImpl : MouseKeyProxy.Network.V1.MouseKeyProxy.MouseKey
             return Fail(request.PeerId, "MISSING_PUBLIC_KEY");
         }
 
-        if (!_pairedPeerStore.TryConsumePairingCode(request.PairingCode))
+        // TR-MKP-SEC-001: trust-on-first-use (plug-n-play). When ToFU is enabled and no peer is yet
+        // paired, accept the first Pair without a one-time code and close ToFU thereafter. Otherwise a
+        // valid single-use code is required.
+        var tofuAccept = _trustOnFirstUse && !_pairedPeerStore.HasPairedPeer();
+        if (!tofuAccept && !_pairedPeerStore.TryConsumePairingCode(request.PairingCode))
         {
             return Fail(request.PeerId, "INVALID_OR_EXPIRED_CODE");
+        }
+
+        if (tofuAccept)
+        {
+            _logger.LogWarning("Pair accepted via trust-on-first-use (no paired peer yet) for PeerId={PeerId}", request.PeerId);
         }
 
         X509Certificate2 peerCert;

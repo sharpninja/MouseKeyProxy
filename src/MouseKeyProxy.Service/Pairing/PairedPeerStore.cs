@@ -60,6 +60,10 @@ public interface IPairedPeerStore
     /// <param name="certThumbprint">The presented client-cert thumbprint.</param>
     /// <returns>Whether the caller is authorized.</returns>
     bool IsAuthorized(string certThumbprint);
+
+    /// <summary>True when at least one non-revoked peer is paired (drives the trust-on-first-use gate).</summary>
+    /// <returns>Whether any peer is currently paired.</returns>
+    bool HasPairedPeer();
 }
 
 /// <summary>

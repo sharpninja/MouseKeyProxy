@@ -11,6 +11,9 @@ User=root
 ExecStart=/opt/mousekeyproxy/MouseKeyProxy.Service
 Environment=MKP_HID_KEYBOARD_DEVICE=/dev/hidg0
 Environment=MKP_HID_MOUSE_DEVICE=/dev/hidg1
+# Plug-n-play: advertise on the LAN while unpaired and accept the first (codeless) ToFU pairing.
+Environment=MKP_TOFU=1
+Environment=MKP_STATE_DIR=/var/lib/mousekeyproxy
 Restart=on-failure
 RestartSec=5
 # Logs flow to journald (the service uses AddSystemdConsole on Linux).

@@ -143,6 +143,11 @@ Explicit 'mkp service install' does NOT happen on 'dotnet tool install'.
                     return DoAgentStatus(args);
                 }
 
+                if (args.Length > 1 && args[1].Equals("discover", StringComparison.OrdinalIgnoreCase))
+                {
+                    return DoPairDiscover();
+                }
+
                 if (args.Length > 1 && args[1].Equals("mint", StringComparison.OrdinalIgnoreCase))
                 {
                     // Operator mints a one-time pairing code on the service host to relay to a peer.
@@ -305,6 +310,43 @@ Explicit 'mkp service install' does NOT happen on 'dotnet tool install'.
                 Console.WriteLine($"unknown cmd: {cmd}. Use mkp --help");
                 return 1;
         }
+    }
+
+    // TR-MKP-SEC-001: plug-n-play discovery - listen for unpaired devices advertising on the LAN and
+    // ToFU-pair with each (no manual code). Persists the issued credential per device.
+    private static int DoPairDiscover()
+    {
+        Console.WriteLine("Discovering unpaired MouseKeyProxy devices on the LAN (5s)...");
+        var beacons = MouseKeyProxy.Commands.DiscoveryFinder
+            .ListenAsync(TimeSpan.FromSeconds(5)).GetAwaiter().GetResult();
+        if (beacons.Count == 0)
+        {
+            Console.WriteLine("No unpaired devices found.");
+            return 1;
+        }
+
+        var paired = 0;
+        foreach (var beacon in beacons)
+        {
+            var url = $"https://{beacon.Host}:{beacon.GrpcPort}";
+            try
+            {
+                var credential = PairingClient.PairAsync(url, "repl-peer", string.Empty).GetAwaiter().GetResult();
+                PeerCredentialStore.Save(PeerCredentialStore.DefaultPath(), credential);
+                Console.WriteLine($"Paired with {beacon.PeerId} at {url} (thumbprint {credential.ClientCertificate.Thumbprint}).");
+                paired++;
+            }
+            catch (MouseKeyProxy.Commands.PairingException ex)
+            {
+                Console.WriteLine($"Pair with {beacon.PeerId} rejected: {ex.Error}");
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Pair with {beacon.PeerId} failed: {ex.Message}");
+            }
+        }
+
+        return paired > 0 ? 0 : 1;
     }
 
     private static int DoClearModifiers(string baseUrl)

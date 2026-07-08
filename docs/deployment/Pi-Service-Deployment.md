@@ -36,9 +36,17 @@ The device paths are overridable via `MKP_HID_KEYBOARD_DEVICE` / `MKP_HID_MOUSE_
 
 ## Pair
 
-From a control host REPL: `mkp pair mint` on the Pi's service host (or over the network to it) prints a
-one-time code; run `mkp pair <code>` on the peer to complete the mTLS handshake. Thereafter effect RPCs
-(InjectInput, OpenSession) are authorized by the pairing interceptor and injected through the HID gadget.
+Two ways, both over mTLS:
+
+- **Plug-n-play (default, `MKP_TOFU=1` in the unit):** while unpaired, the Pi broadcasts a LAN discovery
+  beacon (UDP `50052`) and accepts the first codeless pairing (trust-on-first-use). From a control host
+  run `mkp pair discover` - it finds the Pi and pairs automatically, no code. The pairing persists under
+  `/var/lib/mousekeyproxy` (`MKP_STATE_DIR`), so the Pi stays paired across reboots and stops advertising
+  once paired. On the control host, allow inbound UDP `50052` through the firewall for discovery.
+- **Code-based:** `mkp pair mint` prints a one-time code; run `mkp pair <code>` on the peer.
+
+Thereafter effect RPCs (InjectInput, OpenSession) are authorized by the pairing interceptor and injected
+through the HID gadget.
 
 ## Verify (on-hardware, env-gated)
 
