@@ -49,7 +49,15 @@ steps below remain valid if you provision the card yourself.
 2. Copy the published `linux-arm64` output to `/opt/mousekeyproxy/pi-hid`.
 3. Copy `scripts/pi/pi-hid.env.sample` to `/etc/mousekeyproxy/pi-hid.env` and set `MKP_HID_PI_TOKEN`.
 4. Run `scripts/pi/setup-configfs-gadget.sh` as root to create `/dev/hidg0` and `/dev/hidg1`.
-5. Install `scripts/pi/mousekeyproxy-pihid.service` into `/etc/systemd/system/`, then run `systemctl enable --now mousekeyproxy-pihid.service`.
+   The script writes HID report descriptors as **binary** (base64-decoded) and
+   verifies lengths (keyboard 63, mouse 52). Do **not** use dash `printf '\x05...'`
+   to populate `report_desc`: on Raspberry Pi OS `/bin/sh` is dash, which writes
+   the literal ASCII `\x05` text and breaks host interrupt polling (writes to
+   `/dev/hidg*` then fail with EAGAIN).
+5. For gadget mode on Zero 2 W, `config.txt` must expose only
+   `dtoverlay=dwc2,dr_mode=peripheral`. Comment out stock `otg_mode=1` and
+   `dtoverlay=dwc2,dr_mode=host` (they conflict with the peripheral gadget).
+6. Install `scripts/pi/mousekeyproxy-pihid.service` into `/etc/systemd/system/`, then run `systemctl enable --now mousekeyproxy-pihid.service`.
 
 ## Endpoints
 
