@@ -1,127 +1,132 @@
 # MouseKeyProxy - Session Handoff
 
-Last updated: 2026-07-09 (GrokCode: HID descriptor root cause + overlay fix; physical re-enum still open)
+Last updated: 2026-07-09 (GrokCode wrap-up → handoff to Claude)
 
-## TL;DR
+## TL;DR (current blocker)
 
-Pi HID appliance is provisioned, paired (mTLS ToFU), and running. The previous
-`/dev/hidg0` EAGAIN blocker had a **software root cause** that is now fixed on
-the live Pi and in durable scripts:
+**Goal:** Pi SD image boots and DESKTOP sees **one** USB thumb LUN (`MKP-SHARE`) with client MSI.
 
-- **Root cause:** `mkp-hid-gadget-setup.sh` used `#!/bin/sh` (dash). Dash
-  `printf '\x05...'` writes the **literal ASCII** `\x05` (4 chars), not byte
-  `0x05`. Keyboard report_desc was 252 bytes of text instead of 63 binary bytes.
-  Host configured USB but never polled the HID interrupt endpoint -> EAGAIN.
-- **Live fix applied:** setup script is now `#!/bin/bash` with binary descriptors
-  (63 / 52 bytes, starts `05 01 09 06`). Verified on disk after reboot.
-- **Overlay fix applied:** Pi Zero 2 W `config.txt` had conflicting
-  `otg_mode=1` + `dtoverlay=dwc2,dr_mode=host` + `dr_mode=peripheral`. Host mode
-  and `otg_mode` commented out; only `dtoverlay=dwc2,dr_mode=peripheral` remains.
-  DT confirms `dr_mode=peripheral`.
+**Where we are:**
+- Image pipeline can write SD unattended (BuildSdCard / CreatePiImage).
+- Latest write (2026-07-09 ~18:18 local) claimed exit 0 with firstrun + share MSI staged.
+- **Pi still:** ICMP up at `192.168.1.190` (RPi MAC `B8-16-5F-BA-7E-CC`), **SSH :22 closed, telnet :23 closed**.
+- **DESKTOP still:** **0** present `VID_1D6B` / USBSTOR (no drive letter). No MKP-SHARE volume.
 
-**Still open (physical / host):** after reboot, dwc2 is **still re-enumerating**
-(addresses climbing ~every 1-2s: 71..106+ at 48s uptime) and UDC stays
-`not attached` (never settles at `configured`). That needs a data-capable cable
-re-plug into PAYTON-DESKTOP and Device Manager check. Software path is ready once
-the host holds a stable enumeration.
+**Why (evidence, not cable speculation):**
+1. User established earlier: motherboard USB-A + 4-wire Micro-USB + Windows beep = data path is live. Prior sessions **did** enumerate `VID_1D6B` / `MKP-SHARE` on DESKTOP. Do **not** re-litigate the cable.
+2. First-boot used `systemd.unit=kernel-command-line.target`, which **isolates** firstrun so multi-user (and stock `/boot/ssh` → sshd) never start. Hung firstrun = Wi-Fi only (ICMP), zero TCP services, gadget never bound.
+3. That isolation was **removed in rufus-mkp** and rebuilt into `assets/rufus/rufus.exe`. Last successful write should have used the fixed cmdline. **Verify on next access** by reading `/proc/cmdline` or `G:\cmdline.txt` before eject: must **NOT** contain `kernel-command-line.target`.
 
 ## Environment / Facts
 
-- Pi: hostname `mkp-hid-pi`, IP `192.168.1.200`, gRPC mTLS `:50051`, discovery UDP `:50052`.
-- Board: **Raspberry Pi Zero 2 W Rev 1.0** (verified).
-- SSH: `ssh -i C:\Users\kingd\mkp_pi_hid_ed25519.key mkp@192.168.1.200`
-  (user `mkp`, passwordless sudo). `/etc/hosts` now has `127.0.1.1 mkp-hid-pi`
-  (sudo hostname warnings fixed).
-- Service: `/opt/mousekeyproxy/MouseKeyProxy.Service` under `mousekeyproxy.service`
-  (Env: `MKP_TOFU=1`, `MKP_STATE_DIR=/var/lib/mousekeyproxy`, HID paths). `mkp` at `/usr/local/bin/mkp`.
-- Gadget unit: `mkp-hid-gadget.service` -> `/usr/local/sbin/mkp-hid-gadget-setup.sh` (**bash**).
-- Pairing state on Pi: `/var/lib/mousekeyproxy/pairing-state.bin`.
-- Operator credential (LEGION2): `%LOCALAPPDATA%\MouseKeyProxy\peer-credential.bin`
-  (paired thumbprint `818B0E5290D1C732ECB8CEA96A57A11DBA985A9F`).
-- HID gadget: UDC `3f980000.usb`, idVendor `0x1d6b` / idProduct `0x0104`.
-  Descriptors: keyboard **63 binary**, mouse **52 binary** (verified).
-- Operator-box firewall: inbound UDP 50052 rule for discovery (LEGION2).
+| Item | Value |
+|------|--------|
+| Pi IP (current DHCP) | `192.168.1.190` (not the old static `.200`) |
+| Pi MAC | `B8-16-5F-BA-7E-CC` |
+| Hostname target | `mkp-hid-pi` (profile default) |
+| SSH user | `mkp` (lab password set in firstrun: `mkp` / `root:mkp`) |
+| SSH key (when working) | `C:\Users\kingd\mkp_pi_hid_ed25519.key` |
+| DESKTOP | PAYTON-DESKTOP via WSMan + `~/.creds/paytondesktop.cred.xml` |
+| SD writer host | LEGION2 / this machine; SDXC = **Disk 2**, often `G:\` bootfs |
+| Rufus source | `F:\GitHub\rufus-mkp` (fork; dirty working tree) |
+| Rufus binary | `F:\GitHub\MouseKeyProxy\assets\rufus\rufus.exe` (also `F:\GitHub\rufus-mkp\src\rufus.exe`) |
+| Stage dir | `output/pi-stage` (`service/`, `repl/`, `share/` MSI, `install/`) |
+| Nuke write | `gsudo pwsh -File output\write-sd-now.ps1` or CreatePiImage `--AutoWrite true --RufusDevice 2` |
 
-## Done + committed (both LOCAL ONLY - not pushed)
+## Done this Grok session (uncommitted / partial)
 
-1. **rufus-mkp ext4 staging** - `F:\GitHub\rufus-mkp`, commit `e364eab1` (GitHub fork; local only).
-2. **Pairing key-export fix** - this repo, commit `269587f` (NOT pushed).
-   - `X509KeyStorageFlags.Exportable` in PairingClient + PeerCredentialStore.Load.
-   - Regression: `PairedPeer_CredentialSurvivesSaveLoad_AndAuthenticates`.
-3. **Live Pi (not yet in git commit on Pi image):**
-   - Fixed gadget setup script shebang + binary report_desc.
-   - Fixed `config.txt` dwc2 conflict; rebooted.
-   - Durable repo script: `scripts/pi/setup-configfs-gadget.sh` rewritten to
-     base64-decode descriptors + verify lengths (dash-safe).
+### Image / SD pipeline
+- `CreatePiImage` **DependsOn** `PublishPi` + `StagePiInstallMedia` (ordering race fixed).
+- Stage copies MSI into `pi-stage/share` for thumb LUN seed (~102711296 bytes).
+- Unattended Rufus write + eject works when it does not hit exit **5** (cancel dialog race; retry usually succeeds).
+- `install/` rootfs stage failure is **non-fatal** (share/ is the thumb seed).
 
-## Proven end-to-end
+### Firstrun (`F:\GitHub\rufus-mkp\src\rufus.c` - dirty)
+- Single-thumb gadget only (`share` → `/var/lib/mousekeyproxy/thumb.img`, no empty lun.1/2).
+- Early recovery attempt: telnetd/python on :23, watchdog, non-blocking systemctl (still insufficient while isolation was on).
+- **Critical fix:** drop `systemd.unit=kernel-command-line.target` from `first_boot_args` so multi-user can start alongside `systemd.run=firstrun.sh`.
+- Cleanup trap still strips systemd.run* and reboots after firstrun.
 
-ext4 staging (byte-verified) -> Pi boots + service runs -> discovery -> mTLS ToFU
-pairing -> authenticated effect RPC past `PairingAuthorizationInterceptor`
-(ClearModifiers HTTP 200; body was `AGENT_IPC_UNAVAILABLE` for Pi routing gap).
+### Durable scripts
+- `scripts/pi/setup-configfs-gadget.sh`: single LUN, folder-backed VFAT thumb, base64 HID descriptors.
 
-## OPEN BLOCKER: host USB re-enumeration never settles
+### DESKTOP evidence (historical, this session)
+- Ghost/stale PnP: `MKP-SHARE`, `Linux File-Stor Gadget`, `VID_1D6B` (Present=false after disconnect).
+- Live present count after last boots: **0** (gadget not bound on Pi).
 
-### Software (resolved)
+## What Claude should do next (ordered)
 
-| Check | Before | After |
-|-------|--------|-------|
-| keyboard report_desc size | 252 (ASCII `\x05...`) | **63 binary** |
-| first byte | `5c` (`\`) | **`05`** |
-| mouse report_desc size | 208 text | **52 binary** |
-| setup shebang | `#!/bin/sh` (dash) | `#!/bin/bash` |
-| DT `dr_mode` | host+peripheral conflict | **peripheral** |
+1. **Confirm cmdline on card or live Pi**
+   - No `kernel-command-line.target`.
+   - Has `systemd.run=/boot/firmware/firstrun.sh` until firstrun cleanup.
+2. **If Pi still has no SSH after 5–10 min with fixed cmdline**
+   - Pull card; inspect `G:\cmdline.txt`, `G:\firstrun.sh`, `G:\mkp-firstboot.log` (if any), `G:\ssh`.
+   - Optionally patch boot partition only (faster than full image rewrite) then re-insert.
+3. **When SSH works** (`ssh -i ... mkp@192.168.1.190`)
+   - `systemctl status mkp-hid-gadget mousekeyproxy ssh`
+   - `cat /sys/kernel/config/usb_gadget/*/UDC`; force `/usr/local/sbin/mkp-hid-gadget-setup.sh` if empty.
+   - `ls -la /var/lib/mousekeyproxy/thumb.img`; ensure MSI path seed under `/mnt/mkp-deploy/share` if needed.
+4. **On DESKTOP (WSMan)**
+   - `Get-PnpDevice -PresentOnly | ? { $_.InstanceId -match 'VID_1D6B|USBSTOR' }`
+   - Expect one mass-storage LUN / volume label `MKP-SHARE` with MSI.
+5. **If firstrun still bricks remote access**
+   - Prefer rootfs-staged systemd units for gadget + recovery (via `MkpPiHidStageRootFs` in `format_ext.c`) so multi-user enables them without waiting on firstrun body.
+   - Keep firstrun for wifi/user/pwsh only; never block recovery on apt/pwsh.
 
-### Physical / host (still open)
+## Commands
 
-Post-reboot sample (uptime ~48s): address climb still active
-(`new address 98..106`), UDC state `not attached`, writes fail with transport
-shutdown / 0 bytes. This is **not** the old settled-configured+EAGAIN pattern;
-the host is thrashing the bus.
+```pwsh
+# Write SD (elevated)
+gsudo pwsh -NoProfile -ExecutionPolicy Bypass -File F:\GitHub\MouseKeyProxy\output\write-sd-now.ps1
 
-### Next steps (operator)
+# Or Nuke only image write
+$env:MKP_PI_STAGE_DIR = "F:\GitHub\MouseKeyProxy\output\pi-stage"
+dotnet run --project build/MouseKeyProxy.Build.csproj -- --target CreatePiImage --AutoWrite true --RufusDevice 2 --RufusProfile default
 
-1. On **PAYTON-DESKTOP**: unplug Pi USB data cable, wait 3s, re-plug into a
-   rear/native USB port (avoid flaky hubs). Use a **data-capable** cable into the
-   Pi Zero 2 W **OTG/data** micro-USB (not the power-only port).
-2. Device Manager: look for VID_1D6B / PID_0104 (Linux Foundation gadget /
-   composite HID keyboard+mouse). If Code 43 / unknown, uninstall device and re-plug.
-3. On Pi, confirm settle:
-   ```
-   cat /sys/class/udc/*/state   # want: configured
-   sudo dmesg | grep 'new address' | tail -3   # should stop climbing
-   printf '\x00\x00\x00\x00\x00\x00\x00\x00' | sudo dd of=/dev/hidg0 bs=8 count=1
-   ```
-4. Full path test (focus Notepad on PAYTON-DESKTOP first):
-   ```
-   $env:MKP_GRPC = "https://192.168.1.200:50051"
-   dotnet run --project src/MouseKeyProxy.Repl/MouseKeyProxy.Repl.csproj -c Debug -- inject-text "MouseKeyProxy Pi HID OK"
-   ```
+# DESKTOP check
+$cred = Import-Clixml "$HOME\.creds\paytondesktop.cred.xml"
+Invoke-Command -ComputerName PAYTON-DESKTOP -Credential $cred -ScriptBlock {
+  Get-PnpDevice -PresentOnly | ? { $_.InstanceId -match 'VID_1D6B|USBSTOR' }
+  Get-Volume | ? { $_.FileSystemLabel -match 'MKP|SHARE' }
+}
 
-## Follow-ups / tech debt (not yet filed as requirements/TODOs)
+# Pi (when SSH up)
+ssh -i C:\Users\kingd\mkp_pi_hid_ed25519.key -o StrictHostKeyChecking=no mkp@192.168.1.190
+```
 
-1. **Half-paired orphan (robustness).** Service persists peer during `Pair` before
-   client confirms success; client crypto failure leaves ToFU disarmed. Recovery:
-   delete `pairing-state.bin` + restart. Prefer provisional registration / ack /
-   re-arm ToFU when no peer has ever connected.
-2. **ClearModifiers/EmergencyRelease routing on Pi.** Still hit Windows agent IPC
-   (`AGENT_IPC_UNAVAILABLE`). On Pi these should go to HID injector.
-3. **Discovery firewall dependency.** Document/automate inbound UDP 50052.
-4. **firstrun host resolution + overlay + gadget writer.** Baked into rufus-mkp
-   `MkpPiHidWriteFirstBootScript` (`src/rufus.c`): `/etc/hosts` self-entry, comment
-   stock `otg_mode`/`dr_mode=host`, bash+base64 binary report_desc with length verify.
-   Scratchpad `firstrun-b.sh` mirrored. **Rebuild rufus.exe** before next SD write.
+## Rufus auto-write notes
+- Exit codes: `0=ok`, `1=write fail`, `2=need --device`, `3=no device`, `4=image scan fail`, **`5=cancelled`**.
+- Exit 5 seen when cancel confirmation dialog was auto-accepted mid-write; **retry** usually works. Log: `F:\GitHub\rufus-mkp\src\rufus-mkp-autowrite.log`.
+- Card left unpartitioned after cancel once; full rewrite recovered.
 
-## Push status
+## Git state (at handoff)
 
-Nothing pushed. When approved: push MouseKeyProxy gadget-script commit to
-**Azure DevOps** (`azure` remote, primary). rufus-mkp writer fix is local
-(`src/rufus.c` dirty); do not push that GitHub fork unless explicitly asked.
+### MouseKeyProxy (`master` vs origin/master)
+- **Many** dirty/untracked files (device management, packaging, bootstrap, tests, etc.) - **not** all from this SD task.
+- SD-related dirty highlights: `assets/rufus/rufus.exe`, `build/Build.cs`, `scripts/pi/setup-configfs-gadget.sh`, `HANDOFF.md`, `build.cmd`/`build.sh`/`build.ps1`.
+- Do **not** dump-commit the whole tree without review.
 
-## Key working files
+### rufus-mkp (`master` vs sharpninja/master)
+- Dirty: `src/rufus.c` (firstrun + cmdline isolation fix + recovery), `format_ext.c` (share stage non-fatal install), `format.c`, etc.
+- Recent local commits exist for HID/base64 and rootfs staging; firstrun isolation fix **needs commit**.
 
-- Repo: `scripts/pi/setup-configfs-gadget.sh` (durable, base64 descriptors).
-- Writer: `F:\GitHub\rufus-mkp\src\rufus.c` (`MkpPiHidWriteFirstBootScript`).
-- Live Pi: `/usr/local/sbin/mkp-hid-gadget-setup.sh`, `/boot/firmware/config.txt`.
-- Scratchpad: `%LOCALAPPDATA%\Temp\claude\F--GitHub-MouseKeyProxy\3411c2f1-...\scratchpad`
-  (`firstrun-b.sh` fixed, `flash-and-stage.ps1`, etc.).
+## Design decisions (log for Claude)
+
+| Decision | Why | Rejected |
+|----------|-----|----------|
+| Single thumb LUN only | Empty multi-LUN showed as dead drives on Windows | lun.1/2 empty mass storage |
+| Folder → VFAT `thumb.img` | configfs mass_storage cannot bind a directory | binding bare folder |
+| MSI in `share/` | Client install media on DESKTOP thumb | MSI only on install/ |
+| Drop `kernel-command-line.target` | Isolation prevents multi-user/sshd while firstrun hangs | Isolation + telnet-inside-firstrun only |
+| install/ stage non-fatal | Share seed is the thumb path; install staging was flaky | Failing entire write on install/ |
+
+## Do not
+- Blame the USB cable without new Present=0 **and** prior success re-proven absent.
+- Hand-edit MCP TODO/requirements storage files; use plugin/API.
+- Push to `github` remote unless asked; origin/Azure DevOps is primary per workspace rules where applicable.
+
+## Success criteria for next agent
+1. `ssh mkp@<pi-ip>` works after first boot (or after firstrun reboot).
+2. DESKTOP shows **one** present USB mass-storage device / `MKP-SHARE` with MSI.
+3. `mkp-hid-gadget` active; UDC non-empty; `thumb.img` present.
+4. Firstrun not leaving the machine permanently without remote access.
