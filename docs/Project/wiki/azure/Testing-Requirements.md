@@ -184,6 +184,11 @@ Verify relative mouse movement, zero-button release, and modifier cleanup throug
 - [ ] Pi clear-modifiers emits all-up keyboard and mouse reports, and follow-up WindowProbe input is not contaminated by stuck modifiers.
 - [ ] After HID mouse test cleanup, the connected mouse on the gaining system is usable without Alt-Tab.
 
+### TEST-MKP-030
+
+Verify that setup-configfs-gadget.sh (and the rufus firstrun writer payload) write binary HID report descriptors (keyboard 63 bytes starting 0x05, mouse 52 bytes) rather than ASCII \xHH text. Validates the dash-printf regression that caused /dev/hidg* EAGAIN when host never polled IN endpoint.
+
+
 
 ## TEST-OWNERSHIP
 

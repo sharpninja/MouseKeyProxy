@@ -32,7 +32,7 @@ Scope: layer-1+
 
 ## TR-MKP-HID-001
 
-**Pi Zero 2 .NET USB gadget HID backend** — The hardware backend must use Raspberry Pi OS Lite plus Linux configfs/libcomposite to expose keyboard and relative mouse HID gadget functions at /dev/hidg0 and /dev/hidg1, controlled by a minimal authenticated C#/.NET 10 HTTP service published for linux-arm64.
+**Pi Zero 2 .NET USB gadget HID backend** — The hardware backend must use Raspberry Pi OS Lite plus Linux configfs/libcomposite to expose keyboard and relative mouse HID gadget functions at /dev/hidg0 and /dev/hidg1, controlled by the mTLS MouseKeyProxy.Service on linux-arm64 (and/or the authenticated PiHid HTTP appliance). HID report descriptors written at provision time MUST be binary bytes (not shell-escaped ASCII text). Raspberry Pi OS /bin/sh is dash and does not interpret printf \xHH; provisioning must use bash or base64-decoded binary payloads and verify descriptor lengths (keyboard 63, mouse 52, first byte 0x05). On Pi Zero 2 W, config.txt must enable only dtoverlay=dwc2,dr_mode=peripheral (stock otg_mode and dr_mode=host must be disabled).
 Scope: layer-1+
 **Acceptance Criteria:**
 - [ ] Provisioning creates a configfs composite gadget with keyboard and relative mouse HID functions and binds it to an available UDC. (evidence: scripts\pi\setup-configfs-gadget.sh added but not executed on discoverable Pi hardware.)
