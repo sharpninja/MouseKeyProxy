@@ -1,0 +1,28 @@
+=== DESKTOP uninstall Step 0 2026-07-09T11:44:05.9213176-05:00 ===
+RemoteIsAdmin=True
+Computer=PAYTON-DESKTOP User=kingd Admin=True
+Agent process remaining=False
+Service status before=Running
+Stop-Service OK
+sc stop: [SC] ControlService FAILED 1062:
+sc stop: 
+sc stop: The service has not been started.
+sc stop: 
+sc delete: [SC] DeleteService SUCCESS
+Service after=absent
+Scheduled task MouseKeyProxyTray absent
+firewall: 
+firewall: Deleted 1 rule(s).
+firewall: Ok.
+firewall: 
+Removed C:\ProgramData\MouseKeyProxy
+Removed LocalAppData exists=False
+EventLog cleanup: Exception calling "DeleteEventSource" with "1" argument(s): "The event log source 'MouseKeyProxy' cannot be deleted, because it's equal to the log name."
+VERIFY ServiceAbsent=True
+VERIFY AgentProcAbsent=True
+VERIFY ProgramDataAbsent=True
+VERIFY ServiceExeAbsent=True
+DONE
+POST ServiceAbsent=True
+POST AgentProcAbsent=True
+POST ProgramDataAbsent=True

@@ -15,7 +15,13 @@ public class DiscoveryBeaconTests
     [Trait("Category", "Discovery")]
     public void Beacon_RoundTrips()
     {
-        var beacon = new DiscoveryBeacon("mkp-hid-pi", "192.168.1.50", 50051, PairingAvailable: true);
+        var beacon = new DiscoveryBeacon(
+            "mkp-hid-pi",
+            "192.168.1.50",
+            50051,
+            PairingAvailable: true,
+            FolderShareAvailable: true,
+            FolderShareName: "MouseKeyProxy");
 
         var bytes = beacon.ToBytes();
         Assert.True(DiscoveryBeacon.TryParse(bytes, out var parsed));
@@ -24,6 +30,8 @@ public class DiscoveryBeaconTests
         Assert.Equal("192.168.1.50", parsed.Host);
         Assert.Equal(50051, parsed.GrpcPort);
         Assert.True(parsed.PairingAvailable);
+        Assert.True(parsed.FolderShareAvailable);
+        Assert.Equal("MouseKeyProxy", parsed.FolderShareName);
     }
 
     /// <summary>A datagram without the beacon magic header is rejected.</summary>

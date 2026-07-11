@@ -11,9 +11,11 @@ using MouseKeyProxy.Service.Pairing;
 namespace MouseKeyProxy.Service;
 
 /// <summary>
-/// TR-MKP-SEC-001: broadcasts a LAN discovery beacon while the device is unpaired and trust-on-first-use
-/// is enabled, so a peer can find it and ToFU-pair (plug-n-play). Broadcasting stops once any peer is
-/// paired. Only active when ToFU is on (i.e. the Pi appliance), a no-op otherwise.
+/// TR-MKP-SEC-001 / FR-MKP-014: broadcasts LAN discovery beacons for:
+/// <list type="bullet">
+/// <item>Unpaired ToFU pairing (plug-n-play), and/or</item>
+/// <item>Folder share availability so agents on either machine can discover and connect.</item>
+/// </list>
 /// </summary>
 public sealed class DiscoveryAdvertiser : BackgroundService
 {
@@ -21,17 +23,20 @@ public sealed class DiscoveryAdvertiser : BackgroundService
 
     private readonly IPairedPeerStore _store;
     private readonly ServicePairingOptions _options;
+    private readonly FolderShareOptions _folderShare;
     private readonly ILogger<DiscoveryAdvertiser> _logger;
     private readonly int _grpcPort;
 
     /// <summary>Creates the advertiser.</summary>
-    /// <param name="store">The paired-peer store (drives the unpaired check).</param>
-    /// <param name="options">Pairing behavior (advertises only when ToFU is enabled).</param>
-    /// <param name="logger">Diagnostics logger.</param>
-    public DiscoveryAdvertiser(IPairedPeerStore store, ServicePairingOptions options, ILogger<DiscoveryAdvertiser> logger)
+    public DiscoveryAdvertiser(
+        IPairedPeerStore store,
+        ServicePairingOptions options,
+        FolderShareOptions folderShare,
+        ILogger<DiscoveryAdvertiser> logger)
     {
         _store = store;
         _options = options;
+        _folderShare = folderShare;
         _logger = logger;
         _grpcPort = LabTopology.GrpcPort;
     }
@@ -39,21 +44,34 @@ public sealed class DiscoveryAdvertiser : BackgroundService
     /// <inheritdoc />
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
-        if (!_options.TrustOnFirstUse)
+        var advertisePairing = _options.TrustOnFirstUse;
+        var advertiseShare = _folderShare.Enabled;
+        if (!advertisePairing && !advertiseShare)
         {
-            return; // discovery advertisement is only for the plug-n-play (ToFU) appliance
+            return;
         }
 
         using var udp = new UdpClient { EnableBroadcast = true };
         var endpoint = new IPEndPoint(IPAddress.Broadcast, DiscoveryBeacon.DiscoveryPort);
         var peerId = Dns.GetHostName();
-        _logger.LogInformation("Discovery advertiser started (unpaired plug-n-play mode).");
+        _logger.LogInformation(
+            "Discovery advertiser started (pairing={Pairing}, folderShare={Share}).",
+            advertisePairing,
+            advertiseShare);
 
         while (!stoppingToken.IsCancellationRequested)
         {
-            if (!_store.HasPairedPeer())
+            var pairingAvailable = advertisePairing && !_store.HasPairedPeer();
+            var shareAvailable = advertiseShare;
+            if (pairingAvailable || shareAvailable)
             {
-                var beacon = new DiscoveryBeacon(peerId, LocalIPv4(), _grpcPort, PairingAvailable: true);
+                var beacon = new DiscoveryBeacon(
+                    peerId,
+                    LocalIPv4(),
+                    _grpcPort,
+                    PairingAvailable: pairingAvailable,
+                    FolderShareAvailable: shareAvailable,
+                    FolderShareName: shareAvailable ? _folderShare.ShareName : string.Empty);
                 var bytes = beacon.ToBytes();
                 try
                 {
@@ -81,7 +99,7 @@ public sealed class DiscoveryAdvertiser : BackgroundService
         try
         {
             using var socket = new Socket(AddressFamily.InterNetwork, SocketType.Dgram, ProtocolType.Udp);
-            socket.Connect("8.8.8.8", 65530); // no packets sent; picks the route's local endpoint
+            socket.Connect("8.8.8.8", 65530);
             return ((IPEndPoint)socket.LocalEndPoint!).Address.ToString();
         }
         catch (SocketException)

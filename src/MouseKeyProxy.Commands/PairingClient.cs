@@ -71,6 +71,8 @@ public static class PairingClient
         using var channel = GrpcChannel.ForAddress(address, new GrpcChannelOptions { HttpHandler = handler });
         var client = new Wire.MouseKeyProxy.MouseKeyProxyClient(channel);
 
+        // ConfigureAwait(false): Agent calls this via GetResult() on the WinForms UI thread.
+        // Resuming on the UI sync context while the UI thread is blocked deadlocks the tray forever.
         var response = await client.PairAsync(
             new Wire.PairRequest
             {
@@ -79,7 +81,7 @@ public static class PairingClient
                 PairingCode = pairingCode,
                 PublicInfo = ByteString.CopyFrom(spki),
             },
-            cancellationToken: cancellationToken);
+            cancellationToken: cancellationToken).ConfigureAwait(false);
 
         if (!response.Success)
         {

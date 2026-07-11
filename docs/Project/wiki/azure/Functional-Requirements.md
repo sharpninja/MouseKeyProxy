@@ -168,6 +168,61 @@ Scope: layer-1+
 - [x] The HID appliance implementation and provisioning path contain no Python code, Python scripts, or Python runtime dependency. (evidence: dotnet test tests\MouseKeyProxy.Compliance.Tests -c Release --filter Category=HardwareHID)
 - [ ] Alt-Space, Win-Arrow, and relative mouse movement through the Pi are proven by WindowProbe JSON and timestamped screenshot evidence.
 
+## FR-MKP-013 Device lifecycle and function control
+
+Appliance exposes connect/disconnect for keyboard, mouse, disk FS, CD-ROM, floppy; boot complete; FS content change events; configure independently; FS RO/RW; CD/floppy media device or host; events processed locally in C# and mirrored to paired host.
+Scope: layer-1+
+
+## FR-MKP-014 Device folder share with IP allowlist
+
+Device shares a sandboxed folder over paired gRPC; UDP discovery advertises share; only paired peers whose connection IP is allowlisted (paired host and USB-connected PC, identified by pairing) may use share RPCs after client pairing.
+Scope: layer-1+
+
+## FR-MKP-015 USB optical and floppy media
+
+Pi presents CD-ROM and virtual floppy LUNs with selectable media (device path or host inbox); independently enable/disable via ConfigureDevice.
+Scope: layer-1+
+
+## FR-MKP-016 Paired-peer SMB folder share
+
+Pi hosts SMB of the share root; only IPs of the paired host and the USB-connected PC (both identified via pairing metadata) may access; deny all other LAN.
+Scope: layer-1+
+
+## FR-MKP-017 Install media autorun
+
+CD-ROM and/or FAT32 install folder may include autorun.inf that launches install guidance for Windows; content lives on FAT32 deploy partition and/or CD image.
+Scope: layer-1+
+
+## FR-MKP-018 Agent manages complete paired-device config
+
+Agent is primary runtime UI for the entire device config surface (HID, media, share, SMB, events, pairing assist).
+Scope: layer-1+
+
+## FR-MKP-019 Rufus image setup form for virtual devices
+
+Rufus Configure Pi HID enables each virtual device and sets default CD/floppy media paths; profile Save/Load. Media files managed via FAT32 deploy partition. The form's provisioning must produce a headless-bootable card that needs no keyboard: on current Raspberry Pi OS trixie (cloud-init based) it writes a cloud-init seed from the profile to create the user, enable ssh, and configure wifi with the regulatory country, writes a custom.toml fallback for non-cloud-init images, disables the RPi first-run user wizard, and survives the post-write FAT remount race that previously aborted with ERROR_CANT_PATCH. See TR-MKP-PROV-001 and TEST-MKP-048.
+Scope: layer-1+
+
+## FR-MKP-020 FAT32 deploy partition
+
+Appliance image includes a FAT32 partition MKP-DEPLOY for operator-managed files. Operators use Explorer when volume is mounted; avoids custom Rufus file-staging for day-to-day deploy content.
+Scope: layer-1+
+
+## FR-MKP-021 PowerShell default shell on device
+
+Device installs PowerShell 7+ (pwsh) for the appliance user and makes pwsh the default login shell.
+Scope: layer-1+
+
+## FR-MKP-022 LiteDB config under /etc/mkp
+
+Durable appliance configuration is stored in LiteDB under /etc/mkp (e.g. /etc/mkp/config.db). Service reads/writes this store; env vars are bootstrap overrides only.
+Scope: layer-1+
+
+## FR-MKP-023 Agent client-pairing with typed code
+
+Device allows client pairing initiated from the Agent. Pairing completes only when a device-generated one-time code is typed on the connecting machine. Wrong/expired code fails with no cert issued.
+Scope: layer-1+
+
 ## FR-OWNERSHIP-001 Ownership boundary contracts
 
 The system must define ownership policy boundaries that separate agent rights from service rights.

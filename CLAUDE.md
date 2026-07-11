@@ -10,25 +10,21 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Build & Test Commands
 
-The build is orchestrated by Nuke. There is no `./build.ps1`; invoke the build project directly:
+The build is orchestrated by Nuke. Prefer the root bootstrap scripts (they build and run `build/MouseKeyProxy.Build.csproj`):
 
 ```pwsh
-# Compile the solution (MouseKeyProxy.slnx)
+# From repo root (pwsh)
+.\build.ps1 Compile
+.\build.ps1 Test
+.\build.ps1 LaunchRufus --RufusProfile default
+.\build.cmd CreatePiImage --RufusProfile default
+
+# Equivalent without bootstrap:
 dotnet run --project build/MouseKeyProxy.Build.csproj -- --target Compile
-
-# Run all unit + in-process integration tests (excludes the two-machine lab E2E)
 dotnet run --project build/MouseKeyProxy.Build.csproj -- --target Test
-
-# Opt-in two-machine lab E2E (sets MKP_LAB_E2E=1; needs the service live on both lab peers)
 dotnet run --project build/MouseKeyProxy.Build.csproj -- --target IntegrationTest
-
-# Requirements traceability (parses the requirement docs + matrix; fails on orphan/malformed rows)
 dotnet run --project build/MouseKeyProxy.Build.csproj -- --target ValidateTraceability
-
-# Show the GitVersion-derived version numbers
 dotnet run --project build/MouseKeyProxy.Build.csproj -- --target ShowVersion
-
-# Publish self-contained payloads / pack + publish the REPL dotnet tool
 dotnet run --project build/MouseKeyProxy.Build.csproj -- --target PublishSelfContained
 dotnet run --project build/MouseKeyProxy.Build.csproj -- --target PackRepl
 dotnet run --project build/MouseKeyProxy.Build.csproj -- --target PublishToolToNuGet
@@ -36,7 +32,28 @@ dotnet run --project build/MouseKeyProxy.Build.csproj -- --target PublishToolToN
 
 Nuke targets: `Clean`, `Restore`, `Compile`, `Test`, `IntegrationTest`, `ValidateTraceability`,
 `ShowVersion`, `PackRepl`, `PublishService`, `PublishAgent`, `PublishSelfContained`,
-`PublishToolToNuGet`, `FullBuild`.
+`PublishPi`, `PackClientMsi`, `StagePiInstallMedia`, `PublishToolToNuGet`, `FullBuild`,
+`BuildRufus`, `LaunchRufus`, `CreatePiImage` (alias `CreateImageFromRufusConfig`),
+`BuildSdCard` (PublishPi + StagePiInstallMedia + CreatePiImage).
+
+Rufus targets (require rufus-mkp checkout; default sibling `../rufus-mkp` or `RUFUS_MKP_ROOT`):
+
+```pwsh
+# Build rufus-mkp and copy rufus.exe into assets/rufus/
+dotnet run --project build/MouseKeyProxy.Build.csproj -- --target BuildRufus
+
+# Launch Rufus GUI (optional profile)
+dotnet run --project build/MouseKeyProxy.Build.csproj -- --target LaunchRufus --RufusProfile default
+
+# Stage Pi OS image and open Rufus with a saved profile to write a new appliance image
+dotnet run --project build/MouseKeyProxy.Build.csproj -- --target CreatePiImage --RufusProfile default
+
+# Full SD path: linux-arm64 Pi payloads + client MSI/install kit + Rufus write
+.\build.ps1 BuildSdCard --RufusProfile default
+# Interactive Rufus only: --AutoWrite false
+# Pin SD reader: --RufusDevice 2
+# optional: --ForcePiImage ; env MKP_INSTALL_TICKET / MKP_DEVICE_GRPC for client kit
+```
 
 Run a single test project or test directly with `dotnet test`:
 

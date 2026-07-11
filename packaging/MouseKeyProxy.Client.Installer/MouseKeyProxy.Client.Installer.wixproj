@@ -1,0 +1,23 @@
+<Project Sdk="WixToolset.Sdk/7.0.0">
+
+  <PropertyGroup>
+    <OutputType>Package</OutputType>
+    <OutputName>MouseKeyProxy-Client</OutputName>
+    <InstallerPlatform>x64</InstallerPlatform>
+    <!-- WiX v7 OSMF EULA acceptance for build (https://wixtoolset.org/osmf/) -->
+    <AcceptEula>wix7</AcceptEula>
+    <!-- Staged client-install folder from Nuke PackClientMsi -->
+    <ClientInstallDir Condition="'$(ClientInstallDir)' == ''">$(MSBuildThisFileDirectory)..\..\output\payloads\client-install\</ClientInstallDir>
+    <DefineConstants>ClientInstallDir=$(ClientInstallDir)</DefineConstants>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- Bind path so Source="!(bindpath.ClientInstall)..." resolves -->
+    <BindPath Include="$(ClientInstallDir)" BindName="ClientInstall" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="WixToolset.UI.wixext" />
+  </ItemGroup>
+
+</Project>

@@ -1,0 +1,112 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  FR-MKP-024 / FR-MKP-025 / FR-MKP-026: Client MSI for USB/MKP-DEPLOY install media.
+  Installs Service + Agent payloads and runs elevated bootstrap (pair to device + clipboard intro).
+-->
+<Wix xmlns="http://wixtoolset.org/schemas/v4/wxs"
+     xmlns:ui="http://wixtoolset.org/schemas/v4/wxs/ui">
+
+  <Package
+      Name="MouseKeyProxy Client"
+      Manufacturer="MouseKeyProxy"
+      Version="1.0.0"
+      UpgradeCode="B7E8C2A1-4D5F-4A6B-9C0D-1E2F3A4B5C6D"
+      Scope="perMachine"
+      Language="1033">
+
+    <SummaryInformation
+        Description="Installs MouseKeyProxy Service and Agent, pairs to the Pi device, and queues clipboard intro for the control host."
+        Manufacturer="MouseKeyProxy" />
+
+    <MajorUpgrade
+        DowngradeErrorMessage="A newer version of [ProductName] is already installed."
+        Schedule="afterInstallInitialize" />
+
+    <MediaTemplate EmbedCab="yes" CompressionLevel="high" />
+
+    <!-- Minimal UI so double-click from USB works -->
+    <ui:WixUI Id="WixUI_Minimal" />
+    <WixVariable Id="WixUILicenseRtf" Value="License.rtf" />
+
+    <Feature Id="ProductFeature" Title="MouseKeyProxy Client" Level="1">
+      <ComponentGroupRef Id="ProductComponents" />
+      <ComponentGroupRef Id="PayloadServiceComponents" />
+      <ComponentGroupRef Id="PayloadAgentComponents" />
+    </Feature>
+
+    <!-- Elevated bootstrap after files are on disk -->
+    <CustomAction
+        Id="RunBootstrap"
+        Directory="INSTALLFOLDER"
+        ExeCommand="[INSTALLFOLDER]MouseKeyProxy.Bootstrap.exe --payloads &quot;[INSTALLFOLDER]payloads&quot; --bootstrap-json &quot;[INSTALLFOLDER]device-bootstrap.json&quot;"
+        Execute="deferred"
+        Impersonate="no"
+        Return="check" />
+
+    <InstallExecuteSequence>
+      <Custom Action="RunBootstrap" After="InstallFiles" Condition="NOT Installed" />
+    </InstallExecuteSequence>
+  </Package>
+
+  <Fragment>
+    <StandardDirectory Id="ProgramFiles64Folder">
+      <Directory Id="INSTALLFOLDER" Name="MouseKeyProxy">
+        <Directory Id="PayloadsFolder" Name="payloads">
+          <Directory Id="PayloadServiceFolder" Name="service" />
+          <Directory Id="PayloadAgentFolder" Name="agent" />
+        </Directory>
+      </Directory>
+    </StandardDirectory>
+  </Fragment>
+
+  <!-- Bootstrap + metadata at install root -->
+  <Fragment>
+    <ComponentGroup Id="ProductComponents" Directory="INSTALLFOLDER">
+      <Component Id="BootstrapExe" Guid="*">
+        <File Id="BootstrapExeFile"
+              Source="!(bindpath.ClientInstall)MouseKeyProxy.Bootstrap.exe"
+              KeyPath="yes"
+              Checksum="yes" />
+      </Component>
+      <Component Id="BootstrapJson" Guid="*">
+        <File Id="BootstrapJsonFile"
+              Source="!(bindpath.ClientInstall)device-bootstrap.json"
+              KeyPath="yes" />
+      </Component>
+      <Component Id="InstallTicket" Guid="*">
+        <File Id="InstallTicketFile"
+              Source="!(bindpath.ClientInstall)install-ticket.txt"
+              KeyPath="yes" />
+      </Component>
+      <Component Id="InstallPs1" Guid="*">
+        <File Id="InstallPs1File"
+              Source="!(bindpath.ClientInstall)Install-MouseKeyProxy.ps1"
+              KeyPath="yes" />
+      </Component>
+      <Component Id="ReadmeTxt" Guid="*">
+        <File Id="ReadmeTxtFile"
+              Source="!(bindpath.ClientInstall)README.txt"
+              KeyPath="yes" />
+      </Component>
+      <Component Id="AutorunInf" Guid="*">
+        <File Id="AutorunInfFile"
+              Source="!(bindpath.ClientInstall)autorun.inf"
+              KeyPath="yes" />
+      </Component>
+    </ComponentGroup>
+  </Fragment>
+
+  <!-- Harvest payloads via Files wildcards (WiX 5+) -->
+  <Fragment>
+    <ComponentGroup Id="PayloadServiceComponents" Directory="PayloadServiceFolder">
+      <Files Include="!(bindpath.ClientInstall)payloads\service\**" />
+    </ComponentGroup>
+  </Fragment>
+
+  <Fragment>
+    <ComponentGroup Id="PayloadAgentComponents" Directory="PayloadAgentFolder">
+      <Files Include="!(bindpath.ClientInstall)payloads\agent\**" />
+    </ComponentGroup>
+  </Fragment>
+
+</Wix>

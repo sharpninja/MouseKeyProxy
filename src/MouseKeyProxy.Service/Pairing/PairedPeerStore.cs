@@ -56,6 +56,10 @@ public interface IPairedPeerStore
     /// <returns>True if a peer was revoked.</returns>
     bool Revoke(string peerId);
 
+    /// <summary>Revokes every registered peer (device pairing reset / re-open ToFU).</summary>
+    /// <returns>Number of peers newly marked revoked.</returns>
+    int RevokeAll();
+
     /// <summary>True when a peer with the given cert thumbprint is paired and not revoked.</summary>
     /// <param name="certThumbprint">The presented client-cert thumbprint.</param>
     /// <returns>Whether the caller is authorized.</returns>
@@ -64,6 +68,10 @@ public interface IPairedPeerStore
     /// <summary>True when at least one non-revoked peer is paired (drives the trust-on-first-use gate).</summary>
     /// <returns>Whether any peer is currently paired.</returns>
     bool HasPairedPeer();
+
+    /// <summary>Snapshot of all registered peers (including revoked), for host/intro selection.</summary>
+    /// <returns>Peer records.</returns>
+    IReadOnlyList<PairedPeer> ExportPeers();
 }
 
 /// <summary>
@@ -210,6 +218,11 @@ public sealed class PairedPeerStore : IPairedPeerStore
                 return false;
             }
 
+            if (peer.Revoked)
+            {
+                return false;
+            }
+
             var revoked = peer with { Revoked = true };
             _byPeerId[peerId] = revoked;
             _byThumbprint[peer.CertThumbprint] = revoked;
@@ -217,6 +230,35 @@ public sealed class PairedPeerStore : IPairedPeerStore
 
         NotifyChanged();
         return true;
+    }
+
+    /// <inheritdoc />
+    public int RevokeAll()
+    {
+        var count = 0;
+        lock (_gate)
+        {
+            foreach (var peerId in _byPeerId.Keys.ToList())
+            {
+                var peer = _byPeerId[peerId];
+                if (peer.Revoked)
+                {
+                    continue;
+                }
+
+                var revoked = peer with { Revoked = true };
+                _byPeerId[peerId] = revoked;
+                _byThumbprint[peer.CertThumbprint] = revoked;
+                count++;
+            }
+        }
+
+        if (count > 0)
+        {
+            NotifyChanged();
+        }
+
+        return count;
     }
 
     /// <inheritdoc />

@@ -15,6 +15,15 @@ service MouseKeyProxy {
   // RequestPairingCode: operator mints a time-bound, single-use code (bootstrap).
   rpc RequestPairingCode (RequestPairingCodeRequest) returns (RequestPairingCodeResponse);
   rpc Pair (PairRequest) returns (PairResponse);
+  // Unpair: revoke the calling peer's pairing (requires mTLS client cert). Device re-opens ToFU when no peers remain.
+  rpc Unpair (UnpairRequest) returns (CommandResult);
+
+  // FR-MKP-026: after MSI client pairs to device, queue clipboard intro for the control host.
+  rpc CompleteClientInstall (CompleteClientInstallRequest) returns (CompleteClientInstallResponse);
+  // FR-MKP-026: control host peeks pending USB-client clipboard intros (does not claim).
+  rpc GetPendingClientIntros (GetPendingClientIntrosRequest) returns (GetPendingClientIntrosResponse);
+  // FR-MKP-026: control host claims one pending intro (single-use).
+  rpc ClaimClientIntro (ClaimClientIntroRequest) returns (ClaimClientIntroResponse);
 
   // Local REPL/tray management RPCs (typically routed over the open stream in implementation)
   rpc SetMousePosition (SetMousePositionRequest) returns (CommandResult);
@@ -28,6 +37,17 @@ service MouseKeyProxy {
   // Linux/Pi appliance only: safely power off or reboot the device. Returns
   // PLATFORM_NOT_SUPPORTED on non-Linux hosts (e.g. the Windows service).
   rpc Shutdown (ShutdownRequest) returns (CommandResult);
+
+  // FR-MKP-013: configure USB gadget functions independently (keyboard, mouse, mass-storage FS)
+  // and set FS RO/RW. Requires paired client cert. Events are processed locally and mirrored to host.
+  rpc ConfigureDevice (ConfigureDeviceRequest) returns (ConfigureDeviceResponse);
+  rpc GetDeviceConfiguration (GetDeviceConfigurationRequest) returns (GetDeviceConfigurationResponse);
+
+  // FR-MKP-014: sandboxed folder share on the device (discover via UDP beacon, connect with paired gRPC).
+  rpc GetFolderShareInfo (GetFolderShareInfoRequest) returns (GetFolderShareInfoResponse);
+  rpc ListFolderShare (ListFolderShareRequest) returns (ListFolderShareResponse);
+  rpc DownloadFolderShareFile (DownloadFolderShareFileRequest) returns (stream FolderShareChunk);
+  rpc UploadFolderShareFile (stream UploadFolderShareFileRequest) returns (CommandResult);
 }
 
 enum ShutdownMode {
@@ -67,6 +87,64 @@ message PairResponse {
   bytes peerCert = 2;        // service-signed per-peer client cert (DER)
   string error = 3;
   bytes caCertificate = 4;   // service CA public cert (DER) so the peer trusts the channel
+}
+
+// FR-MKP-023: paired client requests revocation of its own pairing (or a peer id when authorized).
+message UnpairRequest {
+  string protocolVersion = 1;
+  string peerId = 2;         // optional; empty = revoke the caller's certificate peer
+  string correlationId = 3;
+  bool clearAll = 4;         // when true, revoke all peers (operator reset of device pairing store)
+}
+
+// FR-MKP-026: MSI bootstrap on USB client registers clipboard endpoint for the control host.
+message CompleteClientInstallRequest {
+  string protocolVersion = 1;
+  string peerId = 2;
+  string clipboardEndpoint = 3;   // e.g. https://desktop:50051 (Service; clipboard-only policy on host)
+  string clipboardIntroCode = 4;  // OTP host uses when pairing to client Service
+  string correlationId = 5;
+  int32 introTtlSeconds = 6;      // 0 => service default (5 min)
+}
+
+message CompleteClientInstallResponse {
+  bool ok = 1;
+  string err = 2;
+  string msg = 3;
+  string hostPeerId = 4;
+  bool clipboardIntroQueued = 5;
+}
+
+message GetPendingClientIntrosRequest {
+  string protocolVersion = 1;
+  string correlationId = 2;
+}
+
+message PendingClientIntro {
+  string clientPeerId = 1;
+  string clipboardEndpoint = 2;
+  string clipboardIntroCode = 3;
+  int64 expiresUnixTimeSeconds = 4;
+}
+
+message GetPendingClientIntrosResponse {
+  bool ok = 1;
+  string err = 2;
+  string msg = 3;
+  repeated PendingClientIntro intros = 4;
+}
+
+message ClaimClientIntroRequest {
+  string protocolVersion = 1;
+  string clientPeerId = 2;
+  string correlationId = 3;
+}
+
+message ClaimClientIntroResponse {
+  bool ok = 1;
+  string err = 2;
+  string msg = 3;
+  PendingClientIntro intro = 4;
 }
 
 message SessionFrame {
@@ -241,4 +319,175 @@ message EmergencyReleaseRequest {
   string protocolVersion = 1;
   string peerId = 2;
   string correlationId = 3;
+}
+
+// --- Device function configuration (FR-MKP-013) ---
+
+enum DeviceFsAccessMode {
+  DEVICE_FS_ACCESS_MODE_UNSPECIFIED = 0;
+  FS_READ_ONLY = 1;
+  FS_READ_WRITE = 2;
+}
+
+enum DeviceEventKind {
+  DEVICE_EVENT_KIND_UNSPECIFIED = 0;
+  BOOT_COMPLETE = 1;
+  KEYBOARD_CONNECTED = 2;
+  KEYBOARD_DISCONNECTED = 3;
+  MOUSE_CONNECTED = 4;
+  MOUSE_DISCONNECTED = 5;
+  FS_CONNECTED = 6;
+  FS_DISCONNECTED = 7;
+  FS_FILE_CREATED = 8;
+  FS_FILE_CHANGED = 9;
+  FS_FILE_DELETED = 10;
+  FS_FILE_RENAMED = 11;
+  CDROM_CONNECTED = 12;
+  CDROM_DISCONNECTED = 13;
+  FLOPPY_CONNECTED = 14;
+  FLOPPY_DISCONNECTED = 15;
+  CDROM_MEDIA_CHANGED = 16;
+  FLOPPY_MEDIA_CHANGED = 17;
+}
+
+enum DeviceMediaSource {
+  DEVICE_MEDIA_SOURCE_UNSPECIFIED = 0;
+  MEDIA_SOURCE_DEVICE = 1;
+  MEDIA_SOURCE_HOST = 2;
+}
+
+// Optional bools: omit or leave unset to mean "unchanged". Proto3 optional required for presence.
+message StorageMediaSpecMsg {
+  DeviceMediaSource source = 1;
+  // Device: path on appliance. Host: relative name under host media inbox. Empty = eject.
+  string path = 2;
+}
+
+message ConfigureDeviceRequest {
+  string protocolVersion = 1;
+  string peerId = 2;
+  string correlationId = 3;
+  optional bool keyboard_enabled = 4;
+  optional bool mouse_enabled = 5;
+  optional bool fs_enabled = 6;
+  // Unspecified => leave FS access unchanged.
+  DeviceFsAccessMode fs_access = 7;
+  optional bool cdrom_enabled = 8;
+  // When true, apply cdrom_media (empty path ejects). When false/unset, media unchanged.
+  optional bool update_cdrom_media = 9;
+  StorageMediaSpecMsg cdrom_media = 10;
+  optional bool floppy_enabled = 11;
+  optional bool update_floppy_media = 12;
+  StorageMediaSpecMsg floppy_media = 13;
+}
+
+message DeviceFunctionStateMsg {
+  bool keyboard_enabled = 1;
+  bool mouse_enabled = 2;
+  bool fs_enabled = 3;
+  DeviceFsAccessMode fs_access = 4;
+  bool cdrom_enabled = 5;
+  StorageMediaSpecMsg cdrom_media = 6;
+  bool floppy_enabled = 7;
+  StorageMediaSpecMsg floppy_media = 8;
+}
+
+message DeviceEventMsg {
+  DeviceEventKind kind = 1;
+  int64 at_unix_ms = 2;
+  string correlation_id = 3;
+  string detail = 4;
+  // Relative path under the shared FS root (content events).
+  string path = 5;
+  // Previous path for rename events.
+  string old_path = 6;
+}
+
+message ConfigureDeviceResponse {
+  bool ok = 1;
+  string err = 2;
+  string msg = 3;
+  DeviceFunctionStateMsg state = 4;
+  repeated DeviceEventMsg events = 5;
+}
+
+message GetDeviceConfigurationRequest {
+  string protocolVersion = 1;
+  string peerId = 2;
+  string correlationId = 3;
+}
+
+message GetDeviceConfigurationResponse {
+  bool ok = 1;
+  string err = 2;
+  string msg = 3;
+  DeviceFunctionStateMsg state = 4;
+}
+
+// --- Folder share (FR-MKP-014) ---
+
+message GetFolderShareInfoRequest {
+  string protocolVersion = 1;
+  string peerId = 2;
+  string correlationId = 3;
+}
+
+message GetFolderShareInfoResponse {
+  bool ok = 1;
+  string err = 2;
+  string msg = 3;
+  string share_name = 4;
+  string root_label = 5;
+  bool read_write = 6;
+  bool enabled = 7;
+}
+
+message ListFolderShareRequest {
+  string protocolVersion = 1;
+  string peerId = 2;
+  string correlationId = 3;
+  // Relative directory under the share root; empty = root.
+  string relative_directory = 4;
+}
+
+message FolderShareEntryMsg {
+  string name = 1;
+  string relative_path = 2;
+  bool is_directory = 3;
+  int64 size_bytes = 4;
+  int64 modified_unix_ms = 5;
+}
+
+message ListFolderShareResponse {
+  bool ok = 1;
+  string err = 2;
+  string msg = 3;
+  repeated FolderShareEntryMsg entries = 4;
+}
+
+message DownloadFolderShareFileRequest {
+  string protocolVersion = 1;
+  string peerId = 2;
+  string correlationId = 3;
+  string relative_path = 4;
+}
+
+message FolderShareChunk {
+  bytes data = 1;
+  uint32 index = 2;
+  bool last = 3;
+  int64 total_size = 4;
+  string sha256 = 5; // set on last chunk when available
+}
+
+message UploadFolderShareFileRequest {
+  // First message should set metadata; subsequent messages set data chunks.
+  string protocolVersion = 1;
+  string peerId = 2;
+  string correlationId = 3;
+  string relative_path = 4;
+  int64 total_size = 5;
+  bytes data = 6;
+  bool last = 7;
+  string sha256 = 8; // expected hash on last message (optional)
 }

@@ -42,6 +42,10 @@ internal static class Program
     private static string? _lastPairingCode;
     private static string? _lastRemoteError;
     private static PeerCredential? _peerCredential;
+    /// <summary>FR-MKP-027: optional clipboard-only peer (USB client Service), separate from Device input remote.</summary>
+    private static string? _clipboardPeerUrl;
+    private static PeerCredential? _clipboardCredential;
+    private static System.Windows.Forms.Timer? _clipboardIntroTimer;
     private static Label? _pairingStatusValue;
     private static Label? _activePeerValue;
     private static Label? _remoteEndpointValue;
@@ -60,6 +64,25 @@ internal static class Program
         _controlPipe = AgentControlPipeServer.Start(new Win32DesktopController(), _injector, NotifyPairingState, GetAgentStatus, ExecuteEmergencyReleaseCommand, new Win32ScreenshotCapture());
         _forwarder = new RemoteInputForwarder(CreateRemoteChannel);
         LoadPersistedPairingState();
+        try
+        {
+            _clipboardCredential = PeerCredentialStore.Load(ClipboardPeerCredentialPath());
+            if (_clipboardCredential is not null)
+            {
+                var urlFile = Path.Combine(
+                    Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+                    "MouseKeyProxy",
+                    "clipboard-peer-url.txt");
+                if (File.Exists(urlFile))
+                {
+                    _clipboardPeerUrl = File.ReadAllText(urlFile).Trim();
+                }
+            }
+        }
+        catch
+        {
+            /* best effort */
+        }
 
         _tray = new NotifyIcon
         {
@@ -72,8 +95,13 @@ internal static class Program
         menu.Items.Add("MouseKeyProxy dashboard", null, (_, _) => ShowDashboardForm());
         AddConnectedRemoteMenuAction(menu, "Toggle Active - Desktop Control (Ctrl-Alt-F1)", (_, _) => DoRealToggle());
         menu.Items.Add("Pairing", null, (_, _) => ShowPairingForm());
+        AddPairedRemoteMenuAction(menu, "Unpair remote…", (_, _) => UnpairRemoteInteractive());
         AddPairedRemoteMenuAction(menu, "Reconnect", (_, _) => TryReconnect());
+        AddPairedRemoteMenuAction(menu, "Claim USB clipboard client…", (_, _) => ClaimUsbClipboardClientsInteractive());
         menu.Items.Add("Service", null, (_, _) => ShowServiceForm());
+        menu.Items.Add("Discover folder shares...", null, (_, _) => DiscoverFolderShares());
+        AddPairedRemoteMenuAction(menu, "Device configuration…", (_, _) => ShowDeviceManagementForm());
+        // FR-MKP-018: share browse is the Share tab of Device configuration (no second incomplete surface).
         AddConnectedRemoteMenuAction(menu, "Clipboard", (_, _) => ShowClipboardForm());
         AddConnectedRemoteMenuAction(menu, "Inject Text to Remote...", (_, _) => ShowInjectForm());
         menu.Items.Add("Emergency release", null, (_, _) => EmergencyRelease());
@@ -91,6 +119,17 @@ internal static class Program
         _clipboardListener = new Win32ClipboardListener();
         _clipboardListener.ClipboardCaptured += OnLocalClipboardCaptured;
         _clipboardListener.StartListening();
+
+        // FR-MKP-026: poll device for pending USB-client clipboard intros while paired.
+        _clipboardIntroTimer = new System.Windows.Forms.Timer { Interval = 15_000 };
+        _clipboardIntroTimer.Tick += (_, _) =>
+        {
+            if (_remoteState is RemoteConnectionState.Connected or RemoteConnectionState.NotConnected)
+            {
+                _ = System.Threading.Tasks.Task.Run(() => TryClaimUsbClipboardClients(quiet: true));
+            }
+        };
+        _clipboardIntroTimer.Start();
 
         _hotkeyWindow = new HotkeyMessageForm(() => _hotkey.RaiseToggle("Ctrl-Alt-F1", false));
         _hotkey.RegisterForWindow(_hotkeyWindow.Handle, 0x0003, (uint)Keys.F1);
@@ -314,6 +353,65 @@ internal static class Program
         ConnectedRemoteActions.Add(RemoteActionBinding.ForMenuItem(item, text));
     }
 
+    /// <summary>
+    /// FR-MKP-013 / FR-MKP-014 / FR-MKP-018: complete paired-device configuration surface
+    /// (functions, media, share/SMB, events, pairing assist).
+    /// </summary>
+    /// <param name="initialTab">0=Functions, 1=Media, 2=Share, 3=Events, 4=Pairing.</param>
+    private static void ShowDeviceManagementForm(int initialTab = 0)
+    {
+        if (!EnsurePairedRemoteAction("Device configuration"))
+        {
+            return;
+        }
+
+        try
+        {
+            var url = ResolveRemoteGrpcUrl();
+            using var form = new DeviceManagementForm(
+                () => CreateRemoteChannel(url),
+                Environment.MachineName.ToLowerInvariant(),
+                remoteHostHint: url,
+                initialTab: initialTab,
+                onUnpairLocal: UnpairLocal);
+            form.ShowDialog();
+        }
+        catch (Exception ex)
+        {
+            MessageBox.Show(ex.Message, "Device configuration", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+        }
+    }
+
+    /// <summary>FR-MKP-014: listen for LAN beacons advertising folder shares (any MKP peer, incl. Pi).</summary>
+    private static void DiscoverFolderShares()
+    {
+        try
+        {
+            var beacons = DiscoveryFinder
+                .ListenAsync(TimeSpan.FromSeconds(5), filter: DiscoveryFinder.DiscoveryFilter.FolderShareAvailable)
+                .GetAwaiter().GetResult();
+            if (beacons.Count == 0)
+            {
+                MessageBox.Show(
+                    "No folder shares found on the LAN.\n\nOn the device set MKP_FOLDER_SHARE=1 and ensure UDP 50052 inbound is allowed on this PC.",
+                    "MouseKeyProxy",
+                    MessageBoxButtons.OK,
+                    MessageBoxIcon.Information);
+                return;
+            }
+
+            var lines = string.Join(
+                Environment.NewLine,
+                beacons.Select(b =>
+                    $"{b.PeerId}  share={b.FolderShareName}  https://{b.Host}:{b.GrpcPort}  pairing={b.PairingAvailable}"));
+            MessageBox.Show(lines, "Folder shares discovered", MessageBoxButtons.OK, MessageBoxIcon.Information);
+        }
+        catch (Exception ex)
+        {
+            MessageBox.Show(ex.Message, "Discover folder shares", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+        }
+    }
+
     private static void UpdateRemoteActionAvailability()
     {
         ApplyRemoteActionAvailability(PairedRemoteActions, _remoteState != RemoteConnectionState.NotPaired, NotPairedText);
@@ -527,31 +625,32 @@ internal static class Program
     }
 
     /// <summary>
-    /// FR-MKP-004: when a local clipboard change is captured and a remote is connected, forward the
-    /// entry to the peer over the authenticated channel (fire-and-forget so the message loop is never
-    /// blocked).
+    /// FR-MKP-004 / FR-MKP-027: forward clipboard to the ClipboardClient peer when registered;
+    /// never send clipboard to the Device appliance when a clipboard peer exists.
+    /// Keyboard/mouse continue to use the device remote only.
     /// </summary>
     private static void OnLocalClipboardCaptured(object? sender, ClipboardEventArgs e)
     {
-        if (_remoteState != RemoteConnectionState.Connected)
-        {
-            return;
-        }
-
         _ = System.Threading.Tasks.Task.Run(async () =>
         {
             try
             {
-                var url = ResolveRemoteGrpcUrl();
-                using var channel = CreateRemoteChannel(url);
-                if (channel is null)
+                // Prefer dedicated clipboard peer (USB client Service).
+                if (!string.IsNullOrWhiteSpace(_clipboardPeerUrl) && _clipboardCredential is not null)
                 {
+                    PeerTrafficPolicy.EnsureAllowed(
+                        PeerEffectRole.ClipboardClient,
+                        PeerTrafficPolicy.EffectKind.Clipboard,
+                        _clipboardPeerUrl);
+                    using var clipChannel = PairingClient.CreateAuthenticatedChannel(
+                        _clipboardPeerUrl, _clipboardCredential);
+                    var clipClient = new Wire.MouseKeyProxy.MouseKeyProxyClient(clipChannel);
+                    using var clipTransport = new BidiSessionTransport(clipClient);
+                    await clipTransport.SendClipboardAsync(e.Entry);
                     return;
                 }
 
-                var client = new Wire.MouseKeyProxy.MouseKeyProxyClient(channel);
-                using var transport = new BidiSessionTransport(client);
-                await transport.SendClipboardAsync(e.Entry);
+                // No clipboard peer: do not push clipboard to the HID device appliance.
             }
             catch (Exception ex)
             {
@@ -559,6 +658,107 @@ internal static class Program
             }
         });
     }
+
+    /// <summary>
+    /// FR-MKP-026: host claims pending USB-client clipboard intros from the paired device.
+    /// </summary>
+    private static void ClaimUsbClipboardClientsInteractive()
+    {
+        var msg = TryClaimUsbClipboardClients(quiet: false);
+        MessageBox.Show(
+            msg,
+            "Claim USB clipboard client",
+            MessageBoxButtons.OK,
+            MessageBoxIcon.Information);
+    }
+
+    private static string TryClaimUsbClipboardClients(bool quiet)
+    {
+        try
+        {
+            if (_remoteState == RemoteConnectionState.NotPaired)
+            {
+                return quiet ? string.Empty : "Not paired to a device.";
+            }
+
+            var deviceUrl = ResolveRemoteGrpcUrl();
+            using var channel = CreateRemoteChannel(deviceUrl);
+            if (channel is null)
+            {
+                return quiet ? string.Empty : "No device channel / credential.";
+            }
+
+            var client = new Wire.MouseKeyProxy.MouseKeyProxyClient(channel);
+            var pending = client.GetPendingClientIntros(new Wire.GetPendingClientIntrosRequest
+            {
+                ProtocolVersion = "v1",
+                CorrelationId = Guid.NewGuid().ToString("n"),
+            });
+            if (!pending.Ok)
+            {
+                return quiet ? string.Empty : $"GetPendingClientIntros failed: {pending.Err} {pending.Msg}";
+            }
+
+            if (pending.Intros.Count == 0)
+            {
+                return quiet ? string.Empty : "No pending USB clipboard clients.";
+            }
+
+            var claimedAny = 0;
+            foreach (var intro in pending.Intros)
+            {
+                var claimed = client.ClaimClientIntro(new Wire.ClaimClientIntroRequest
+                {
+                    ProtocolVersion = "v1",
+                    ClientPeerId = intro.ClientPeerId,
+                    CorrelationId = Guid.NewGuid().ToString("n"),
+                });
+                if (!claimed.Ok || claimed.Intro is null)
+                {
+                    continue;
+                }
+
+                var i = claimed.Intro;
+                var cred = PairingClient.PairAsync(
+                    i.ClipboardEndpoint,
+                    Environment.MachineName.ToLowerInvariant() + "-host",
+                    i.ClipboardIntroCode).GetAwaiter().GetResult();
+
+                _clipboardCredential?.ClientCertificate.Dispose();
+                _clipboardCredential?.CaCertificate.Dispose();
+                _clipboardCredential = cred;
+                _clipboardPeerUrl = i.ClipboardEndpoint;
+                PeerCredentialStore.Save(ClipboardPeerCredentialPath(), cred);
+                try
+                {
+                    var urlFile = Path.Combine(
+                        Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+                        "MouseKeyProxy",
+                        "clipboard-peer-url.txt");
+                    File.WriteAllText(urlFile, i.ClipboardEndpoint);
+                }
+                catch
+                {
+                    /* best effort */
+                }
+
+                claimedAny++;
+            }
+
+            return claimedAny > 0
+                ? $"Claimed {claimedAny} clipboard client(s). Input remains on device; clipboard → {_clipboardPeerUrl}."
+                : (quiet ? string.Empty : "Pending intros could not be claimed/paired.");
+        }
+        catch (Exception ex)
+        {
+            return quiet ? string.Empty : $"Claim failed: {ex.Message}";
+        }
+    }
+
+    private static string ClipboardPeerCredentialPath() => Path.Combine(
+        Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+        "MouseKeyProxy",
+        "clipboard-peer-credential.bin");
 
     private static AgentControlResponse NotifyPairingState(AgentControlRequest request)
     {
@@ -695,10 +895,100 @@ internal static class Program
             {
                 File.Delete(path);
             }
+
+            PeerCredentialStore.Delete(PeerCredentialStore.DefaultPath());
         }
         catch (Exception ex)
         {
             _lastRemoteError = ex.Message;
+        }
+    }
+
+    /// <summary>
+    /// Clears local pairing (agent-pairing.json + peer-credential.bin), stops forwarding,
+    /// and best-effort calls device <c>Unpair</c> so the Pi re-opens ToFU when no peers remain.
+    /// </summary>
+    private static void UnpairRemoteInteractive()
+    {
+        if (_remoteState == RemoteConnectionState.NotPaired)
+        {
+            MessageBox.Show("Already unpaired.", "Unpair", MessageBoxButtons.OK, MessageBoxIcon.Information);
+            return;
+        }
+
+        var peer = CurrentRemotePeer();
+        var url = ResolveRemoteGrpcUrl();
+        var confirm = MessageBox.Show(
+            $"Unpair from {peer}?\n\nEndpoint: {url}\n\n" +
+            "This clears local credentials on this PC and asks the remote to revoke this peer " +
+            "(if the device implements Unpair). You can then pair to another device (e.g. the Pi).",
+            "Unpair remote",
+            MessageBoxButtons.YesNo,
+            MessageBoxIcon.Question);
+        if (confirm != DialogResult.Yes)
+        {
+            return;
+        }
+
+        var remoteMsg = TryUnpairOnRemote();
+        UnpairLocal();
+        MessageBox.Show(
+            $"Local pairing cleared.\n{remoteMsg}",
+            "Unpair",
+            MessageBoxButtons.OK,
+            MessageBoxIcon.Information);
+    }
+
+    private static void UnpairLocal()
+    {
+        try
+        {
+            _forwarder?.Stop();
+        }
+        catch
+        {
+            /* best effort */
+        }
+
+        _peerCredential?.ClientCertificate.Dispose();
+        _peerCredential?.CaCertificate.Dispose();
+        _peerCredential = null;
+        _activeRemotePeer = DefaultRemotePeer;
+        _activeRemoteGrpcUrl = null;
+        _lastPairingCode = null;
+        _lastRemoteError = null;
+        _remoteState = RemoteConnectionState.NotPaired;
+        ClearPersistedPairingState();
+        UpdateRemoteActionAvailability();
+    }
+
+    private static string TryUnpairOnRemote()
+    {
+        try
+        {
+            var url = ResolveRemoteGrpcUrl();
+            using var channel = CreateRemoteChannel(url);
+            if (channel is null)
+            {
+                return "Remote Unpair skipped (no channel / credential).";
+            }
+
+            var client = new Wire.MouseKeyProxy.MouseKeyProxyClient(channel);
+            var response = client.Unpair(new Wire.UnpairRequest
+            {
+                ProtocolVersion = "v1",
+                PeerId = Environment.MachineName.ToLowerInvariant(),
+                CorrelationId = Guid.NewGuid().ToString("n"),
+                ClearAll = false,
+            });
+            return response.Ok
+                ? $"Remote: {response.Msg}"
+                : $"Remote Unpair failed: {response.Err} {response.Msg}";
+        }
+        catch (Exception ex)
+        {
+            // Older remotes without Unpair RPC return Unimplemented.
+            return $"Remote Unpair not completed ({ex.Message}). Local state still cleared.";
         }
     }
 
@@ -734,8 +1024,27 @@ internal static class Program
         form.Controls.Add(layout);
 
         AddDashboardRow(layout, "Remote", CurrentRemotePeer());
-        AddDashboardRow(layout, "Endpoint", ResolveRemoteGrpcUrl());
         var status = AddDashboardRow(layout, "Status", RemotePairingStatusText());
+
+        var endpointRow = layout.RowStyles.Count;
+        layout.RowStyles.Add(new RowStyle(SizeType.AutoSize));
+        layout.Controls.Add(new Label
+        {
+            Text = "Endpoint",
+            Font = CreateBoldMessageFont(),
+            TextAlign = ContentAlignment.MiddleLeft,
+            AutoSize = true,
+            Anchor = AnchorStyles.Left,
+            Margin = new Padding(0, 8, 28, 0)
+        }, 0, endpointRow);
+        var endpoint = new TextBox
+        {
+            Width = 320,
+            Margin = new Padding(0, 8, 0, 0),
+            Text = ResolveRemoteGrpcUrl(),
+            PlaceholderText = "https://192.168.1.200:50051",
+        };
+        layout.Controls.Add(endpoint, 1, endpointRow);
 
         var row = layout.RowStyles.Count;
         layout.RowStyles.Add(new RowStyle(SizeType.AutoSize));
@@ -752,7 +1061,8 @@ internal static class Program
         {
             Width = 240,
             Margin = new Padding(0, 8, 0, 0),
-            Text = _lastPairingCode ?? string.Empty
+            Text = _lastPairingCode ?? string.Empty,
+            PlaceholderText = "(empty = ToFU first pair)",
         };
         layout.Controls.Add(code, 1, row);
 
@@ -766,24 +1076,63 @@ internal static class Program
             Padding = Padding.Empty
         };
         var pair = CreateDashboardButton("Pair");
-        pair.Click += (_, _) =>
+        pair.Click += async (_, _) =>
         {
-            var pairingCode = code.Text.Trim();
-            if (string.IsNullOrWhiteSpace(pairingCode))
+            // Empty code is valid for ToFU (first pair on an unpaired device with MKP_TOFU=1).
+            // After the first peer is registered, the service rejects codeless Pair with INVALID_OR_EXPIRED_CODE.
+            var remoteUrl = endpoint.Text.Trim();
+            if (string.IsNullOrWhiteSpace(remoteUrl))
             {
-                _remoteState = RemoteConnectionState.NotPaired;
-                _lastPairingCode = null;
-                _lastRemoteError = null;
-                ClearPersistedPairingState();
-                UpdateRemoteActionAvailability();
-                status.Text = "Not paired. Enter the local pairing code.";
+                status.Text = "Enter the remote endpoint (e.g. https://192.168.1.200:50051).";
                 return;
             }
 
-            TryPairRemote(pairingCode, out var pairMessage);
-            status.Text = pairMessage;
+            if (!remoteUrl.StartsWith("https://", StringComparison.OrdinalIgnoreCase) &&
+                !remoteUrl.StartsWith("http://", StringComparison.OrdinalIgnoreCase))
+            {
+                remoteUrl = "https://" + remoteUrl.TrimStart('/');
+                endpoint.Text = remoteUrl;
+            }
+
+            _activeRemoteGrpcUrl = remoteUrl;
+            PersistRemoteEndpoint(remoteUrl);
+
+            var pairingCode = code.Text.Trim();
+            status.Text = string.IsNullOrWhiteSpace(pairingCode)
+                ? "Pairing without a code (ToFU)…"
+                : "Pairing…";
+            pair.Enabled = false;
+            try
+            {
+                // Off the UI thread so PairAsync cannot deadlock the WinForms sync context.
+                var result = await Task.Run(() =>
+                {
+                    var ok = TryPairRemote(pairingCode, out var msg);
+                    return (ok, msg);
+                }).ConfigureAwait(true);
+                status.Text = result.msg;
+            }
+            finally
+            {
+                pair.Enabled = true;
+            }
         };
         actions.Controls.Add(pair);
+        var unpair = CreateDashboardButton("Unpair");
+        unpair.Click += (_, _) =>
+        {
+            if (_remoteState == RemoteConnectionState.NotPaired)
+            {
+                status.Text = "Already unpaired.";
+                return;
+            }
+
+            var remoteMsg = TryUnpairOnRemote();
+            UnpairLocal();
+            status.Text = $"Unpaired. {remoteMsg}";
+            code.Text = string.Empty;
+        };
+        actions.Controls.Add(unpair);
         var close = CreateDashboardButton("Close");
         close.Click += (_, _) => form.Close();
         actions.Controls.Add(close);
@@ -1070,11 +1419,55 @@ internal static class Program
             return _activeRemoteGrpcUrl;
         }
 
+        // FR-MKP-006: operator settings (mkp settings set remoteGrpcUrl …) before lab defaults.
+        try
+        {
+            var settings = SettingsStore.Load(SettingsStore.DefaultPath());
+            if (!string.IsNullOrWhiteSpace(settings.RemoteGrpcUrl))
+            {
+                return settings.RemoteGrpcUrl.Trim();
+            }
+        }
+        catch
+        {
+            /* ignore corrupt settings */
+        }
+
         var (_, remotePeer) = LabTopology.ResolvePeers();
         var url = LabTopology.GrpcUrl(remotePeer);
         // No remote configured yet (standalone/unpaired): keep the legacy lab default until a
-        // settings-backed remote lands (Phase 4). This URL is only used when nothing is paired.
+        // settings-backed remote lands. This URL is only used when nothing is paired.
         return string.IsNullOrWhiteSpace(url) ? LabTopology.GrpcUrl(LabTopology.Desktop) : url;
+    }
+
+    /// <summary>
+    /// Persists the operator remote endpoint so ToFU / code pairing targets the intended device
+    /// (e.g. Pi at https://192.168.1.200:50051) instead of the lab desktop default.
+    /// </summary>
+    private static void PersistRemoteEndpoint(string remoteGrpcUrl)
+    {
+        if (string.IsNullOrWhiteSpace(remoteGrpcUrl))
+        {
+            return;
+        }
+
+        try
+        {
+            var path = SettingsStore.DefaultPath();
+            var settings = SettingsStore.Load(path);
+            settings.RemoteGrpcUrl = remoteGrpcUrl.Trim();
+            if (Uri.TryCreate(settings.RemoteGrpcUrl, UriKind.Absolute, out var uri) &&
+                !string.IsNullOrWhiteSpace(uri.Host))
+            {
+                settings.RemotePeer = uri.Host;
+            }
+
+            SettingsStore.Save(path, settings);
+        }
+        catch
+        {
+            /* best effort */
+        }
     }
 
     private enum RemoteConnectionState

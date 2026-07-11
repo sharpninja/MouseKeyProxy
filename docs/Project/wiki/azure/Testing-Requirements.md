@@ -189,6 +189,41 @@ Verify relative mouse movement, zero-button release, and modifier cleanup throug
 Verify that setup-configfs-gadget.sh (and the rufus firstrun writer payload) write binary HID report descriptors (keyboard 63 bytes starting 0x05, mouse 52 bytes) rather than ASCII \xHH text. Validates the dash-printf regression that caused /dev/hidg* EAGAIN when host never polled IN endpoint.
 
 
+### TEST-MKP-038
+
+Allowlist only UsbConnectedPc and PairedHost IPs; updates on pair/revoke.
+
+
+### TEST-MKP-040
+
+setup-configfs-gadget.sh contains mass_storage LUNs and binary HID descriptors.
+
+
+### TEST-MKP-044
+
+Save/reload and seed import once when empty under temp path.
+
+
+### TEST-MKP-045
+
+Non-allowlisted client IP denied for share RPCs.
+
+
+### TEST-MKP-046
+
+Correct code consumes once; wrong/expired fails; lockout after failures.
+
+
+### TEST-MKP-047
+
+Deploy layout documents MKP-DEPLOY folders.
+
+
+### TEST-MKP-048
+
+A card written by Rufus MKP from the default profile onto a genuine stock Raspberry Pi OS trixie lite image boots with no keyboard and no console interaction: the RPi first-run user wizard does not block the console; the profile user is created with the authorized ssh key; wlan0 joins the configured SSID using the set regulatory country; sshd listens; and key-based ssh to the profile user over wifi succeeds. The post-write remount survives a transient "Access is denied" without failing the write (no ERROR_CANT_PATCH). Verified on 2026-06-18-raspios-trixie-arm64-lite: ssh mkp@<ip> with the ed25519 key returns the mkp uid/groups; /etc/passwd shows the created user; systemctl reports userconfig disabled.
+
+
 
 ## TEST-OWNERSHIP
 

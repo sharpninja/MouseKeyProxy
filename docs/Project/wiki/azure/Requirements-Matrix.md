@@ -65,4 +65,30 @@ Traceability policy: see `Requirements-Traceability-Policy.md`.
 | TEST-MKP-027 | Test | Tracked | Testing-Requirements.md | FR-MKP-012; TR-MKP-HID-001 |
 | TEST-MKP-028 | Test | Tracked | Testing-Requirements.md | FR-MKP-012; TR-MKP-HID-001 |
 | TEST-MKP-029 | Test | Tracked | Testing-Requirements.md | FR-MKP-012; TR-MKP-HID-001 |
+| FR-MKP-013 | Tracked | Functional-Requirements.md |
+| FR-MKP-014 | Tracked | Functional-Requirements.md |
+| FR-MKP-015 | Tracked | Functional-Requirements.md |
+| FR-MKP-016 | Tracked | Functional-Requirements.md |
+| FR-MKP-017 | Tracked | Functional-Requirements.md |
+| FR-MKP-018 | Tracked | Functional-Requirements.md |
+| FR-MKP-019 | Tracked | Functional-Requirements.md |
+| FR-MKP-020 | Tracked | Functional-Requirements.md |
+| FR-MKP-021 | Tracked | Functional-Requirements.md |
+| FR-MKP-022 | Tracked | Functional-Requirements.md |
+| FR-MKP-023 | Tracked | Functional-Requirements.md |
+| TR-MKP-CFG-001 | Tracked | Technical-Requirements.md |
+| TR-MKP-HID-002 | Tracked | Technical-Requirements.md |
+| TR-MKP-HID-003 | Tracked | Technical-Requirements.md |
+| TR-MKP-HID-007 | Tracked | Technical-Requirements.md |
+| TR-MKP-HID-008 | Tracked | Technical-Requirements.md |
+| TR-MKP-PROV-001 | Tracked | Technical-Requirements.md |
+| TR-MKP-SEC-PAIR-001 | Tracked | Technical-Requirements.md |
+| TR-MKP-XFER-004 | Tracked | Technical-Requirements.md |
 | TEST-MKP-030 | Tracked | Testing-Requirements.md |
+| TEST-MKP-038 | Tracked | Testing-Requirements.md |
+| TEST-MKP-040 | Tracked | Testing-Requirements.md |
+| TEST-MKP-044 | Tracked | Testing-Requirements.md |
+| TEST-MKP-045 | Tracked | Testing-Requirements.md |
+| TEST-MKP-046 | Tracked | Testing-Requirements.md |
+| TEST-MKP-047 | Tracked | Testing-Requirements.md |
+| TEST-MKP-048 | Tracked | Testing-Requirements.md |

@@ -1,0 +1,63 @@
+MouseKeyProxy device appliance plan kickoff receipts
+UTC: 2026-07-09
+
+## Slice 0 (requirements)
+- Created FR-MKP-013..023 via workflow.requirements.createFrBatch (11 FRs).
+- Created TR-MKP-HID-002/003/007/008, TR-MKP-CFG-001, TR-MKP-XFER-004, TR-MKP-SEC-PAIR-001, TR-MKP-UI-001.
+- Created TEST-MKP-038/040/044/045/046/047.
+- Mappings created for FR-013/014/016/018/020/021/022/023.
+
+## Slice 2 LiteDB (FR-022 / TEST-044) — DONE unit gate
+- Package LiteDB 5.0.21 in Directory.Packages.props + Common.csproj.
+- src/MouseKeyProxy.Common/ApplianceConfigStore.cs (IApplianceConfigStore, LiteDbApplianceConfigStore, default /etc/mkp/config.db).
+- ServiceHost registers store + seed import from MKP_CONFIG_SEED or sibling seed.json.
+- tests: LiteDbApplianceConfigStoreTests (3) PASSED.
+
+## Slice 6 allowlist core (FR-014/016 / TEST-038) — partial
+- src/MouseKeyProxy.Common/ShareAccessAllowlist.cs (PeerShareRole UsbConnectedPc|PairedHost).
+- ServiceHost DI: IShareAccessAllowlist.
+- MouseKeyProxyImpl: TryAuthorizeShareClient on Get/List/Download/Upload folder share (SHARE_IP_DENIED).
+- tests: ShareAccessAllowlistTests (4) PASSED.
+- Still open: Pair hooks to SetPeer/RemovePeer; Samba controller; populate allowlist from real pairing IPs.
+
+## Slice 7 OTP core (FR-023 / TEST-046) — partial
+- src/MouseKeyProxy.Common/ClientPairingCodeIssuer.cs
+- ServiceHost DI: IClientPairingCodeIssuer
+- tests: ClientPairingCodeIssuerTests (5) PASSED
+- Still open: wire RequestPairingCode/Pair to require consume on non-ToFU clients; Agent type-code UX; show-code on USB host.
+
+## Slice 1 gadget multi-LUN (FR-015/TR-HID-003 / TEST-040/047) — partial
+- scripts/pi/setup-configfs-gadget.sh: mass_storage.0 lun.0-2, env media paths, self-powered, binary HID.
+- scripts/pi/mkp-deploy-layout.md: FAT32 MKP-DEPLOY layout (Explorer, no custom Rufus bulk copy).
+- tests: GadgetScriptProvisionTests (3) PASSED
+- Still open: Rufus form UI (FR-019), pwsh install firstrun (FR-021), actual partition creation in image build.
+
+## Verification command (exit 0)
+dotnet test tests/MouseKeyProxy.Common.Tests -c Debug --filter "FullyQualifiedName~LiteDb|FullyQualifiedName~ShareAccess|FullyQualifiedName~GadgetScript|FullyQualifiedName~ClientPairing"
+  Passed: 15, Failed: 0, Skipped: 0
+dotnet build src/MouseKeyProxy.Service/MouseKeyProxy.Service.csproj -c Debug
+  Build succeeded, 0 errors
+
+## Continuation 1->2->3->4->5 (same session)
+
+### 1 Rufus form (FR-019) — rufus-mkp
+- IDD_MKP_PI_HID expanded: virtual device checkboxes, CD/floppy media name + Browse, autorun CD.
+- Profile Save/Load includes Enable* + media paths.
+- resource.h IDs 1139-1150.
+
+### 2 Firstrun (FR-020/021/022/016)
+- firstrun.sh: pwsh install + chsh; /etc/mkp + seed.json; MKP-DEPLOY mount; Samba package + smb.conf.mkp; autorun install seed; multi-LUN mass_storage in gadget; service env for config DB/share.
+
+### 3 Pair hooks (FR-023 + allowlist)
+- RequestPairingCode uses ClientPairingCodeIssuer.
+- Pair: ToFU only when store empty (UsbConnectedPc); else OTP required (PairedHost).
+- On success SetPeer(role, remote IP) + RefreshSmbAllowlistAsync.
+
+### 4 Agent config UI (FR-018)
+- DeviceConfigViewModel mappers + SMB UNC + pairing code validation.
+- DeviceManagementForm uses mappers; Open SMB share; remote host hint for UNC.
+- Agent.Tests DeviceConfigViewModelTests: 4 passed.
+
+### 5 SMB controller (FR-016)
+- SmbShareController writes hosts allow = loopback + allowlist only; hosts deny ALL; no guest.
+- Service.Tests SmbShareControllerTests: 2 passed.

@@ -28,6 +28,8 @@
     <PackageVersion Include="System.Diagnostics.EventLog" Version="9.0.0" />
     <PackageVersion Include="System.ServiceProcess.ServiceController" Version="9.0.0" />
     <PackageVersion Include="System.Security.Cryptography.ProtectedData" Version="8.0.0" />
+    <!-- FR-MKP-022 / TR-MKP-CFG-001: durable appliance config under /etc/mkp -->
+    <PackageVersion Include="LiteDB" Version="5.0.21" />
 
     <!-- Test stack (versions unified to remove drift) -->
     <PackageVersion Include="Microsoft.NET.Test.Sdk" Version="17.14.1" />
@@ -37,5 +39,8 @@
     <PackageVersion Include="xunit" Version="2.9.3" />
     <PackageVersion Include="NSubstitute" Version="5.3.0" />
     <PackageVersion Include="coverlet.collector" Version="6.0.4" />
+
+    <!-- WiX v7 client MSI (FR-MKP-024) -->
+    <PackageVersion Include="WixToolset.UI.wixext" Version="7.0.0" />
   </ItemGroup>
 </Project>

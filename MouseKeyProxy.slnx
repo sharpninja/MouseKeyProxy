@@ -1,6 +1,7 @@
 <Solution>
   <Folder Name="/src/">
     <Project Path="src/MouseKeyProxy.Agent/MouseKeyProxy.Agent.csproj" />
+    <Project Path="src/MouseKeyProxy.Bootstrap/MouseKeyProxy.Bootstrap.csproj" />
     <Project Path="src/MouseKeyProxy.Commands/MouseKeyProxy.Commands.csproj" />
     <Project Path="src/MouseKeyProxy.Common/MouseKeyProxy.Common.csproj" />
     <Project Path="src/MouseKeyProxy.Network/MouseKeyProxy.Network.csproj" />

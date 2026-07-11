@@ -117,12 +117,76 @@ public static class ServiceHost
                 new MouseKeyProxy.PiHid.FileHidReportWriter(keyboardDevice, mouseDevice));
             builder.Services.AddSingleton<IInputInjector, MouseKeyProxy.PiHid.HidGadgetInputInjector>();
             builder.Services.AddSingleton<ISystemPowerController, SystemctlPowerController>();
+            // FR-MKP-013: configfs-backed enable/disable of keyboard, mouse, mass-storage FS (+ RO/RW).
+            builder.Services.AddSingleton<IDeviceFunctionController, Device.ConfigfsDeviceFunctionController>();
         }
         else
         {
             builder.Services.AddSingleton<IInputInjector, AgentPipeInputInjector>();
             builder.Services.AddSingleton<ISystemPowerController, UnsupportedPowerController>();
+            // Windows service does not own a USB gadget; in-memory controller keeps the API queryable in tests.
+            builder.Services.AddSingleton<IDeviceFunctionController, InMemoryDeviceFunctionController>();
         }
+
+        builder.Services.AddSingleton<IDeviceEventBus, DeviceEventBus>();
+
+        // FR-MKP-022: LiteDB appliance config under /etc/mkp (or MKP_CONFIG_DB / ProgramData).
+        // Must register before DeviceFunctionCoordinator so Rufus seed.json becomes initial gadget state.
+        builder.Services.AddSingleton<IApplianceConfigStore>(_ =>
+        {
+            var storePath = LiteDbApplianceConfigStore.ResolveDefaultDatabasePath();
+            var cfgStore = new LiteDbApplianceConfigStore(storePath);
+            var seed = Environment.GetEnvironmentVariable("MKP_CONFIG_SEED")
+                ?? Path.Combine(Path.GetDirectoryName(storePath) ?? "/etc/mkp", "seed.json");
+            cfgStore.TryImportSeed(seed);
+            return cfgStore;
+        });
+
+        // FR-MKP-013 / FR-MKP-019: seed coordinator from LiteDB (Rufus first-boot defaults).
+        builder.Services.AddSingleton(sp =>
+        {
+            var controller = sp.GetRequiredService<IDeviceFunctionController>();
+            var bus = sp.GetRequiredService<IDeviceEventBus>();
+            var cfg = sp.GetRequiredService<IApplianceConfigStore>().Get();
+            StorageMediaSpec? Cd(string? path, DeviceMediaSource src) =>
+                string.IsNullOrWhiteSpace(path) ? null : new StorageMediaSpec(src, path);
+            var initial = new DeviceFunctionState(
+                KeyboardEnabled: cfg.KeyboardEnabled,
+                MouseEnabled: cfg.MouseEnabled,
+                FsEnabled: cfg.FsEnabled,
+                FsAccess: cfg.FsAccess,
+                CdromEnabled: cfg.CdromEnabled,
+                CdromMedia: Cd(cfg.CdromMediaPath, cfg.CdromMediaSource),
+                FloppyEnabled: cfg.FloppyEnabled,
+                FloppyMedia: Cd(cfg.FloppyMediaPath, cfg.FloppyMediaSource));
+            return new DeviceFunctionCoordinator(controller, bus, initial);
+        });
+
+        // FR-MKP-014/016: share/SMB IP allowlist (UsbConnectedPc + PairedHost only).
+        builder.Services.AddSingleton<IShareAccessAllowlist, ShareAccessAllowlist>();
+        // FR-MKP-023: one-time codes for Agent client pairing (typed on connecting machine).
+        builder.Services.AddSingleton<IClientPairingCodeIssuer, ClientPairingCodeIssuer>();
+        // FR-MKP-025/026: MSI install ticket + USB-client clipboard intro mailbox.
+        builder.Services.AddSingleton<IInstallTicketStore, InstallTicketStore>();
+        builder.Services.AddSingleton<IClientInstallIntroMailbox, ClientInstallIntroMailbox>();
+        // FR-MKP-016: Samba config writer (hosts allow = allowlist only).
+        builder.Services.AddSingleton<Device.ISmbShareController, Device.SmbShareController>();
+
+        var folderShareOptions = FolderShareOptions.FromEnvironment();
+        // Align FS content watcher with the folder share root when share is enabled.
+        var fsWatchPath = folderShareOptions.Enabled
+            ? folderShareOptions.RootPath
+            : FsShareWatchOptions.DefaultWatchPath();
+        builder.Services.AddSingleton(folderShareOptions);
+        builder.Services.AddSingleton<IFolderShareStore>(sp =>
+            new LocalFolderShareStore(sp.GetRequiredService<FolderShareOptions>()));
+        builder.Services.AddSingleton(new FsShareWatchOptions { WatchPath = fsWatchPath });
+        builder.Services.AddSingleton<Device.IDeviceEventHostMirror, Device.LoggingDeviceEventHostMirror>();
+        builder.Services.AddHostedService<Device.DeviceEventMirrorHostedService>();
+        builder.Services.AddHostedService<Device.DeviceBootCompleteHostedService>();
+        // FR-MKP-013: FileSystemWatcher on shared install folder/image; FS updates → device events.
+        builder.Services.AddHostedService<Device.FsShareWatchHostedService>();
+
         builder.Services.AddSingleton<SessionFrameDispatcher>(sp =>
             new SessionFrameDispatcher(sp.GetRequiredService<IInputInjector>(), new ToggleStateMachine()));
 
@@ -148,6 +212,35 @@ public static class ServiceHost
 
         var app = builder.Build();
         app.MapGrpcService<MouseKeyProxyImpl>();
+
+        // FR-MKP-025: optional pre-seeded install ticket for MSI USB clients (from env or file).
+        try
+        {
+            var tickets = app.Services.GetService<IInstallTicketStore>();
+            if (tickets is not null)
+            {
+                var envTicket = Environment.GetEnvironmentVariable("MKP_INSTALL_TICKET");
+                if (string.IsNullOrWhiteSpace(envTicket))
+                {
+                    var ticketFile = Environment.GetEnvironmentVariable("MKP_INSTALL_TICKET_FILE")
+                        ?? "/mnt/mkp-deploy/install/install-ticket.txt";
+                    if (File.Exists(ticketFile))
+                    {
+                        envTicket = File.ReadAllText(ticketFile).Trim();
+                    }
+                }
+
+                if (!string.IsNullOrWhiteSpace(envTicket))
+                {
+                    tickets.Seed(envTicket, TimeSpan.FromDays(7));
+                }
+            }
+        }
+        catch
+        {
+            /* best effort */
+        }
+
         return app;
     }
 }

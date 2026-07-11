@@ -13,7 +13,15 @@ namespace MouseKeyProxy.Common;
 /// <param name="Host">The device's reachable host/IP for the gRPC endpoint.</param>
 /// <param name="GrpcPort">The device's gRPC (mTLS) port.</param>
 /// <param name="PairingAvailable">True while the device is unpaired and accepting a ToFU pairing.</param>
-public sealed record DiscoveryBeacon(string PeerId, string Host, int GrpcPort, bool PairingAvailable)
+/// <param name="FolderShareAvailable">True when the device is serving a folder share over gRPC.</param>
+/// <param name="FolderShareName">Display name of the folder share when available.</param>
+public sealed record DiscoveryBeacon(
+    string PeerId,
+    string Host,
+    int GrpcPort,
+    bool PairingAvailable,
+    bool FolderShareAvailable = false,
+    string FolderShareName = "")
 {
     /// <summary>The well-known UDP port devices broadcast discovery beacons on.</summary>
     public const int DiscoveryPort = 50052;

@@ -78,6 +78,9 @@ Commands:
   mkp agent status [--json] | emergency-release [--json]
   mkp pair discover | pair <code> | pair status [--json]
   mkp pair mint [ttlSeconds]                                 (service host mints a one-time pairing code)
+  mkp pair unpair | clear                                    (clear local credential; Unpair RPC on device when connected)
+  mkp pair reset-device                                      (paired client: revoke ALL peers on the device / re-open ToFU)
+  mkp share discover | info | list [dir] | get <remote> <local> | put <local> <remote>
   mkp toggle
   mkp emergency-release [--json]
   mkp clear-modifiers
@@ -169,6 +172,18 @@ Explicit 'mkp service install' does NOT happen on 'dotnet tool install'.
                     catch (Exception ex) { Console.WriteLine($"[PAIR mint error] {ex.Message}"); return 1; }
                 }
 
+                if (args.Length > 1 &&
+                    (args[1].Equals("unpair", StringComparison.OrdinalIgnoreCase) ||
+                     args[1].Equals("clear", StringComparison.OrdinalIgnoreCase)))
+                {
+                    return DoPairUnpair(baseUrl, clearAllOnDevice: false);
+                }
+
+                if (args.Length > 1 && args[1].Equals("reset-device", StringComparison.OrdinalIgnoreCase))
+                {
+                    return DoPairUnpair(baseUrl, clearAllOnDevice: true);
+                }
+
                 try
                 {
                     // TR-MKP-SEC-001: real pairing - exchange the one-time code for a service-signed
@@ -231,6 +246,8 @@ Explicit 'mkp service install' does NOT happen on 'dotnet tool install'.
                     Console.WriteLine($"[REAL LIFO+DPAPI] top='{topText}' count={_clipboardHistory.Count} persisted to {clipFile}");
                 }
                 return 0;
+            case "share":
+                return DoShare(args, baseUrl);
             case "inject-text":
             case "set-mouse":
             case "locate-process":
@@ -309,6 +326,103 @@ Explicit 'mkp service install' does NOT happen on 'dotnet tool install'.
             default:
                 Console.WriteLine($"unknown cmd: {cmd}. Use mkp --help");
                 return 1;
+        }
+    }
+
+    /// <summary>FR-MKP-014: discover folder shares and list/get/put files on a paired device.</summary>
+    private static int DoShare(string[] args, string baseUrl)
+    {
+        var sub = args.Length > 1 ? args[1].ToLowerInvariant() : "info";
+        if (sub is "discover")
+        {
+            Console.WriteLine("Discovering MouseKeyProxy folder shares on the LAN (5s)...");
+            var beacons = MouseKeyProxy.Commands.DiscoveryFinder
+                .ListenAsync(
+                    TimeSpan.FromSeconds(5),
+                    filter: MouseKeyProxy.Commands.DiscoveryFinder.DiscoveryFilter.FolderShareAvailable)
+                .GetAwaiter().GetResult();
+            if (beacons.Count == 0)
+            {
+                Console.WriteLine("No folder shares found. Enable with MKP_FOLDER_SHARE=1 on the device.");
+                return 1;
+            }
+
+            foreach (var b in beacons)
+            {
+                Console.WriteLine(
+                    $"share peer={b.PeerId} name={b.FolderShareName} grpc=https://{b.Host}:{b.GrpcPort} pairingAvailable={b.PairingAvailable}");
+            }
+
+            return 0;
+        }
+
+        try
+        {
+            using var channel = TestGrpcClientFactory is null ? CreateReplChannel(baseUrl) : null;
+            var client = TestGrpcClientFactory?.Invoke(baseUrl)
+                ?? new Wire.MouseKeyProxy.MouseKeyProxyClient(channel!);
+            var share = new MouseKeyProxy.Commands.FolderShareClient(client);
+
+            switch (sub)
+            {
+                case "info":
+                {
+                    var info = share.GetInfoAsync().GetAwaiter().GetResult();
+                    Console.WriteLine(
+                        $"[share info] ok={info.Ok} enabled={info.Enabled} name={info.ShareName} rw={info.ReadWrite} err={info.Err} msg={info.Msg}");
+                    return info.Ok ? 0 : 1;
+                }
+                case "list":
+                {
+                    var dir = args.Length > 2 ? args[2] : string.Empty;
+                    var list = share.ListAsync(dir).GetAwaiter().GetResult();
+                    if (!list.Ok)
+                    {
+                        Console.WriteLine($"[share list] err={list.Err} msg={list.Msg}");
+                        return 1;
+                    }
+
+                    foreach (var e in list.Entries)
+                    {
+                        var kind = e.IsDirectory ? "dir " : "file";
+                        Console.WriteLine($"{kind} {e.RelativePath} size={e.SizeBytes}");
+                    }
+
+                    return 0;
+                }
+                case "get":
+                {
+                    if (args.Length < 4)
+                    {
+                        Console.WriteLine("usage: mkp share get <remoteRelativePath> <localPath>");
+                        return 1;
+                    }
+
+                    var result = share.DownloadAsync(args[2], args[3]).GetAwaiter().GetResult();
+                    Console.WriteLine($"[share get] ok={result.Ok} {result.Message}");
+                    return result.Ok ? 0 : 1;
+                }
+                case "put":
+                {
+                    if (args.Length < 4)
+                    {
+                        Console.WriteLine("usage: mkp share put <localPath> <remoteRelativePath>");
+                        return 1;
+                    }
+
+                    var result = share.UploadAsync(args[2], args[3]).GetAwaiter().GetResult();
+                    Console.WriteLine($"[share put] ok={result.Ok} err={result.ErrorCode} {result.Message}");
+                    return result.Ok ? 0 : 1;
+                }
+                default:
+                    Console.WriteLine("usage: mkp share discover|info|list [dir]|get <remote> <local>|put <local> <remote>");
+                    return 1;
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"[share] {ex.Message}");
+            return 1;
         }
     }
 
@@ -773,6 +887,38 @@ Explicit 'mkp service install' does NOT happen on 'dotnet tool install'.
     {
         var index = Array.FindIndex(args, a => string.Equals(a, name, StringComparison.OrdinalIgnoreCase));
         return index >= 0 && index + 1 < args.Length ? args[index + 1] : defaultValue;
+    }
+
+    /// <summary>
+    /// Clears local peer credential and best-effort Unpair RPC on the device.
+    /// </summary>
+    private static int DoPairUnpair(string baseUrl, bool clearAllOnDevice)
+    {
+        try
+        {
+            using var channel = CreateReplChannel(baseUrl);
+            var client = new Wire.MouseKeyProxy.MouseKeyProxyClient(channel);
+            var response = client.Unpair(new Wire.UnpairRequest
+            {
+                ProtocolVersion = "v1",
+                PeerId = string.Empty,
+                CorrelationId = Guid.NewGuid().ToString("n"),
+                ClearAll = clearAllOnDevice,
+            });
+            Console.WriteLine(response.Ok
+                ? $"[UNPAIR remote] {response.Msg}"
+                : $"[UNPAIR remote failed] {response.Err} {response.Msg}");
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"[UNPAIR remote] skipped/failed: {ex.Message}");
+        }
+
+        var deleted = PeerCredentialStore.Delete(PeerCredentialStore.DefaultPath());
+        Console.WriteLine(deleted
+            ? $"[UNPAIR local] deleted {PeerCredentialStore.DefaultPath()}"
+            : "[UNPAIR local] no local peer-credential.bin");
+        return 0;
     }
 
     private static Cmn.AgentControlResponse NotifyLocalAgentPairingState(string remoteGrpcUrl, string pairingCode)

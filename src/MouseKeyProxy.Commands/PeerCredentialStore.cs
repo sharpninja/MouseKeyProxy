@@ -78,6 +78,20 @@ public static class PeerCredentialStore
         return new PeerCredential(container.PeerId, client, ca);
     }
 
+    /// <summary>Deletes the credential file at <paramref name="path"/> if it exists.</summary>
+    /// <param name="path">Credential file path.</param>
+    /// <returns>True when a file was removed.</returns>
+    public static bool Delete(string path)
+    {
+        if (string.IsNullOrWhiteSpace(path) || !File.Exists(path))
+        {
+            return false;
+        }
+
+        File.Delete(path);
+        return true;
+    }
+
     [SupportedOSPlatform("windows")]
     private static byte[] Protect(byte[] plaintext) =>
         ProtectedData.Protect(plaintext, optionalEntropy: null, scope: DataProtectionScope.CurrentUser);

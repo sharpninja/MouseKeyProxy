@@ -53,12 +53,27 @@ dotnet build MouseKeyProxy.slnx -c Release
 dotnet test MouseKeyProxy.slnx -c Release
 ```
 
-Nuke targets live in `build/`:
+Nuke lives in `build/MouseKeyProxy.Build.csproj`. From the **repo root**, use the bootstrap scripts
+(`build.ps1` / `build.cmd` / `build.sh`) so target names work like a normal Nuke workspace:
 
 ```powershell
-dotnet run --project build/MouseKeyProxy.Build.csproj -- --target PackRepl --configuration Release
-dotnet run --project build/MouseKeyProxy.Build.csproj -- --target PublishToolToNuGet --configuration Release
+.\build.ps1 PackRepl --configuration Release
+.\build.ps1 PublishToolToNuGet --configuration Release
+
+# Rufus (requires local rufus-mkp; default sibling ../rufus-mkp or RUFUS_MKP_ROOT)
+.\build.ps1 BuildRufus
+.\build.ps1 LaunchRufus --RufusProfile default
+.\build.ps1 CreatePiImage --RufusProfile default
+# alias: CreateImageFromRufusConfig
+
+# Full SD card build: PublishPi + PackClientMsi/StagePiInstallMedia + unattended Rufus write/eject
+.\build.ps1 BuildSdCard --RufusProfile default
+# Interactive Rufus GUI: --AutoWrite false; pin reader: --RufusDevice N
+# optional: --ForcePiImage
+# optional env: MKP_INSTALL_TICKET, MKP_DEVICE_GRPC, MKP_DEVICE_PEER_ID
 ```
+
+Equivalent without bootstrap: `dotnet run --project build/MouseKeyProxy.Build.csproj -- --target <Name>`.
 
 Versions are produced by GitVersion. NuGet publishing requires the current commit to be the latest tagged commit and reads the API key from `NUGET_API_KEY`.
 

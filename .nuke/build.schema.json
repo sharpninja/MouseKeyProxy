@@ -24,10 +24,16 @@
     "ExecutableTarget": {
       "type": "string",
       "enum": [
+        "BuildRufus",
+        "BuildSdCard",
         "Clean",
         "Compile",
+        "CreateImageFromRufusConfig",
+        "CreatePiImage",
         "FullBuild",
         "IntegrationTest",
+        "LaunchRufus",
+        "PackClientMsi",
         "PackRepl",
         "PublishAgent",
         "PublishPi",
@@ -36,6 +42,7 @@
         "PublishToolToNuGet",
         "Restore",
         "ShowVersion",
+        "StagePiInstallMedia",
         "Test",
         "TestPowerShell",
         "ValidateTraceability"
@@ -112,13 +119,37 @@
   "allOf": [
     {
       "properties": {
+        "AutoWrite": {
+          "type": "boolean",
+          "description": "Unattended Rufus write + eject + exit after staging the Pi image"
+        },
         "Configuration": {
           "type": "string",
           "description": "Configuration to build"
         },
+        "ForcePiImage": {
+          "type": "boolean",
+          "description": "Force re-stage of the Pi OS image for CreatePiImage"
+        },
         "NuGetApiKey": {
           "type": "string",
           "description": "NuGet API key. Defaults to NUGET_API_KEY from the environment"
+        },
+        "RufusDevice": {
+          "type": "string",
+          "description": "PhysicalDrive number for Rufus --device (unattended SD write)"
+        },
+        "RufusPlatform": {
+          "type": "string",
+          "description": "Rufus MSBuild platform (x64|Win32)"
+        },
+        "RufusProfile": {
+          "type": "string",
+          "description": "Saved Rufus MouseKeyProxy Pi HID profile name"
+        },
+        "RufusRoot": {
+          "type": "string",
+          "description": "Path to the rufus-mkp repository (MouseKeyProxy Rufus fork)"
         }
       }
     },

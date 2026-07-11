@@ -1,0 +1,18 @@
+=== Client install kit build receipt 2026-07-09T12:12:39.5947255-05:00 ===
+PackClientMsi: succeeded
+client-install: F:\GitHub\MouseKeyProxy\output\payloads\client-install
+Contents:
+output\payloads\client-install\autorun.inf output\payloads\client-install\device-bootstrap.json output\payloads\client-install\Install-MouseKeyProxy.ps1 output\payloads\client-install\install-ticket.txt output\payloads\client-install\MouseKeyProxy.Bootstrap.exe output\payloads\client-install\MouseKeyProxy.Bootstrap.pdb output\payloads\client-install\MouseKeyProxy.Commands.pdb output\payloads\client-install\MouseKeyProxy.Common.pdb output\payloads\client-install\MouseKeyProxy.Network.pdb output\payloads\client-install\MouseKeyProxy.Repl.pdb output\payloads\client-install\MouseKeyProxy.Repl.runtimeconfig.json output\payloads\client-install\README.txt output\payloads\client-install\payloads\agent\logo.png output\payloads\client-install\payloads\agent\MouseKeyProxy.Agent.exe output\payloads\client-install\payloads\agent\MouseKeyProxy.Agent.pdb output\payloads\client-install\payloads\agent\MouseKeyProxy.Commands.pdb output\payloads\client-install\payloads\agent\MouseKeyProxy.Common.pdb output\payloads\client-install\payloads\agent\MouseKeyProxy.Network.pdb output\payloads\client-install\payloads\service\aspnetcorev2_inprocess.dll output\payloads\client-install\payloads\service\MouseKeyProxy.Common.pdb output\payloads\client-install\payloads\service\MouseKeyProxy.Network.pdb output\payloads\client-install\payloads\service\MouseKeyProxy.PiHid.pdb output\payloads\client-install\payloads\service\MouseKeyProxy.PiHid.runtimeconfig.json output\payloads\client-install\payloads\service\MouseKeyProxy.Service.exe output\payloads\client-install\payloads\service\MouseKeyProxy.Service.pdb
+
+Pi deploy: FAILED (ssh 192.168.1.200:22 connection timed out) — stage when Pi is on LAN again:
+  scp service binary + client-install/* to Pi
+  ticket file: output/payloads/client-install/install-ticket.txt
+
+Slice summary:
+- Step0 DESKTOP uninstall: docs/receipts-desktop-uninstall-step0.txt
+- Domain + tests: 15 passed
+- Service RPCs: CompleteClientInstall, GetPendingClientIntros, ClaimClientIntro
+- Install ticket seed from MKP_INSTALL_TICKET / install-ticket.txt
+- Bootstrap: MouseKeyProxy.Bootstrap
+- Agent: Claim USB clipboard client + clipboard-only forward
+- Pack: client-install folder (WiX MSI deferred; folder+ps1 is v1 vehicle)

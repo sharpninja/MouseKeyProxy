@@ -9,7 +9,8 @@ SCRIPT_DIR=$(cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd)
 # CONFIGURATION
 ###########################################################################
 
-BUILD_PROJECT_FILE="$SCRIPT_DIR/build/_build.csproj"
+# Real Nuke entry point (not the empty Nuke-template _build.csproj stub).
+BUILD_PROJECT_FILE="$SCRIPT_DIR/build/MouseKeyProxy.Build.csproj"
 TEMP_DIRECTORY="$SCRIPT_DIR//.nuke/temp"
 
 DOTNET_GLOBAL_FILE="$SCRIPT_DIR//global.json"
