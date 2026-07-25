@@ -157,7 +157,7 @@ public class HotkeyRegistrationRegressionTests
 
     [Fact]
     [Trait("Category", "Hotkey")]
-    public void Win32HotkeyMonitor_Installs_Keyboard_Hook_Fallback_For_Ctrl_Alt_F1()
+    public void Win32HotkeyMonitor_Installs_Keyboard_Hook_Fallback_For_RemoteActivation()
     {
         var sourcePath = Path.Combine(RepoRoot, "src", "MouseKeyProxy.Agent", "Win32SeamImpls.cs");
         var source = File.ReadAllText(sourcePath);
@@ -165,12 +165,48 @@ public class HotkeyRegistrationRegressionTests
         Assert.Contains("WH_KEYBOARD_LL", source, StringComparison.Ordinal);
         Assert.Contains("SetWindowsHookEx(WH_KEYBOARD_LL", source, StringComparison.Ordinal);
         Assert.Contains("KeyboardHookCallback", source, StringComparison.Ordinal);
-        Assert.Contains("IsCtrlAltF1", source, StringComparison.Ordinal);
-        Assert.Contains("IsCtrlWinF1", source, StringComparison.Ordinal);
+        Assert.Contains("IsRemoteActivationF1", source, StringComparison.Ordinal);
+        Assert.Contains("RemoteActivationChord.Matches", source, StringComparison.Ordinal);
+        Assert.Contains("IsCtrlAltF2", source, StringComparison.Ordinal);
         Assert.Contains("UpdateTrackedModifiers", source, StringComparison.Ordinal);
         Assert.Contains("_winDown", source, StringComparison.Ordinal);
         Assert.Contains("IsControlDown()", source, StringComparison.Ordinal);
         Assert.Contains("UnhookWindowsHookEx", source, StringComparison.Ordinal);
+    }
+
+    /// <summary>Both low-level keyboard-hook paths use the shared any-two-modifier F3 failsafe.</summary>
+    [Fact]
+    [Trait("Category", "Hotkey")]
+    [Trait("Category", "EmergencyRelease")]
+    public void LowLevelHooks_Use_Shared_AnyTwoModifier_F3_EmergencyRelease()
+    {
+        var monitorPath = Path.Combine(RepoRoot, "src", "MouseKeyProxy.Agent", "Win32SeamImpls.cs");
+        var monitorSource = File.ReadAllText(monitorPath);
+        var forwarderPath = Path.Combine(RepoRoot, "src", "MouseKeyProxy.Agent", "RemoteInputForwarder.cs");
+        var forwarderSource = File.ReadAllText(forwarderPath);
+        const string sharedMatcher = "EmergencyReleaseChord.Matches(vk, IsControlDown(), IsAltDown(), IsWinDown())";
+
+        Assert.Contains(sharedMatcher, monitorSource, StringComparison.Ordinal);
+        Assert.Contains(sharedMatcher, forwarderSource, StringComparison.Ordinal);
+        Assert.DoesNotContain("IsCtrlAltF3", monitorSource, StringComparison.Ordinal);
+    }
+
+    /// <summary>Both low-level keyboard-hook paths use the shared any-two-modifier F1 activation.</summary>
+    [Fact]
+    [Trait("Category", "Hotkey")]
+    [Trait("Category", "RemoteActivation")]
+    public void LowLevelHooks_Use_Shared_AnyTwoModifier_F1_RemoteActivation()
+    {
+        var monitorPath = Path.Combine(RepoRoot, "src", "MouseKeyProxy.Agent", "Win32SeamImpls.cs");
+        var monitorSource = File.ReadAllText(monitorPath);
+        var forwarderPath = Path.Combine(RepoRoot, "src", "MouseKeyProxy.Agent", "RemoteInputForwarder.cs");
+        var forwarderSource = File.ReadAllText(forwarderPath);
+        const string sharedMatcher = "RemoteActivationChord.Matches(vk, IsControlDown(), IsAltDown(), IsWinDown())";
+
+        Assert.Contains(sharedMatcher, monitorSource, StringComparison.Ordinal);
+        Assert.Contains(sharedMatcher, forwarderSource, StringComparison.Ordinal);
+        Assert.DoesNotContain("IsCtrlWinF1", monitorSource, StringComparison.Ordinal);
+        Assert.DoesNotContain("IsCtrlAltF1", monitorSource, StringComparison.Ordinal);
     }
 
     [Fact]

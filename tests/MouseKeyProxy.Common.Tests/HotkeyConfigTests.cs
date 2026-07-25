@@ -11,6 +11,100 @@ namespace MouseKeyProxy.Common.Tests;
 /// </summary>
 public class HotkeyConfigTests
 {
+    /// <summary>F1 with any two supported modifiers is always a remote-activation chord.</summary>
+    /// <param name="controlDown">Whether either Control key is held.</param>
+    /// <param name="altDown">Whether either Alt key is held.</param>
+    /// <param name="winDown">Whether either Windows key is held.</param>
+    [Theory]
+    [InlineData(true, true, false)]
+    [InlineData(true, false, true)]
+    [InlineData(false, true, true)]
+    [InlineData(true, true, true)]
+    [Trait("Category", "Hotkeys")]
+    [Trait("Category", "RemoteActivation")]
+    public void RemoteActivationChord_F1WithAnyTwoSupportedModifiers_Matches(
+        bool controlDown,
+        bool altDown,
+        bool winDown)
+    {
+        Assert.True(RemoteActivationChord.Matches(0x70, controlDown, altDown, winDown));
+    }
+
+    /// <summary>F1 with fewer than two supported modifiers does not trigger remote activation.</summary>
+    /// <param name="controlDown">Whether either Control key is held.</param>
+    /// <param name="altDown">Whether either Alt key is held.</param>
+    /// <param name="winDown">Whether either Windows key is held.</param>
+    [Theory]
+    [InlineData(false, false, false)]
+    [InlineData(true, false, false)]
+    [InlineData(false, true, false)]
+    [InlineData(false, false, true)]
+    [Trait("Category", "Hotkeys")]
+    [Trait("Category", "RemoteActivation")]
+    public void RemoteActivationChord_F1WithFewerThanTwoSupportedModifiers_DoesNotMatch(
+        bool controlDown,
+        bool altDown,
+        bool winDown)
+    {
+        Assert.False(RemoteActivationChord.Matches(0x70, controlDown, altDown, winDown));
+    }
+
+    /// <summary>A non-F1 key does not trigger the fixed remote-activation chord.</summary>
+    [Fact]
+    [Trait("Category", "Hotkeys")]
+    [Trait("Category", "RemoteActivation")]
+    public void RemoteActivationChord_NonF1WithSupportedModifiers_DoesNotMatch()
+    {
+        Assert.False(RemoteActivationChord.Matches(0x71, true, true, true));
+    }
+
+    /// <summary>F3 with any two supported modifiers is always an emergency-release chord.</summary>
+    /// <param name="controlDown">Whether either Control key is held.</param>
+    /// <param name="altDown">Whether either Alt key is held.</param>
+    /// <param name="winDown">Whether either Windows key is held.</param>
+    [Theory]
+    [InlineData(true, true, false)]
+    [InlineData(true, false, true)]
+    [InlineData(false, true, true)]
+    [InlineData(true, true, true)]
+    [Trait("Category", "Hotkeys")]
+    [Trait("Category", "EmergencyRelease")]
+    public void EmergencyReleaseChord_F3WithAnyTwoSupportedModifiers_Matches(
+        bool controlDown,
+        bool altDown,
+        bool winDown)
+    {
+        Assert.True(EmergencyReleaseChord.Matches(0x72, controlDown, altDown, winDown));
+    }
+
+    /// <summary>F3 with fewer than two supported modifiers does not trigger emergency release.</summary>
+    /// <param name="controlDown">Whether either Control key is held.</param>
+    /// <param name="altDown">Whether either Alt key is held.</param>
+    /// <param name="winDown">Whether either Windows key is held.</param>
+    [Theory]
+    [InlineData(false, false, false)]
+    [InlineData(true, false, false)]
+    [InlineData(false, true, false)]
+    [InlineData(false, false, true)]
+    [Trait("Category", "Hotkeys")]
+    [Trait("Category", "EmergencyRelease")]
+    public void EmergencyReleaseChord_F3WithFewerThanTwoSupportedModifiers_DoesNotMatch(
+        bool controlDown,
+        bool altDown,
+        bool winDown)
+    {
+        Assert.False(EmergencyReleaseChord.Matches(0x72, controlDown, altDown, winDown));
+    }
+
+    /// <summary>A non-F3 key does not trigger the fixed emergency-release chord.</summary>
+    [Fact]
+    [Trait("Category", "Hotkeys")]
+    [Trait("Category", "EmergencyRelease")]
+    public void EmergencyReleaseChord_NonF3WithSupportedModifiers_DoesNotMatch()
+    {
+        Assert.False(EmergencyReleaseChord.Matches(0x71, true, true, true));
+    }
+
     /// <summary>Defaults bind toggle to Ctrl-Win-F1 and emergency-release to a distinct Ctrl-Alt-F3.</summary>
     [Fact]
     [Trait("Category", "Hotkeys")]
@@ -82,4 +176,5 @@ public class HotkeyConfigTests
         Assert.Equal(HotkeyConfig.ModCtrlWin, loaded.ToggleMods);
         Assert.Equal(0x72u, loaded.EmergencyReleaseVk);
     }
+
 }

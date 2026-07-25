@@ -12,18 +12,15 @@ Scope: layer-1+
 
 ## FR-MKP-001 Hotkey toggle only
 
-Support configurable hotkeys to switch the active machine and proxy direction. Defaults are local Ctrl+Alt+F1 and remote Ctrl+Alt+F2.
-
-Acceptance Criteria:
-- Hotkey switches focus and proxy direction on both paired hosts.
-- No automatic edge crossing or edge mouse detection exists in this product.
-- Configuration is persisted and can be read back by the REPL and tray UI.
+Support configurable hotkeys to switch the active machine and proxy direction. The default configured toggle is Ctrl+Win+F1. A fixed F1 fallback accepts any two of Ctrl, Alt, and Win; Ctrl+Alt+F2 remains a legacy fallback. A fixed F3 fallback accepts any two of Ctrl, Alt, and Win for emergency release.
 Scope: layer-1+
 **Acceptance Criteria:**
 - [ ] Hotkey switches focus and proxy direction on both paired hosts.
 - [x] No automatic edge crossing or edge mouse detection exists in this product. (evidence: F:\GitHub\MouseKeyProxy\docs\Project\Functional-Requirements.md; AGENTS.md Byrd scope)
 - [ ] Configuration is persisted and can be read back by the REPL and tray UI.
 - [x] Toggle and release paths clear left/right Shift, Ctrl, Alt, and Win on both peers. (evidence: dotnet test tests\MouseKeyProxy.Agent.Tests -c Release --filter Category=InputRegression; dotnet test tests\MouseKeyProxy.Common.Tests -c Release --filter Category=ModifierCleanup)
+- [x] F3 with any two of Ctrl, Alt, and Win triggers emergency release through both low-level keyboard-hook paths. (evidence: dotnet test tests\MouseKeyProxy.Common.Tests\MouseKeyProxy.Common.Tests.csproj -c Debug --filter FullyQualifiedName~EmergencyReleaseChord; dotnet test tests\MouseKeyProxy.Agent.Tests\MouseKeyProxy.Agent.Tests.csproj -c Debug --filter Category=EmergencyRelease)
+- [x] F1 with any two of Ctrl, Alt, and Win triggers the remote toggle through both low-level keyboard-hook paths. (evidence: dotnet test tests\MouseKeyProxy.Common.Tests\MouseKeyProxy.Common.Tests.csproj -c Debug --filter FullyQualifiedName~RemoteActivationChord; dotnet test tests\MouseKeyProxy.Agent.Tests\MouseKeyProxy.Agent.Tests.csproj -c Debug --filter Category=RemoteActivation)
 
 ## FR-MKP-002 Keyboard focus follows
 
@@ -42,10 +39,11 @@ Scope: layer-1+
 
 ## FR-MKP-003 Full proxy input
 
-Proxy input according to the supported matrix: ordinary keys, modifiers, pointer move/click/wheel, media keys, and permitted Windows key combinations. Secure Attention Sequence, secure desktop, lock/login screens, and UIPI-blocked scenarios are explicitly excluded.
+Proxy input according to the supported matrix: ordinary keys (including DELETE, INSERT, HOME, END, PAGE UP, and PAGE DOWN), modifiers, pointer move/click/wheel, media keys, and permitted Windows key combinations. Secure Attention Sequence, secure desktop, lock/login screens, and UIPI-blocked scenarios are explicitly excluded.
 
 Acceptance Criteria:
 - Supported input events work against a paired remote session.
+- DELETE, INSERT, HOME, END, PAGE UP, and PAGE DOWN traverse capture, transport eligibility, and physical HID encoding as ordinary keys.
 - Unsupported inputs fail observably and never hang or claim success.
 - Input behavior is covered by unit tests and at least one paired-machine smoke receipt.
 Scope: layer-1+
@@ -162,7 +160,7 @@ Scope: layer-1+
 MouseKeyProxy must support an optional physical Raspberry Pi Zero 2 appliance backend implemented in C#/.NET 10. The appliance presents standard USB HID keyboard and mouse interfaces to the target Windows host while receiving authenticated control commands over the lab network.
 Scope: layer-1+
 **Acceptance Criteria:**
-- [ ] The Pi Zero 2 is provisioned as mkp-hid-pi and is reachable from payton-legion2 over the lab network. (evidence: docs\receipts-hid-provision-20260707T103933Z.txt shows DNS unresolved for mkp-hid-pi.)
+- [ ] The Pi Zero 2 is provisioned as mkp-hid-pi and is reachable from payton-legion2 over the lab network. (evidence: docs\historical\receipts\receipts-hid-provision-20260707T103933Z.txt shows DNS unresolved for mkp-hid-pi.)
 - [ ] The controlled Windows host enumerates the Pi as standard HID keyboard and relative mouse devices without vendor Windows drivers.
 - [x] The Pi HID appliance service is implemented in C# targeting .NET 10 and published self-contained for linux-arm64. (evidence: src\MouseKeyProxy.PiHid; dotnet publish src\MouseKeyProxy.PiHid\MouseKeyProxy.PiHid.csproj -c Release -r linux-arm64 --self-contained true)
 - [x] The HID appliance implementation and provisioning path contain no Python code, Python scripts, or Python runtime dependency. (evidence: dotnet test tests\MouseKeyProxy.Compliance.Tests -c Release --filter Category=HardwareHID)
@@ -173,10 +171,15 @@ Scope: layer-1+
 Appliance exposes connect/disconnect for keyboard, mouse, disk FS, CD-ROM, floppy; boot complete; FS content change events; configure independently; FS RO/RW; CD/floppy media device or host; events processed locally in C# and mirrored to paired host.
 Scope: layer-1+
 
-## FR-MKP-014 Device folder share with IP allowlist
+## FR-MKP-014 Device thumb-drive and folder management over gRPC
 
-Device shares a sandboxed folder over paired gRPC; UDP discovery advertises share; only paired peers whose connection IP is allowlisted (paired host and USB-connected PC, identified by pairing) may use share RPCs after client pairing.
+Expose a configured device storage root, including the thumb-drive or MKP-DEPLOY share area, to authenticated paired hosts over gRPC. The host can manage content without direct physical access while all operations remain sandboxed to that root and subject to the paired-peer IP allowlist.
 Scope: layer-1+
+**Acceptance Criteria:**
+- [ ] An authenticated paired host can list, inspect, download, upload or replace, create directories, rename or move, and delete content within the configured device thumb-drive or share root through gRPC.
+- [ ] Canonical path validation rejects absolute paths, parent traversal, and link or reparse-point escapes outside the configured storage root.
+- [ ] Only paired peers whose connection address is allowlisted for the device share can invoke content-management RPCs.
+- [ ] Writes are atomic where supported and return structured conflict, read-only, capacity, and unavailable-device failures without leaving partial content.
 
 ## FR-MKP-015 USB optical and floppy media
 

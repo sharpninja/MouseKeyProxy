@@ -92,7 +92,7 @@ Scope: layer-1+
 
 ## TR-MKP-INPUT-001
 
-**Input support matrix and limits** — Document and enforce supported keyboard, mouse, focus, and window-control inputs. Exclude SAS/Ctrl+Alt+Del, secure desktop, lock/login screens, and UIPI-blocked scenarios. Unsupported operations must return observable failures and release any captured local state.
+**Input support matrix and limits** — Document and enforce supported keyboard, mouse, focus, and window-control inputs. Treat DELETE, INSERT, HOME, END, PAGE UP, and PAGE DOWN as ordinary extended keys through capture and HID translation. Exclude the Secure Attention Sequence/Ctrl+Alt+Del, secure desktop, lock/login screens, and UIPI-blocked scenarios without misclassifying an ordinary DELETE press. Unsupported operations must return observable failures and release any captured local state.
 **Covered by:** FR: FR-HOTKEY-001, FR-MKP-001, FR-MKP-002, FR-MKP-003, FR-MKP-005; TEST: TEST-HOTKEY-001, TEST-MKP-001, TEST-MKP-008, TEST-MKP-012, TEST-MKP-023, TEST-MKP-024, TEST-MKP-003, TEST-MKP-005, TEST-MKP-009, TEST-MKP-026, TEST-MKP-028, TEST-MKP-029, TEST-MKP-010, TEST-MKP-011, TEST-MKP-014, TEST-MKP-020, TEST-MKP-025
 **Status:** in_progress
 Scope: layer-1+
@@ -100,6 +100,7 @@ Scope: layer-1+
 - [ ] Keyboard, modifier, pointer, wheel, media, permitted Windows chords, and explicit exclusions are documented and enforced.
 - [x] Alt-Space and Win-Arrow preserve modifier ordering, key-up, scan, and extended-key semantics. (evidence: dotnet test tests\MouseKeyProxy.Agent.Tests -c Release --filter Category=InputRegression)
 - [x] Mouse forwarding uses raw relative deltas rather than clipped cursor screen coordinates. (evidence: dotnet test tests\MouseKeyProxy.Agent.Tests -c Release --filter Category=RawMouseCapture)
+- [x] The idle hotkey monitor and active forwarding hook share one fixed matcher that accepts F1 with any two of Ctrl, Alt, and Win. (evidence: dotnet test tests\MouseKeyProxy.Common.Tests\MouseKeyProxy.Common.Tests.csproj -c Debug --filter FullyQualifiedName~RemoteActivationChord; dotnet test tests\MouseKeyProxy.Agent.Tests\MouseKeyProxy.Agent.Tests.csproj -c Debug --filter Category=RemoteActivation)
 - [ ] The optional pi-hid backend maps MouseKeyProxy input batches into fixed-size keyboard and mouse HID reports.
 
 ## TR-MKP-LOG-001
@@ -137,6 +138,7 @@ Scope: layer-1+
 **Acceptance Criteria:**
 - [ ] Input events use sequence or ack handling where remote delivery can fail.
 - [x] Toggle, disconnect, emergency release, and local regain clear left/right Shift, Ctrl, Alt, and Win locally and remotely. (evidence: dotnet test tests\MouseKeyProxy.Common.Tests -c Release --filter Category=ModifierCleanup)
+- [x] The idle hotkey monitor and active forwarding hook share one fixed matcher that accepts F3 with any two of Ctrl, Alt, and Win. (evidence: dotnet test tests\MouseKeyProxy.Common.Tests\MouseKeyProxy.Common.Tests.csproj -c Debug --filter FullyQualifiedName~EmergencyReleaseChord; dotnet test tests\MouseKeyProxy.Agent.Tests\MouseKeyProxy.Agent.Tests.csproj -c Debug --filter Category=EmergencyRelease)
 - [ ] Captured local mouse state and ClipCursor are released within the configured safety deadline.
 - [ ] Pi HID reset and clear-modifiers leave keyboard and mouse reports in neutral state.
 
@@ -177,10 +179,15 @@ Scope: layer-1+
 
 ## TR-MKP-XFER-004
 
-**Samba and gRPC IP gate two peers** — Allowlist IPs of PairedHost and UsbConnectedPc only; refresh on pair/revoke; deny world/guest; apply to SMB and folder-share RPC.
-**Covered by:** FR: FR-MKP-014, FR-MKP-016; TEST: TEST-MKP-038, TEST-MKP-045
+**Paired gRPC device-storage access gate** — Provide authenticated, allowlisted gRPC file-management operations for the configured device thumb-drive or share root. Use chunked transfer for file payloads, canonical root enforcement for every path, safe write semantics, and structured errors. The same paired-peer address gate applies to SMB and gRPC access.
+**Covered by:** FR: FR-MKP-014, FR-MKP-016; TEST: TEST-MKP-038, TEST-MKP-045, TEST-MKP-049
 **Status:** pending
 Scope: layer-1+
+**Acceptance Criteria:**
+- [ ] Folder and thumb-drive management RPCs accept only the paired-host and paired USB-connected-PC addresses and refresh authorization on pair or revoke.
+- [ ] The gRPC contract supports metadata listing and chunked read/write operations plus directory creation, rename or move, and delete within the configured root.
+- [ ] The service canonicalizes every requested path and blocks traversal, absolute paths, and link escapes before filesystem access.
+- [ ] RPC failures distinguish unauthorized, not found, conflict, read-only, insufficient capacity, invalid path, and unavailable device states.
 
 ## TR-OWNERSHIP-CONTRACT-001
 

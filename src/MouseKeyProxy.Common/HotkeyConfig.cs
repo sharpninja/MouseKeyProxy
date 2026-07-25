@@ -36,6 +36,78 @@ public sealed class HotkeyConfig
     public DateTimeOffset SavedAtUtc { get; set; }
 }
 
+/// <summary>Matches a fixed key with at least two of Control, Alt, and Windows held.</summary>
+internal static class TwoOfThreeModifierChord
+{
+    /// <summary>Determines whether a key and modifier state matches the two-of-three rule.</summary>
+    /// <param name="virtualKey">The virtual-key code for the key-down event.</param>
+    /// <param name="targetVirtualKey">The virtual-key code required by the chord.</param>
+    /// <param name="controlDown">Whether either Control key is held.</param>
+    /// <param name="altDown">Whether either Alt key is held.</param>
+    /// <param name="winDown">Whether either Windows key is held.</param>
+    /// <returns><see langword="true"/> when the key matches and at least two modifiers are held.</returns>
+    public static bool Matches(
+        uint virtualKey,
+        uint targetVirtualKey,
+        bool controlDown,
+        bool altDown,
+        bool winDown)
+    {
+        if (virtualKey != targetVirtualKey)
+        {
+            return false;
+        }
+
+        var modifierCount = (controlDown ? 1 : 0) + (altDown ? 1 : 0) + (winDown ? 1 : 0);
+        return modifierCount >= 2;
+    }
+}
+
+/// <summary>
+/// Defines the non-configurable remote-activation fallback accepted by every keyboard-hook path.
+/// F1 activates remote control whenever at least two of Control, Alt, and Windows are held.
+/// </summary>
+public static class RemoteActivationChord
+{
+    /// <summary>Virtual-key code for F1.</summary>
+    public const uint VirtualKey = 0x70;
+
+    /// <summary>Determines whether the supplied key and modifier state activates remote control.</summary>
+    /// <param name="virtualKey">The virtual-key code for the key-down event.</param>
+    /// <param name="controlDown">Whether either Control key is held.</param>
+    /// <param name="altDown">Whether either Alt key is held.</param>
+    /// <param name="winDown">Whether either Windows key is held.</param>
+    /// <returns><see langword="true"/> when F1 and at least two supported modifiers are held.</returns>
+    public static bool Matches(uint virtualKey, bool controlDown, bool altDown, bool winDown)
+    {
+        return TwoOfThreeModifierChord.Matches(virtualKey, VirtualKey, controlDown, altDown, winDown);
+    }
+}
+
+/// <summary>
+/// Defines the non-configurable emergency fallback chord accepted by every keyboard-hook path.
+/// F3 triggers emergency release whenever at least two of Control, Alt, and Windows are held.
+/// </summary>
+public static class EmergencyReleaseChord
+{
+    /// <summary>Virtual-key code for F3.</summary>
+    public const uint VirtualKey = 0x72;
+
+    /// <summary>Determines whether the supplied key and modifier state is an emergency-release chord.</summary>
+    /// <param name="virtualKey">The virtual-key code for the key-down event.</param>
+    /// <param name="controlDown">Whether either Control key is held.</param>
+    /// <param name="altDown">Whether either Alt key is held.</param>
+    /// <param name="winDown">Whether either Windows key is held.</param>
+    /// <returns>
+    /// <see langword="true"/> when <paramref name="virtualKey"/> is F3 and at least two supported
+    /// modifiers are held; otherwise, <see langword="false"/>.
+    /// </returns>
+    public static bool Matches(uint virtualKey, bool controlDown, bool altDown, bool winDown)
+    {
+        return TwoOfThreeModifierChord.Matches(virtualKey, VirtualKey, controlDown, altDown, winDown);
+    }
+}
+
 /// <summary>
 /// FR-MKP-001: persistence for <see cref="HotkeyConfig"/> as JSON under the user's local application
 /// data. A missing or unreadable file yields defaults so the app always has a valid binding.

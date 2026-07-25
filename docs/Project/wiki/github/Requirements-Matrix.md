@@ -92,3 +92,4 @@ Traceability policy: see `Requirements-Traceability-Policy.md`.
 | TEST-MKP-046 | Tracked | Testing-Requirements.md |
 | TEST-MKP-047 | Tracked | Testing-Requirements.md |
 | TEST-MKP-048 | Tracked | Testing-Requirements.md |
+| TEST-MKP-049 | Tracked | Testing-Requirements.md |

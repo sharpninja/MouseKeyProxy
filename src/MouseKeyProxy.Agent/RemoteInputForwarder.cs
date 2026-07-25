@@ -735,13 +735,14 @@ public sealed class RemoteInputForwarder : IDisposable
             return true;
         }
 
-        // Legacy chords.
-        if (vk == VK_F1 && IsControlDown() && IsWinDown())
+        // Fixed remote-activation fallback: F1 with any two of Control, Alt, and Windows.
+        if (RemoteActivationChord.Matches(vk, IsControlDown(), IsAltDown(), IsWinDown()))
         {
             return true;
         }
 
-        return (vk == VK_F1 || vk == VK_F2) && IsControlDown() && IsAltDown();
+        // Legacy remote chord.
+        return vk == VK_F2 && IsControlDown() && IsAltDown();
     }
 
     private bool IsEmergencyChord(uint vk)
@@ -751,8 +752,8 @@ public sealed class RemoteInputForwarder : IDisposable
             return true;
         }
 
-        // Legacy Ctrl-Alt-F3.
-        return vk == VK_F3 && IsControlDown() && IsAltDown();
+        // Fixed safety fallback: F3 with any two of Control, Alt, and Windows.
+        return EmergencyReleaseChord.Matches(vk, IsControlDown(), IsAltDown(), IsWinDown());
     }
 
     private bool MatchesConfigured(uint targetVk, uint mods, uint vk)
@@ -1031,7 +1032,7 @@ public sealed class RemoteInputForwarder : IDisposable
 public sealed class ForwarderEscapeEventArgs : EventArgs
 {
     /// <summary>Creates the args.</summary>
-    /// <param name="emergency">True when Ctrl-Alt-F3 (or configured emergency) was used.</param>
+    /// <param name="emergency">True when any-two-modifiers plus F3 (or configured emergency) was used.</param>
     public ForwarderEscapeEventArgs(bool emergency) => Emergency = emergency;
 
     /// <summary>True for emergency-release chord; false for normal toggle-local chord.</summary>

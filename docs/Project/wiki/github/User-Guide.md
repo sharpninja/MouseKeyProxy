@@ -94,8 +94,8 @@ The CLI/REPL is the canonical implementation of the control surface. UI actions 
 
 Defaults (overridable in `%LOCALAPPDATA%\MouseKeyProxy\hotkey-config.json`):
 
-- **Toggle:** Ctrl+Win+F1 (legacy Ctrl+Alt+F1 / Ctrl+Alt+F2 still recognized by the capture hook).
-- **Emergency release:** Ctrl+Alt+F3.
+- **Remote activation / toggle:** F1 with any two of Ctrl, Alt, and Win. Ctrl+Win+F1 remains the default configured binding; legacy Ctrl+Alt+F2 is still recognized by the capture hook.
+- **Emergency release:** F3 with any two of Ctrl, Alt, and Win. Ctrl+Alt+F3 remains the default configured binding.
 
 The toggle transfers active control between local and remote when the host is paired and connected to the device endpoint.
 

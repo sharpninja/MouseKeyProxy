@@ -114,7 +114,7 @@ dotnet run --project src/MouseKeyProxy.Repl/MouseKeyProxy.Repl.csproj -c Release
 
 Write-Host '=== PAIRED CONTROL PROOF (paired-control-proof.log) ==='
 $proofLog = Join-Path $Scratch 'paired-control-proof.log'
-$transitionReceipt = Join-Path $repoRoot 'docs\receipts-transition-e2e.txt'
+$transitionReceipt = Join-Path $repoRoot 'docs\historical\receipts\receipts-transition-e2e.txt'
 $proofScript = Join-Path $repoRoot 'scripts\assert-paired-control-proof.ps1'
 & $proofScript -ReceiptPath $transitionReceipt -LocalHost 'payton-legion2' -RemoteHost 'payton-desktop' -RequireSmokePass *> $proofLog
 $proofExit = $LASTEXITCODE

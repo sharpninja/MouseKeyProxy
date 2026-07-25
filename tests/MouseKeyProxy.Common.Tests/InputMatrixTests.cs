@@ -15,12 +15,27 @@ public class InputMatrixTests
         Assert.True(result, "Ordinary key (A) must be supported per matrix");
     }
 
+    [Theory]
+    [Trait("Category", "InputMatrix")]
+    [Trait("Category", "InputRegression")]
+    [InlineData(0x2D)] // Insert
+    [InlineData(0x2E)] // Delete
+    [InlineData(0x24)] // Home
+    [InlineData(0x23)] // End
+    [InlineData(0x21)] // Page Up
+    [InlineData(0x22)] // Page Down
+    public void EditingAndNavigationKeys_AreSupported(uint vk)
+    {
+        Assert.True(InputSupportMatrix.IsSupported(InputKind.KEY_DOWN, vk));
+        Assert.True(InputSupportMatrix.IsSupported(InputKind.KEY_UP, vk));
+    }
+
     [Fact]
     [Trait("Category", "InputMatrix")]
-    public void Sas_OrSecure_ReturnsFalse_ObservableFailure()
+    public void SecureDesktop_ReturnsFalse_ObservableFailure()
     {
-        Assert.False(InputSupportMatrix.IsSupported(InputKind.KEY_DOWN, vk: 0x2E /*Del approx for SAS*/));
         Assert.False(InputSupportMatrix.IsSupported(InputKind.KEY_DOWN, 0, isSecureDesktop: true));
+        Assert.Equal("SECURE_DESKTOP", InputSupportMatrix.GetFailureReason(InputKind.KEY_DOWN, isSecureDesktop: true));
     }
 
     [Theory]

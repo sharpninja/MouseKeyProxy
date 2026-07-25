@@ -9,7 +9,7 @@ Set-Location $repoRoot
 
 if ([string]::IsNullOrWhiteSpace($ReceiptPath)) {
     $stamp = Get-Date -Format 'yyyyMMddTHHmmssZ'
-    $ReceiptPath = Join-Path $repoRoot "docs\receipts-plan-readiness-$stamp.txt"
+    $ReceiptPath = Join-Path $repoRoot "docs\historical\receipts\receipts-plan-readiness-$stamp.txt"
 }
 
 $receiptDir = Split-Path -Parent $ReceiptPath
@@ -68,7 +68,7 @@ Invoke-Gate -Name 'Advanced gRPC control service seam' -Command {
 }
 
 Invoke-Gate -Name 'Paired-control proof receipt' -Command {
-    $receipt = Join-Path $repoRoot 'docs\receipts-transition-e2e.txt'
+    $receipt = Join-Path $repoRoot 'docs\historical\receipts\receipts-transition-e2e.txt'
     pwsh -NoProfile -ExecutionPolicy Bypass -File (Join-Path $repoRoot 'scripts\assert-paired-control-proof.ps1') -ReceiptPath $receipt -LocalHost 'payton-legion2' -RemoteHost 'payton-desktop' -RequireSmokePass
 }
 

@@ -28,6 +28,27 @@ public class RemoteInputForwarderTests
         Assert.Equal(0x41u, up.Vk);
     }
 
+    [Theory]
+    [Trait("Category", "InputRegression")]
+    [InlineData(0x2D)] // Insert
+    [InlineData(0x2E)] // Delete
+    [InlineData(0x24)] // Home
+    [InlineData(0x23)] // End
+    [InlineData(0x21)] // Page Up
+    [InlineData(0x22)] // Page Down
+    public void TranslateKeyboardMessage_Maps_EditingAndNavigationKeys(uint vk)
+    {
+        var down = RemoteInputForwarder.TranslateKeyboardMessage(WM_KEYDOWN, vk, 0, 0x01);
+        var up = RemoteInputForwarder.TranslateKeyboardMessage(WM_KEYUP, vk, 0, 0x81);
+
+        Assert.NotNull(down);
+        Assert.NotNull(up);
+        Assert.Equal(InputKind.KEY_DOWN, down.Kind);
+        Assert.Equal(InputKind.KEY_UP, up.Kind);
+        Assert.Equal(vk, down.Vk);
+        Assert.Equal(vk, up.Vk);
+    }
+
     [Fact]
     [Trait("Category", "RawMouseCapture")]
     [Trait("Category", "InputRegression")]

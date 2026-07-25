@@ -12,7 +12,8 @@ MouseKeyProxy provides a Windows service, a user-session tray/dashboard agent, a
 - [Orange Pi Zero 2 / 2W HID](docs/hardware/orange-pi-zero-2-hid.md)
 - [Raspberry Pi Zero 2 W HID](docs/hardware/pi-zero-2-hid.md)
 - [Logo Branding Contract](assets/logo.branding.md)
-- [Current implementation plan](docs/PLAN-MKP-006.md)
+- [Requirements matrix](docs/Project/Requirements-Matrix.md)
+- [Historical plans, audits, handoffs, and receipts](docs/historical/README.md)
 
 ## Quick Start
 
@@ -25,7 +26,7 @@ mkp pair status
 mkp toggle
 ```
 
-Default toggle hotkey: **Ctrl+Win+F1**. Default emergency release: **Ctrl+Alt+F3**. Both are configurable via the agent hotkey config under `%LOCALAPPDATA%\MouseKeyProxy\hotkey-config.json`.
+Default configured toggle: **Ctrl+Win+F1**. Default configured emergency release: **Ctrl+Alt+F3**. Both are configurable via the agent hotkey config under `%LOCALAPPDATA%\MouseKeyProxy\hotkey-config.json`. As fixed safety fallbacks, **F1 with any two of Ctrl, Alt, and Win** activates the remote toggle and **F3 with any two** triggers emergency release.
 
 ## Features
 

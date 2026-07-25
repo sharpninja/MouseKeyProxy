@@ -35,6 +35,26 @@ public class PiHidEncoderTests
         Assert.Equal(0x04, report.Bytes[2]);  // 'a' usage
     }
 
+    [Theory]
+    [Trait("Category", "HID")]
+    [Trait("Category", "InputRegression")]
+    [InlineData(0x2D, 0x49)] // Insert
+    [InlineData(0x2E, 0x4C)] // Delete
+    [InlineData(0x24, 0x4A)] // Home
+    [InlineData(0x23, 0x4D)] // End
+    [InlineData(0x21, 0x4B)] // Page Up
+    [InlineData(0x22, 0x4E)] // Page Down
+    public void EditingAndNavigationKeys_MapToExpectedHidUsage(uint vk, byte expectedUsage)
+    {
+        var encoder = new PiHidEncoder();
+        var reports = encoder.Encode(new[] { Key(InputKind.KEY_DOWN, vk) }, out var error);
+
+        Assert.Null(error);
+        var report = Assert.Single(reports);
+        Assert.Equal(HidDevice.Keyboard, report.Device);
+        Assert.Equal(expectedUsage, report.Bytes[2]);
+    }
+
     /// <summary>A Win+Left chord produces the 4-report modifier sandwich (not a hardcoded chord).</summary>
     [Fact]
     [Trait("Category", "HID")]

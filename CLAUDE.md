@@ -154,7 +154,7 @@ Use `pwsh.exe` (PowerShell 7+) for all scripts. Do not use `powershell.exe`.
 - `docs/Project/Testing-Requirements.md` — TEST-MKP-* requirements.
 - `docs/Project/Requirements-Matrix.md` — requirement/status/traceability matrix.
 - `docs/deployment/Pi-Service-Deployment.md` — Raspberry Pi HID-gadget deployment.
-- `docs/AUDIT-20260707.md` — the code + requirements audit that drove the remediation.
+- `docs/historical/audits/AUDIT-20260707.md` — the code + requirements audit that drove the remediation.
 - `AGENTS.md` — agent workspace policy and session logging conventions.
 
 ## MCP Session Logging — Mandatory Precondition

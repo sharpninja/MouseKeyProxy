@@ -3,8 +3,9 @@ using System;
 namespace MouseKeyProxy.Common;
 
 /// <summary>
-/// Pure, platform-agnostic support matrix per locked spec in PLAN-MKP-004.
-/// No deviation from: ordinary keys, modifiers, media, text, mouse supported; SAS/secure/UIPI explicitly fail observably (never hang/claim success).
+/// Pure, platform-agnostic support matrix for proxied input.
+/// Ordinary keys, modifiers, media, text, and mouse input are supported; secure desktop and
+/// unsupported input kinds fail observably (never hang or claim success).
 /// </summary>
 public static class InputSupportMatrix
 {
@@ -15,7 +16,10 @@ public static class InputSupportMatrix
 
         return kind switch
         {
-            InputKind.KEY_DOWN or InputKind.KEY_UP => !IsSasLike(vk),
+            // A single DELETE event is ordinary input, not a Secure Attention Sequence. Windows
+            // protects Ctrl+Alt+Delete before this user-mode path, and secure-desktop forwarding is
+            // independently rejected above.
+            InputKind.KEY_DOWN or InputKind.KEY_UP => true,
             InputKind.MOUSE_MOVE or InputKind.MOUSE_DOWN or InputKind.MOUSE_UP => true,
             InputKind.MOUSE_WHEEL or InputKind.MOUSE_HWHEEL or InputKind.MOUSE_XBUTTON => true,
             InputKind.TEXT_INPUT => true,
@@ -23,17 +27,9 @@ public static class InputSupportMatrix
         };
     }
 
-    private static bool IsSasLike(uint vk)
-    {
-        // Conservative: Del key in context of SAS is rejected at matrix level (full chord in hook state machine per plan)
-        const uint VK_DELETE = 0x2E;
-        return vk == VK_DELETE;
-    }
-
     public static string GetFailureReason(InputKind kind, uint vk = 0, bool isSecureDesktop = false)
     {
         if (isSecureDesktop) return "SECURE_DESKTOP";
-        if ((kind == InputKind.KEY_DOWN || kind == InputKind.KEY_UP) && IsSasLike(vk)) return "SAS_BLOCKED";
         if (kind == InputKind.UNSPECIFIED) return "UNSPECIFIED_KIND";
         return "UNSUPPORTED_KIND";
     }

@@ -1,4 +1,4 @@
-# Testing Requirements (MouseKeyProxy)
+# Testing Requirements (MCP Server)
 
 ## TEST-HOTKEY
 
@@ -12,7 +12,7 @@ xUnit v3 and NSubstitute tests must fail first for the desired hotkey toggle sta
 
 ### TEST-MKP-001
 
-Verify configurable hotkeys toggle proxy direction without edge detection or ClipCursor violations.
+Verify configurable hotkeys toggle proxy direction without edge detection or ClipCursor violations, and verify F1 with every two-modifier combination of Ctrl, Alt, and Win through both low-level hook paths.
 
 
 ### TEST-MKP-002
@@ -22,7 +22,7 @@ Mocks confirm hooks, ClipCursor, SendInput, focus, and clipboard listener operat
 
 ### TEST-MKP-003
 
-SendInput succeeds for supported keys and pointer actions, while SAS, secure desktop, lock/login, and UIPI-blocked scenarios fail observably without hangs.
+SendInput succeeds for supported keys and pointer actions. Regression tests prove DELETE, INSERT, HOME, END, PAGE UP, and PAGE DOWN pass the shared input matrix, Windows capture translation, and Pi HID usage encoding. SAS, secure desktop, lock/login, and UIPI-blocked scenarios fail observably without hangs.
 
 
 ### TEST-MKP-004
@@ -47,7 +47,7 @@ Concurrent copies produce correct LIFO order, dedupe loops, preserve supported f
 
 ### TEST-MKP-008
 
-Failsafe tests prove ClipCursor release within 2 seconds on crash/disconnect, modifier key-up synthesis on every toggle transition, and reconnect give-up behavior within the configured deadline.
+Failsafe tests prove ClipCursor release within 2 seconds on crash/disconnect, modifier key-up synthesis on every toggle transition, F3 emergency release with each two-modifier combination of Ctrl, Alt, and Win through both low-level hook paths, and reconnect give-up behavior within the configured deadline.
 
 
 ### TEST-MKP-009
@@ -162,9 +162,9 @@ Verify the lab can discover mkp-hid-pi, authenticate to the .NET Pi HID service,
 
 **Acceptance Criteria:**
 - [x] With MKP_HARDWARE_E2E=1 and missing Pi/network/token/target, the test fails with the missing prerequisite named. (evidence: tests\MouseKeyProxy.Compliance.Tests\HardwareHidComplianceTests.cs)
-- [x] mkp hid provision-check reports network status, .NET HID service status, and expected HID device evidence locations. (evidence: docs\receipts-hid-provision-20260707T103933Z.txt)
+- [x] mkp hid provision-check reports network status, .NET HID service status, and expected HID device evidence locations. (evidence: docs\historical\receipts\receipts-hid-provision-20260707T103933Z.txt)
 - [x] Compliance tests fail if the HID appliance path introduces Python implementation files or runtime dependencies. (evidence: dotnet test tests\MouseKeyProxy.Compliance.Tests -c Release --filter Category=HardwareHID)
-- [x] The hardware discovery receipt records source host, target host, Pi host, timestamp, and observed PnP/network state. (evidence: docs\receipts-hid-provision-20260707T103933Z.txt)
+- [x] The hardware discovery receipt records source host, target host, Pi host, timestamp, and observed PnP/network state. (evidence: docs\historical\receipts\receipts-hid-provision-20260707T103933Z.txt)
 
 ### TEST-MKP-028
 
@@ -183,6 +183,56 @@ Verify relative mouse movement, zero-button release, and modifier cleanup throug
 - [ ] Relative mouse reports through Pi HID move the pointer on the controlled host while the source host retains a recoverable state.
 - [ ] Pi clear-modifiers emits all-up keyboard and mouse reports, and follow-up WindowProbe input is not contaminated by stuck modifiers.
 - [ ] After HID mouse test cleanup, the connected mouse on the gaining system is usable without Alt-Tab.
+
+### TEST-MKP-030
+
+Verify that setup-configfs-gadget.sh (and the rufus firstrun writer payload) write binary HID report descriptors (keyboard 63 bytes starting 0x05, mouse 52 bytes) rather than ASCII \xHH text. Validates the dash-printf regression that caused /dev/hidg* EAGAIN when host never polled IN endpoint.
+
+
+### TEST-MKP-038
+
+Allowlist only UsbConnectedPc and PairedHost IPs; updates on pair/revoke.
+
+
+### TEST-MKP-040
+
+setup-configfs-gadget.sh contains mass_storage LUNs and binary HID descriptors.
+
+
+### TEST-MKP-044
+
+Save/reload and seed import once when empty under temp path.
+
+
+### TEST-MKP-045
+
+Non-allowlisted client IP denied for share RPCs.
+
+
+### TEST-MKP-046
+
+Correct code consumes once; wrong/expired fails; lockout after failures.
+
+
+### TEST-MKP-047
+
+Deploy layout documents MKP-DEPLOY folders.
+
+
+### TEST-MKP-048
+
+A card written by Rufus MKP from the default profile onto a genuine stock Raspberry Pi OS trixie lite image boots with no keyboard and no console interaction: the RPi first-run user wizard does not block the console; the profile user is created with the authorized ssh key; wlan0 joins the configured SSID using the set regulatory country; sshd listens; and key-based ssh to the profile user over wifi succeeds. The post-write remount survives a transient "Access is denied" without failing the write (no ERROR_CANT_PATCH). Verified on 2026-06-18-raspios-trixie-arm64-lite: ssh mkp@<ip> with the ed25519 key returns the mkp uid/groups; /etc/passwd shows the created user; systemctl reports userconfig disabled.
+
+
+### TEST-MKP-049
+
+Verify authenticated gRPC management of the configured device thumb-drive or share root, including positive CRUD roundtrips, sandbox enforcement, authorization, chunked transfer behavior, and safe failure semantics.
+
+**Acceptance Criteria:**
+- [ ] A paired host can list, upload, download, replace, create a directory, rename or move, and delete test content through the gRPC storage surface.
+- [ ] Traversal, absolute-path, and link-escape attempts are rejected before filesystem access and cannot modify content outside the configured root.
+- [ ] Interrupted or rejected writes leave no partial destination and return the documented structured error.
+- [ ] Unpaired, revoked, and non-allowlisted callers cannot list metadata or read or mutate device content.
 
 
 ## TEST-OWNERSHIP

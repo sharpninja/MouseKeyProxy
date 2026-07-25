@@ -719,18 +719,18 @@ public class Win32HotkeyMonitor : IHotkeyMonitor
         if (IsKeyDownMessage(message))
         {
             // Dedicated emergency-release hotkey takes precedence over toggle.
-            if (MatchesChord(data.vkCode, _config.EmergencyReleaseVk, _config.EmergencyReleaseMods) || IsCtrlAltF3(data.vkCode))
+            if (MatchesChord(data.vkCode, _config.EmergencyReleaseVk, _config.EmergencyReleaseMods) || IsEmergencyReleaseF3(data.vkCode))
             {
-                RaiseEmergencyRelease("Ctrl-Alt-F3", false);
+                RaiseEmergencyRelease("Any-two-modifiers-F3", false);
                 return new IntPtr(1);
             }
 
-            // Toggle: configured binding (default Ctrl-Win-F1), plus legacy Ctrl-Alt-F1/F2 for back-compat.
-            if (MatchesChord(data.vkCode, _config.ToggleVk, _config.ToggleMods) || IsCtrlWinF1(data.vkCode) || IsCtrlAltF1(data.vkCode) || IsCtrlAltF2(data.vkCode))
+            // Remote activation: configured binding, fixed any-two-modifiers F1, plus legacy Ctrl-Alt-F2.
+            if (MatchesChord(data.vkCode, _config.ToggleVk, _config.ToggleMods) || IsRemoteActivationF1(data.vkCode) || IsCtrlAltF2(data.vkCode))
             {
-                var chord = MatchesChord(data.vkCode, _config.ToggleVk, _config.ToggleMods) || IsCtrlWinF1(data.vkCode)
-                    ? "Ctrl-Win-F1"
-                    : (data.vkCode == VK_F2 ? "Ctrl-Alt-F2" : "Ctrl-Alt-F1");
+                var chord = IsRemoteActivationF1(data.vkCode)
+                    ? "Any-two-modifiers-F1"
+                    : (data.vkCode == VK_F2 ? "Ctrl-Alt-F2" : "Configured-toggle");
                 RaiseToggle(chord, false);
                 return new IntPtr(1);
             }
@@ -798,14 +798,9 @@ public class Win32HotkeyMonitor : IHotkeyMonitor
         return message is WM_KEYDOWN or WM_SYSKEYDOWN;
     }
 
-    private bool IsCtrlWinF1(uint vk)
+    private bool IsRemoteActivationF1(uint vk)
     {
-        return vk == VK_F1 && IsControlDown() && IsWinDown();
-    }
-
-    private bool IsCtrlAltF1(uint vk)
-    {
-        return vk == VK_F1 && IsControlDown() && IsAltDown();
+        return RemoteActivationChord.Matches(vk, IsControlDown(), IsAltDown(), IsWinDown());
     }
 
     private bool IsCtrlAltF2(uint vk)
@@ -813,9 +808,9 @@ public class Win32HotkeyMonitor : IHotkeyMonitor
         return vk == VK_F2 && IsControlDown() && IsAltDown();
     }
 
-    private bool IsCtrlAltF3(uint vk)
+    private bool IsEmergencyReleaseF3(uint vk)
     {
-        return vk == VK_F3 && IsControlDown() && IsAltDown();
+        return EmergencyReleaseChord.Matches(vk, IsControlDown(), IsAltDown(), IsWinDown());
     }
 
     private bool IsControlDown() => _ctrlDown || IsKeyDownAsync(VK_CONTROL) || IsKeyDownAsync(VK_LCONTROL) || IsKeyDownAsync(VK_RCONTROL);

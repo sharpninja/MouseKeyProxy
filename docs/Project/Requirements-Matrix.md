@@ -1,10 +1,9 @@
-# Requirements Matrix (MouseKeyProxy)
+# Requirements Matrix (MCP Server)
 
-Traceability is validated in CI by the Nuke `ValidateTraceability` target, which parses this matrix and
-the requirement docs for malformed rows, orphan matrix entries, and dangling trace links.
+Traceability policy: see `Requirements-Traceability-Policy.md`.
 
-| Requirement | Type | Status | Source File | Traceability |
-| --- | --- | --- | --- | --- |
+| Requirement | Status | Source Files |
+| --- | --- | --- |
 | FR-HOTKEY-001 | Functional | Tracked | Functional-Requirements.md | TR-HOTKEY-CONTRACT-001; TEST-HOTKEY-001 |
 | FR-OWNERSHIP-001 | Functional | Tracked | Functional-Requirements.md | TR-OWNERSHIP-CONTRACT-001; TEST-OWNERSHIP-001 |
 | FR-MKP-001 | Functional | Tracked | Functional-Requirements.md | TR-MKP-INPUT-001, TR-MKP-RELI-001, TR-MKP-REPL-001; TEST-MKP-001, TEST-MKP-008, TEST-MKP-012 |
@@ -66,3 +65,31 @@ the requirement docs for malformed rows, orphan matrix entries, and dangling tra
 | TEST-MKP-027 | Test | Tracked | Testing-Requirements.md | FR-MKP-012; TR-MKP-HID-001 |
 | TEST-MKP-028 | Test | Tracked | Testing-Requirements.md | FR-MKP-012; TR-MKP-HID-001 |
 | TEST-MKP-029 | Test | Tracked | Testing-Requirements.md | FR-MKP-012; TR-MKP-HID-001 |
+| FR-MKP-013 | Tracked | Functional-Requirements.md |
+| FR-MKP-014 | Tracked | Functional-Requirements.md |
+| FR-MKP-015 | Tracked | Functional-Requirements.md |
+| FR-MKP-016 | Tracked | Functional-Requirements.md |
+| FR-MKP-017 | Tracked | Functional-Requirements.md |
+| FR-MKP-018 | Tracked | Functional-Requirements.md |
+| FR-MKP-019 | Tracked | Functional-Requirements.md |
+| FR-MKP-020 | Tracked | Functional-Requirements.md |
+| FR-MKP-021 | Tracked | Functional-Requirements.md |
+| FR-MKP-022 | Tracked | Functional-Requirements.md |
+| FR-MKP-023 | Tracked | Functional-Requirements.md |
+| TR-MKP-CFG-001 | Tracked | Technical-Requirements.md |
+| TR-MKP-HID-002 | Tracked | Technical-Requirements.md |
+| TR-MKP-HID-003 | Tracked | Technical-Requirements.md |
+| TR-MKP-HID-007 | Tracked | Technical-Requirements.md |
+| TR-MKP-HID-008 | Tracked | Technical-Requirements.md |
+| TR-MKP-PROV-001 | Tracked | Technical-Requirements.md |
+| TR-MKP-SEC-PAIR-001 | Tracked | Technical-Requirements.md |
+| TR-MKP-XFER-004 | Tracked | Technical-Requirements.md |
+| TEST-MKP-030 | Tracked | Testing-Requirements.md |
+| TEST-MKP-038 | Tracked | Testing-Requirements.md |
+| TEST-MKP-040 | Tracked | Testing-Requirements.md |
+| TEST-MKP-044 | Tracked | Testing-Requirements.md |
+| TEST-MKP-045 | Tracked | Testing-Requirements.md |
+| TEST-MKP-046 | Tracked | Testing-Requirements.md |
+| TEST-MKP-047 | Tracked | Testing-Requirements.md |
+| TEST-MKP-048 | Tracked | Testing-Requirements.md |
+| TEST-MKP-049 | Tracked | Testing-Requirements.md |
