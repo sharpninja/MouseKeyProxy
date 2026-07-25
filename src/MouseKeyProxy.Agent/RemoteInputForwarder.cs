@@ -7,6 +7,7 @@ using System.Runtime.InteropServices;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Windows.Forms;
+using Grpc.Core;
 using Grpc.Net.Client;
 using MouseKeyProxy.Common;
 using Wire = MouseKeyProxy.Network.V1;
@@ -35,8 +36,16 @@ public sealed class RemoteInputForwarder : IDisposable
 
     private const uint VK_F1 = 0x70;
     private const uint VK_F2 = 0x71;
+    private const uint VK_F3 = 0x72;
     private const uint VK_CONTROL = 0x11;
     private const uint VK_MENU = 0x12;
+    private const uint VK_SHIFT = 0x10;
+    private const uint VK_LWIN = 0x5B;
+    private const uint VK_RWIN = 0x5C;
+    private const uint VK_LCONTROL = 0xA2;
+    private const uint VK_RCONTROL = 0xA3;
+    private const uint VK_LMENU = 0xA4;
+    private const uint VK_RMENU = 0xA5;
 
     private const uint MOUSEEVENTF_LEFTDOWN = 0x0002;
     private const uint MOUSEEVENTF_LEFTUP = 0x0004;
@@ -65,15 +74,33 @@ public sealed class RemoteInputForwarder : IDisposable
     private readonly Func<string, GrpcChannel?>? _channelFactory;
     private readonly ConnectionFailsafe _failsafe = new();
     private Task? _watchdog;
+    private int _lastMouseX = int.MinValue;
+    private int _lastMouseY = int.MinValue;
+    private int _captureCenterX;
+    private int _captureCenterY;
+    private readonly HotkeyConfig _hotkeys;
+    private bool _ctrlDown;
+    private bool _altDown;
+    private bool _shiftDown;
+    private bool _winDown;
+    /// <summary>Raised when failsafe gives up and falls back to local input.</summary>
+    public event EventHandler? FallbackToLocal;
+    /// <summary>
+    /// Raised when the forwarder's own hook sees toggle/emergency while active.
+    /// Must stop capture here: the hotkey monitor often never sees the chord because this hook runs first and would otherwise eat it.
+    /// </summary>
+    public event EventHandler<ForwarderEscapeEventArgs>? EscapeRequested;
 
     /// <summary>Creates the forwarder.</summary>
     /// <param name="channelFactory">
     /// TR-MKP-SEC-001: optional factory that builds a mutually-authenticated channel for a remote URL
     /// (returns null when unpaired). When omitted, a plain channel is used (test/local paths).
     /// </param>
-    public RemoteInputForwarder(Func<string, GrpcChannel?>? channelFactory = null)
+    /// <param name="hotkeys">Toggle/emergency chords (same config as the tray hotkey monitor).</param>
+    public RemoteInputForwarder(Func<string, GrpcChannel?>? channelFactory = null, HotkeyConfig? hotkeys = null)
     {
         _channelFactory = channelFactory;
+        _hotkeys = hotkeys ?? new HotkeyConfig();
         _keyboardProc = KeyboardHookCallback;
         _mouseProc = MouseHookCallback;
     }
@@ -100,6 +127,14 @@ public sealed class RemoteInputForwarder : IDisposable
             RemoteUrl = remoteUrl;
             _queue = new BlockingCollection<InputEvent>(boundedCapacity: 4096);
             _stop = new CancellationTokenSource();
+            var bounds = System.Windows.Forms.Screen.PrimaryScreen?.Bounds
+                ?? new System.Drawing.Rectangle(0, 0, 800, 600);
+            _captureCenterX = bounds.Left + bounds.Width / 2;
+            _captureCenterY = bounds.Top + bounds.Height / 2;
+            _lastMouseX = _captureCenterX;
+            _lastMouseY = _captureCenterY;
+            _ctrlDown = _altDown = _shiftDown = _winDown = false;
+            SetCursorPos(_captureCenterX, _captureCenterY);
             _channel = _channelFactory is not null
                 ? _channelFactory(remoteUrl) ?? throw new InvalidOperationException("No paired credential for remote input forwarding.")
                 : GrpcChannel.ForAddress(remoteUrl, new GrpcChannelOptions
@@ -111,7 +146,17 @@ public sealed class RemoteInputForwarder : IDisposable
             _sender = Task.Run(() => SendLoopAsync(_stop.Token));
             _watchdog = Task.Run(() => WatchdogAsync(_stop.Token));
 
-            _rawMouseWindow = new RawMouseInputWindow(OnRawMouseDelta);
+            try
+            {
+                _rawMouseWindow = new RawMouseInputWindow(OnRawMouseDelta);
+            }
+            catch (Exception ex)
+            {
+                // LL-hook relative deltas still work if raw input registration fails (e.g. some RDP sessions).
+                Debug.WriteLine($"MouseKeyProxy raw mouse registration failed: {ex.Message}");
+                _rawMouseWindow = null;
+            }
+
             _passThroughUntilUtc = DateTimeOffset.UtcNow.AddMilliseconds(300);
             _keyboardHook = SetHook(WH_KEYBOARD_LL, _keyboardProc);
             _mouseHook = SetHook(WH_MOUSE_LL, _mouseProc);
@@ -126,11 +171,18 @@ public sealed class RemoteInputForwarder : IDisposable
         }
     }
 
-    public void Stop()
+    /// <summary>
+    /// Stops capture and restores host keyboard/mouse immediately.
+    /// </summary>
+    /// <param name="releaseRemoteModifiers">
+    /// When true, attempts a best-effort remote modifier clear on a background thread.
+    /// Never blocks the caller on peer RPC (LL-hook and UI escape paths must stay non-blocking).
+    /// </param>
+    public void Stop(bool releaseRemoteModifiers = true)
     {
         lock (_gate)
         {
-            StopCore(sendModifierRelease: true);
+            StopCore(sendModifierRelease: releaseRemoteModifiers);
         }
     }
 
@@ -143,7 +195,7 @@ public sealed class RemoteInputForwarder : IDisposable
                 return;
             }
 
-            StopCore(sendModifierRelease: true);
+            StopCore(sendModifierRelease: false);
             _disposed = true;
         }
     }
@@ -241,16 +293,17 @@ public sealed class RemoteInputForwarder : IDisposable
             {
                 break;
             }
-            catch (InvalidOperationException)
-            {
-                break;
-            }
             catch (Exception ex)
             {
-                // Observe (do not swallow) send faults: mark the channel disconnected so the watchdog
-                // can enforce the reconnect give-up / force-release deadlines.
-                _failsafe.OnDisconnected();
                 Debug.WriteLine($"MouseKeyProxy remote input send failed: {ex.Message}");
+                if (IsDeviceHidLost(ex.Message, err: null))
+                {
+                    RequestHidLostFallback(ex.Message);
+                    break;
+                }
+
+                // Soft fault: mark disconnected; watchdog may give up later.
+                _failsafe.OnDisconnected();
             }
             finally
             {
@@ -277,15 +330,107 @@ public sealed class RemoteInputForwarder : IDisposable
             request.Events.Add(ToWire(input));
         }
 
-        var response = await _client.InjectInputAsync(request, cancellationToken: ct).ResponseAsync.ConfigureAwait(false);
+        // Hard deadline so a dead Pi / stuck HID never freezes the send loop (or later Stop).
+        using var timeoutCts = CancellationTokenSource.CreateLinkedTokenSource(ct);
+        timeoutCts.CancelAfter(TimeSpan.FromMilliseconds(800));
+        var deadline = DateTime.UtcNow.AddMilliseconds(800);
+        Wire.CommandResult response;
+        try
+        {
+            response = await _client
+                .InjectInputAsync(request, deadline: deadline, cancellationToken: timeoutCts.Token)
+                .ResponseAsync
+                .ConfigureAwait(false);
+        }
+        catch (Exception ex) when (IsDeviceHidLost(ex.Message, err: null) || IsTransportTimeout(ex))
+        {
+            if (IsDeviceHidLost(ex.Message, err: null))
+            {
+                RequestHidLostFallback(ex.Message);
+            }
+            else
+            {
+                Debug.WriteLine($"MouseKeyProxy remote input timed out: {ex.Message}");
+                _failsafe.OnDisconnected();
+            }
+
+            return;
+        }
+
         if (response.Ok)
         {
             // Successful ack is proof of peer liveness - resets the force-release deadline.
             _failsafe.OnHeartbeat();
+            return;
         }
-        else
+
+        Debug.WriteLine($"MouseKeyProxy remote input rejected: {response.Err} {response.Msg}");
+        if (IsDeviceHidLost(response.Msg, response.Err))
         {
-            Debug.WriteLine($"MouseKeyProxy remote input rejected: {response.Err} {response.Msg}");
+            RequestHidLostFallback($"{response.Err}: {response.Msg}");
+            return;
+        }
+
+        _failsafe.OnDisconnected();
+    }
+
+    private static bool IsTransportTimeout(Exception ex)
+    {
+        return ex is OperationCanceledException
+            || ex is TimeoutException
+            || (ex is RpcException rpc && (rpc.StatusCode == StatusCode.DeadlineExceeded || rpc.StatusCode == StatusCode.Cancelled))
+            || ex.Message.Contains("DeadlineExceeded", StringComparison.OrdinalIgnoreCase)
+            || ex.Message.Contains("canceled", StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// TR-MKP-RELI-001: when the Pi loses USB HID to the host PC, restore local control immediately.
+    /// </summary>
+    private static bool IsDeviceHidLost(string? message, string? err)
+    {
+        if (!string.IsNullOrWhiteSpace(err) &&
+            err.Contains("DEVICE_HID_DISCONNECTED", StringComparison.OrdinalIgnoreCase))
+        {
+            return true;
+        }
+
+        if (string.IsNullOrWhiteSpace(message))
+        {
+            return false;
+        }
+
+        return message.Contains("DEVICE_HID_DISCONNECTED", StringComparison.OrdinalIgnoreCase)
+            || message.Contains("ESHUTDOWN", StringComparison.OrdinalIgnoreCase)
+            || message.Contains("not attached", StringComparison.OrdinalIgnoreCase)
+            || message.Contains("Broken pipe", StringComparison.OrdinalIgnoreCase)
+            || message.Contains("No such device", StringComparison.OrdinalIgnoreCase);
+    }
+
+    private void RequestHidLostFallback(string detail)
+    {
+        Debug.WriteLine($"MouseKeyProxy HID link lost: {detail}");
+        try
+        {
+            lock (_gate)
+            {
+                if (IsActive)
+                {
+                    StopCore(sendModifierRelease: false);
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            Debug.WriteLine($"MouseKeyProxy HID-loss StopCore failed: {ex.Message}");
+        }
+
+        try
+        {
+            FallbackToLocal?.Invoke(this, EventArgs.Empty);
+        }
+        catch (Exception ex)
+        {
+            Debug.WriteLine($"MouseKeyProxy HID-loss FallbackToLocal failed: {ex.Message}");
         }
     }
 
@@ -309,13 +454,38 @@ public sealed class RemoteInputForwarder : IDisposable
             if (_failsafe.ShouldForceRelease())
             {
                 Debug.WriteLine("MouseKeyProxy failsafe: peer silent past deadline; force-releasing modifiers.");
-                TrySendModifierRelease();
-                _failsafe.OnReleased();
+                var client = _client;
+                if (client is not null)
+                {
+                    try
+                    {
+                        await SendModifierReleaseAsync(client).ConfigureAwait(false);
+                    }
+                    catch (Exception ex)
+                    {
+                        Debug.WriteLine($"MouseKeyProxy failsafe modifier release failed: {ex.Message}");
+                    }
+                }
+
+                // Keep forwarding active; only release stuck modifiers until reconnect or give-up.
+                _failsafe.OnHeartbeat(); // avoid hammering release every 250ms while still active
             }
             else if (_failsafe.ShouldGiveUpReconnect())
             {
                 Debug.WriteLine("MouseKeyProxy failsafe: reconnect window exceeded; falling back to local input.");
-                _failsafe.OnReleased();
+                lock (_gate)
+                {
+                    StopCore(sendModifierRelease: true);
+                }
+
+                try
+                {
+                    FallbackToLocal?.Invoke(this, EventArgs.Empty);
+                }
+                catch (Exception ex)
+                {
+                    Debug.WriteLine($"MouseKeyProxy FallbackToLocal handler failed: {ex.Message}");
+                }
             }
         }
     }
@@ -327,6 +497,8 @@ public sealed class RemoteInputForwarder : IDisposable
             return;
         }
 
+        // Host input must return before any peer RPC. Unhook first so Ctrl-Win-F1 / emergency
+        // never waits on a hung Pi or dead HID link.
         IsActive = false;
 
         if (_keyboardHook != IntPtr.Zero)
@@ -344,80 +516,188 @@ public sealed class RemoteInputForwarder : IDisposable
         _rawMouseWindow?.Dispose();
         _rawMouseWindow = null;
 
-        if (sendModifierRelease)
-        {
-            TrySendModifierRelease();
-        }
-
         _failsafe.OnReleased();
         _stop?.Cancel();
         _queue?.CompleteAdding();
-        try { _sender?.Wait(TimeSpan.FromSeconds(1)); } catch { }
+
+        // Brief join only: never stall escape for network completion.
+        try { _sender?.Wait(TimeSpan.FromMilliseconds(250)); } catch { }
         _sender = null;
-        try { _watchdog?.Wait(TimeSpan.FromSeconds(1)); } catch { }
+        try { _watchdog?.Wait(TimeSpan.FromMilliseconds(250)); } catch { }
         _watchdog = null;
         _stop?.Dispose();
         _stop = null;
         _queue?.Dispose();
         _queue = null;
-        _channel?.Dispose();
-        _channel = null;
+
+        var client = _client;
+        var channel = _channel;
         _client = null;
+        _channel = null;
         RemoteUrl = null;
+
+        if (sendModifierRelease && client is not null)
+        {
+            // Background best-effort clear; never block hook/UI threads.
+            _ = Task.Run(async () =>
+            {
+                try
+                {
+                    await SendModifierReleaseAsync(client).ConfigureAwait(false);
+                }
+                catch (Exception ex)
+                {
+                    Debug.WriteLine($"MouseKeyProxy remote modifier release failed: {ex.Message}");
+                }
+                finally
+                {
+                    try { channel?.Dispose(); } catch { /* ignore */ }
+                }
+            });
+        }
+        else
+        {
+            try { channel?.Dispose(); } catch { /* ignore */ }
+        }
     }
 
-    private void TrySendModifierRelease()
+    private static async Task SendModifierReleaseAsync(Wire.MouseKeyProxy.MouseKeyProxyClient client)
     {
-        if (_client is null)
+        var request = new Wire.InjectInputRequest
         {
-            return;
+            ProtocolVersion = "v1",
+            PeerId = Environment.MachineName,
+            CorrelationId = Guid.NewGuid().ToString("N")
+        };
+        foreach (var input in ModifierReleasePolicy.CreateKeyUpEvents())
+        {
+            request.Events.Add(ToWire(input));
         }
 
-        try
-        {
-            // Bounded wait (not an unbounded .GetResult()): teardown still sends the release before
-            // the channel is disposed, but a hung remote can never freeze the caller indefinitely.
-            // SendBatchAsync awaits with ConfigureAwait(false), so this cannot deadlock the UI thread.
-            if (!SendBatchAsync(ModifierReleasePolicy.CreateKeyUpEvents(), CancellationToken.None).Wait(TimeSpan.FromSeconds(2)))
-            {
-                Debug.WriteLine("MouseKeyProxy remote modifier release timed out after 2s.");
-            }
-        }
-        catch (Exception ex)
-        {
-            Debug.WriteLine($"MouseKeyProxy remote modifier release failed: {ex.Message}");
-        }
+        using var cts = new CancellationTokenSource(TimeSpan.FromMilliseconds(750));
+        var call = client.InjectInputAsync(request, deadline: DateTime.UtcNow.AddMilliseconds(750), cancellationToken: cts.Token);
+        await call.ResponseAsync.ConfigureAwait(false);
     }
 
     private IntPtr KeyboardHookCallback(int nCode, IntPtr wParam, IntPtr lParam)
     {
-        if (nCode >= 0 && IsActive && DateTimeOffset.UtcNow >= _passThroughUntilUtc)
+        if (nCode < 0)
         {
-            var data = Marshal.PtrToStructure<KBDLLHOOKSTRUCT>(lParam);
-            if (!IsToggleChord(data.vkCode))
-            {
-                var input = TranslateKeyboardMessage(wParam.ToInt32(), data.vkCode, data.scanCode, data.flags);
-                if (input != null && TryEnqueue(input))
-                {
-                    return new IntPtr(1);
-                }
-            }
+            return CallNextHookEx(_keyboardHook, nCode, wParam, lParam);
+        }
+
+        var message = wParam.ToInt32();
+        var data = Marshal.PtrToStructure<KBDLLHOOKSTRUCT>(lParam);
+        var isDown = message is WM_KEYDOWN or WM_SYSKEYDOWN;
+        UpdateTrackedModifiers(data.vkCode, isDown);
+
+        if (!IsActive || DateTimeOffset.UtcNow < _passThroughUntilUtc)
+        {
+            return CallNextHookEx(_keyboardHook, nCode, wParam, lParam);
+        }
+
+        // Escape chords must never be forwarded to the Pi; they restore host control.
+        if (isDown && IsEmergencyChord(data.vkCode))
+        {
+            RequestEscape(emergency: true);
+            return new IntPtr(1); // consume so Pi does not see F3
+        }
+
+        if (isDown && IsToggleChord(data.vkCode))
+        {
+            RequestEscape(emergency: false);
+            return new IntPtr(1); // consume; we already restored local
+        }
+
+        var input = TranslateKeyboardMessage(message, data.vkCode, data.scanCode, data.flags);
+        if (input != null && TryEnqueue(input))
+        {
+            return new IntPtr(1);
         }
 
         return CallNextHookEx(_keyboardHook, nCode, wParam, lParam);
+    }
+
+    private void RequestEscape(bool emergency)
+    {
+        // Stop hooks first with no peer wait. Host must regain input even if the Pi is dead.
+        try
+        {
+            lock (_gate)
+            {
+                if (IsActive)
+                {
+                    StopCore(sendModifierRelease: true);
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            Debug.WriteLine($"MouseKeyProxy escape StopCore failed: {ex.Message}");
+        }
+
+        try
+        {
+            EscapeRequested?.Invoke(this, new ForwarderEscapeEventArgs(emergency));
+        }
+        catch (Exception ex)
+        {
+            Debug.WriteLine($"MouseKeyProxy EscapeRequested handler failed: {ex.Message}");
+        }
+    }
+
+    private void UpdateTrackedModifiers(uint vk, bool isDown)
+    {
+        switch (vk)
+        {
+            case VK_CONTROL:
+            case VK_LCONTROL:
+            case VK_RCONTROL:
+                _ctrlDown = isDown;
+                break;
+            case VK_MENU:
+            case VK_LMENU:
+            case VK_RMENU:
+                _altDown = isDown;
+                break;
+            case VK_SHIFT:
+            case 0xA0:
+            case 0xA1:
+                _shiftDown = isDown;
+                break;
+            case VK_LWIN:
+            case VK_RWIN:
+                _winDown = isDown;
+                break;
+        }
     }
 
     private IntPtr MouseHookCallback(int nCode, IntPtr wParam, IntPtr lParam)
     {
         if (nCode >= 0 && IsActive && DateTimeOffset.UtcNow >= _passThroughUntilUtc)
         {
-            if (wParam.ToInt32() == WM_MOUSEMOVE)
+            var message = wParam.ToInt32();
+            var data = Marshal.PtrToStructure<MSLLHOOKSTRUCT>(lParam);
+
+            // Relative deltas from LL hook, then re-center host cursor (1px ClipCursor yields dx=0).
+            if (message == WM_MOUSEMOVE)
             {
+                var dx = data.pt.x - _lastMouseX;
+                var dy = data.pt.y - _lastMouseY;
+                var move = TranslateRawMouseDelta(dx, dy);
+                if (move != null)
+                {
+                    TryEnqueue(move);
+                }
+
+                // Keep host pointer parked so further moves produce fresh relative deltas.
+                SetCursorPos(_captureCenterX, _captureCenterY);
+                _lastMouseX = _captureCenterX;
+                _lastMouseY = _captureCenterY;
                 return new IntPtr(1);
             }
 
-            var data = Marshal.PtrToStructure<MSLLHOOKSTRUCT>(lParam);
-            var input = TranslateMouseMessage(wParam.ToInt32(), data.mouseData);
+            var input = TranslateMouseMessage(message, data.mouseData);
             if (input != null && TryEnqueue(input))
             {
                 return new IntPtr(1);
@@ -447,14 +727,60 @@ public sealed class RemoteInputForwarder : IDisposable
         return queue != null && !queue.IsAddingCompleted && queue.TryAdd(input);
     }
 
-    private static bool IsToggleChord(uint vk)
+    private bool IsToggleChord(uint vk)
     {
-        return (vk == VK_F1 || vk == VK_F2) && IsKeyDown(VK_CONTROL) && IsKeyDown(VK_MENU);
+        // Configured chord (default Ctrl-Win-F1) using hook-tracked modifiers (Win is unreliable via GetAsyncKeyState).
+        if (MatchesConfigured(_hotkeys.ToggleVk, _hotkeys.ToggleMods, vk))
+        {
+            return true;
+        }
+
+        // Legacy chords.
+        if (vk == VK_F1 && IsControlDown() && IsWinDown())
+        {
+            return true;
+        }
+
+        return (vk == VK_F1 || vk == VK_F2) && IsControlDown() && IsAltDown();
     }
+
+    private bool IsEmergencyChord(uint vk)
+    {
+        if (MatchesConfigured(_hotkeys.EmergencyReleaseVk, _hotkeys.EmergencyReleaseMods, vk))
+        {
+            return true;
+        }
+
+        // Legacy Ctrl-Alt-F3.
+        return vk == VK_F3 && IsControlDown() && IsAltDown();
+    }
+
+    private bool MatchesConfigured(uint targetVk, uint mods, uint vk)
+    {
+        if (vk != targetVk)
+        {
+            return false;
+        }
+
+        const uint modAlt = 0x0001, modControl = 0x0002, modShift = 0x0004, modWin = 0x0008;
+        if ((mods & modControl) != 0 && !IsControlDown()) return false;
+        if ((mods & modAlt) != 0 && !IsAltDown()) return false;
+        if ((mods & modShift) != 0 && !IsShiftDown()) return false;
+        if ((mods & modWin) != 0 && !IsWinDown()) return false;
+        return true;
+    }
+
+    private bool IsControlDown() => _ctrlDown || IsKeyDown(VK_CONTROL) || IsKeyDown(VK_LCONTROL) || IsKeyDown(VK_RCONTROL);
+
+    private bool IsAltDown() => _altDown || IsKeyDown(VK_MENU) || IsKeyDown(VK_LMENU) || IsKeyDown(VK_RMENU);
+
+    private bool IsShiftDown() => _shiftDown || IsKeyDown(VK_SHIFT);
+
+    private bool IsWinDown() => _winDown || IsKeyDown(VK_LWIN) || IsKeyDown(VK_RWIN);
 
     private static bool IsKeyDown(uint vk)
     {
-        return (GetAsyncKeyState((int)vk) & 0x8000) != 0;
+        return (GetAsyncKeyState((int)vk) & 0x8000) != 0 || (GetKeyState((int)vk) & 0x8000) != 0;
     }
 
     private static Wire.InputEvent ToWire(InputEvent input)
@@ -693,4 +1019,21 @@ public sealed class RemoteInputForwarder : IDisposable
 
     [DllImport("user32.dll")]
     private static extern short GetAsyncKeyState(int vKey);
+
+    [DllImport("user32.dll")]
+    private static extern short GetKeyState(int nVirtKey);
+
+    [DllImport("user32.dll")]
+    private static extern bool SetCursorPos(int x, int y);
+}
+
+/// <summary>Why the forwarder requested escape back to local control.</summary>
+public sealed class ForwarderEscapeEventArgs : EventArgs
+{
+    /// <summary>Creates the args.</summary>
+    /// <param name="emergency">True when Ctrl-Alt-F3 (or configured emergency) was used.</param>
+    public ForwarderEscapeEventArgs(bool emergency) => Emergency = emergency;
+
+    /// <summary>True for emergency-release chord; false for normal toggle-local chord.</summary>
+    public bool Emergency { get; }
 }

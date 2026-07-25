@@ -7,7 +7,7 @@ namespace MouseKeyProxy.Common;
 /// <summary>
 /// FR-MKP-001 / TR-MKP-RELI-001: user-configurable hotkey bindings for the toggle and the dedicated
 /// emergency-release. Modifier flags use the Win32 RegisterHotKey MOD_* values (ALT=1, CONTROL=2,
-/// SHIFT=4, WIN=8). Defaults: toggle Ctrl-Alt-F2, emergency-release Ctrl-Alt-F3 (distinct).
+/// SHIFT=4, WIN=8). Defaults: toggle Ctrl-Win-F1, emergency-release Ctrl-Alt-F3 (distinct).
 /// </summary>
 public sealed class HotkeyConfig
 {
@@ -17,11 +17,14 @@ public sealed class HotkeyConfig
     /// <summary>MOD_CONTROL (0x2) | MOD_SHIFT (0x4).</summary>
     public const uint ModCtrlShift = 0x0006;
 
-    /// <summary>Virtual key for the toggle hotkey (default VK_F2 = 0x71).</summary>
-    public uint ToggleVk { get; set; } = 0x71;
+    /// <summary>MOD_CONTROL (0x2) | MOD_WIN (0x8).</summary>
+    public const uint ModCtrlWin = 0x000A;
 
-    /// <summary>Modifier flags for the toggle hotkey (default Ctrl+Alt).</summary>
-    public uint ToggleMods { get; set; } = ModCtrlAlt;
+    /// <summary>Virtual key for the toggle hotkey (default VK_F1 = 0x70).</summary>
+    public uint ToggleVk { get; set; } = 0x70;
+
+    /// <summary>Modifier flags for the toggle hotkey (default Ctrl+Win).</summary>
+    public uint ToggleMods { get; set; } = ModCtrlWin;
 
     /// <summary>Virtual key for the dedicated emergency-release hotkey (default VK_F3 = 0x72).</summary>
     public uint EmergencyReleaseVk { get; set; } = 0x72;

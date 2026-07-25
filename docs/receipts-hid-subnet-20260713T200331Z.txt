@@ -1,0 +1,44 @@
+MouseKeyProxy HID subnet discovery receipt
+Timestamp UTC: 2026-07-13T20:03:31Z
+Scanner host: PAYTON-LEGION2
+Interface: Wi-Fi (index 16)
+Local IPv4: 192.168.1.127/24
+Subnet: 192.168.1.0/24
+Gateway: 192.168.1.1
+
+Name resolution
+- mkp-hid-pi: unresolved
+- mkp-hid-pi.local: unresolved
+- raspberrypi: unresolved
+- raspberrypi.local: unresolved
+
+Initial live hosts
+- 192.168.1.1, MAC D4-5D-64-EA-1C-D8, TCP 80
+- 192.168.1.77, MAC 94-B8-6D-CE-67-60
+- 192.168.1.113, MAC 02-95-01-BC-EA-AF
+- 192.168.1.119, MAC 04-27-28-A4-07-D4
+- 192.168.1.126, MAC D4-A6-51-A0-8F-B9
+- 192.168.1.127, local scanner, TCP 7147 and 50051 observed in separate probes
+- 192.168.1.130, MAC 80-A5-89-FC-02-F7, TCP 80 and 443
+- 192.168.1.162, MAC 40-1C-83-5E-15-69
+- 192.168.1.185, MAC 0A-D9-D5-04-CB-A9, TCP 80
+- 192.168.1.189, MAC D8-31-34-01-E6-39
+
+Expected service checks
+- Full /24 TCP scan on ports 22, 50051, and 8765: only local host 192.168.1.127:50051 responded.
+- UDP 50052 listener for 10 seconds: no discovery beacon received.
+- Existing Raspberry Pi OUI neighbor 192.168.1.148 / B8-27-EB-F6-D3-12 was not live during the initial scan.
+
+Delayed rescan
+- Existing hosts remained reachable.
+- New host 192.168.1.173 appeared with MAC 06-71-A4-93-04-65.
+- Raspberry Pi OUI neighbor 192.168.1.148 no longer appeared in the refreshed neighbor results.
+
+New candidate 192.168.1.173
+- MAC: 06-71-A4-93-04-65, locally administered; vendor identity unavailable.
+- ICMP: reachable, approximately 15 ms, TTL 64.
+- PTR/DNS/NetBIOS hostname: none.
+- TCP scan: no open ports across 1-1024, 50051, 50052, or 8765.
+
+Conclusion
+No host can yet be confirmed as the new MouseKeyProxy Pi. 192.168.1.173 appeared during the boot window and is a candidate, but it exposes no identifying hostname or expected service. The Pi provisioning/discovery gate remains open.

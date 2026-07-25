@@ -458,13 +458,13 @@ MouseKeyProxy client install (FR-MKP-024/025/026)
     AbsolutePath PiStageDirectory => OutputDirectory / "pi-stage";
 
     // FR-MKP-012: publish the Service + Repl for the Pi as ready-to-run, single-file, self-contained
-    // linux-arm64 - the artifacts rufus stages recursively into the rootfs. Trimming is intentionally
+    // linux-arm - the artifacts rufus stages recursively into the rootfs. Trimming is intentionally
     // NOT enabled: ASP.NET Core + gRPC is not trim-safe and would break at runtime on the Pi.
     Target PublishPi => _ => _
         .DependsOn(Compile)
         .Executes(() =>
         {
-            var flags = "-r linux-arm64 --self-contained true "
+            var flags = "-r linux-arm --self-contained true "
                 + "-p:PublishSingleFile=true -p:PublishReadyToRun=true "
                 + "-p:IncludeNativeLibrariesForSelfExtract=true -p:EnableCompressionInSingleFile=true";
 
@@ -550,7 +550,7 @@ MouseKeyProxy client install (FR-MKP-024/025/026)
         });
 
     /// <summary>
-    /// Stage a Raspberry Pi OS Lite arm64 image and launch Rufus with a saved profile.
+    /// Stage a Raspberry Pi OS Lite 32-bit ARM image and launch Rufus with a saved profile.
     /// With <c>--AutoWrite true</c> (default), runs unattended write + eject + exit via
     /// <c>--mkp-auto-write</c> and waits for completion. With <c>--AutoWrite false</c>,
     /// opens the GUI only (operator completes Start).
@@ -616,7 +616,7 @@ MouseKeyProxy client install (FR-MKP-024/025/026)
         .Executes(() => { });
 
     /// <summary>
-    /// Full SD-card build path: linux-arm64 Service/Repl (<see cref="PublishPi"/>),
+    /// Full SD-card build path: linux-arm Service/Repl (<see cref="PublishPi"/>),
     /// client MSI + install kit staged for MKP-DEPLOY (<see cref="StagePiInstallMedia"/>),
     /// then unattended Rufus image write + eject (<see cref="CreatePiImage"/> / AutoWrite).
     /// </summary>
@@ -897,8 +897,8 @@ MouseKeyProxy client install (FR-MKP-024/025/026)
     {
         var preferred = new[]
         {
-            stageDir / "raspios-lite-arm64.img",
-            stageDir / "raspios-lite-arm64.img.xz",
+            stageDir / "raspios-lite-armhf.img",
+            stageDir / "raspios-lite-armhf.img.xz",
         };
         foreach (var p in preferred)
         {

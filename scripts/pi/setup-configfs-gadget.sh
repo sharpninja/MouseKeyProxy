@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
-# MouseKeyProxy USB composite gadget: HID keyboard/mouse + ONE mass-storage LUN
-# presented to the host as a removable thumb drive.
+# MouseKeyProxy USB composite gadget: HID keyboard/mouse + optional mass-storage
+# + optional lab USB Ethernet (RNDIS for Windows, ECM for Linux hosts).
 #
 # Linux configfs mass_storage cannot bind a directory; it needs a block file.
 # This script keeps a VFAT image (default /var/lib/mousekeyproxy/thumb.img) and
@@ -8,23 +8,35 @@
 # host sees that folder as a single USB thumb drive.
 #
 # IMPORTANT: write report descriptors as binary, never as ASCII "\x05..." text.
-# /bin/sh on Raspberry Pi OS is dash, whose printf does NOT interpret \xHH.
+# /bin/sh on many Debian images is dash, whose printf does NOT interpret \xHH.
 # This script uses base64-decoded binary descriptors (safe under bash/dash when
 # invoked as `bash setup-configfs-gadget.sh`).
 #
+# Board support:
+#   Raspberry Pi Zero 2 W: load dwc2 (peripheral) + libcomposite; UDC is often
+#   20980000.usb. Enable only dtoverlay=dwc2,dr_mode=peripheral in config.txt.
+#   Orange Pi Zero 2 / Zero 2W: libcomposite + SoC UDC (often musb-hdrc.*). Do not
+#   require dwc2. Use the board USB-C *data/OTG* port (not power-only) in gadget mode.
+#
 # Env:
-#   MKP_THUMB_FOLDER     — host-visible folder (default /mnt/mkp-deploy/share)
-#   MKP_FS_DISK_IMAGE    — VFAT image path (default /var/lib/mousekeyproxy/thumb.img)
-#   MKP_THUMB_SIZE_MB    — image size when creating (default 256)
-#   MKP_THUMB_LABEL      — volume label (default MKP-SHARE)
-#   MKP_ENABLE_DISK=1    — bind lun.0 (default 1); 0 = HID-only
-#   MKP_HID_GADGET_NAME  — configfs gadget name (default mkp_hid)
-#   MKP_HID_UDC          — UDC name (default first under /sys/class/udc)
+#   MKP_THUMB_FOLDER     - host-visible folder (default /mnt/mkp-deploy/share)
+#   MKP_FS_DISK_IMAGE    - VFAT image path (default /var/lib/mousekeyproxy/thumb.img)
+#   MKP_THUMB_SIZE_MB    - image size when creating (default 384)
+#   MKP_THUMB_LABEL      - volume label (default MKP-SHARE)
+#   MKP_ENABLE_DISK=1    - bind lun.0 (default 1); 0 = no mass storage
+#   MKP_ENABLE_USB_NET=1 - bind RNDIS+ECM for lab SSH/debug (default 1)
+#   MKP_USB_NET_ADDR     - IPv4/CIDR on gadget net iface (default 192.168.7.2/24)
+#   MKP_HID_GADGET_NAME  - configfs gadget name (default mkp_hid)
+#   MKP_HID_UDC          - UDC name (default first under /sys/class/udc)
+#   MKP_BOARD_ID         - optional: raspberry-pi-zero-2 | orange-pi-zero-2 | orange-pi-zero-2w
+#
+# Lab host (Windows RNDIS or Linux ECM): set a static address on the new adapter,
+# e.g. 192.168.7.1/24, then: ssh mkp@192.168.7.2
 set -euo pipefail
 
 GADGET_NAME="${MKP_HID_GADGET_NAME:-mkp_hid}"
 GADGET_ROOT="/sys/kernel/config/usb_gadget/${GADGET_NAME}"
-UDC_NAME="${MKP_HID_UDC:-$(ls /sys/class/udc 2>/dev/null | head -n 1)}"
+UDC_NAME="${MKP_HID_UDC:-}"
 
 KEYBOARD_DESC_B64='BQEJBqEBBQcZ4CnnFQAlAXUBlQiBApUBdQiBAZUFdQEFCBkBKQWRApUBdQORAZUGdQgVACVlBQcZACllgQDA'
 MOUSE_DESC_B64='BQEJAqEBCQGhAAUJGQEpAxUAJQGVA3UBgQKVAXUFgQEFAQkwCTEJOBWBJX91CJUDgQbAwA=='
@@ -37,19 +49,40 @@ DISK_IMAGE="${MKP_FS_DISK_IMAGE:-/var/lib/mousekeyproxy/thumb.img}"
 THUMB_SIZE_MB="${MKP_THUMB_SIZE_MB:-384}"
 THUMB_LABEL="${MKP_THUMB_LABEL:-MKP-SHARE}"
 ENABLE_DISK="${MKP_ENABLE_DISK:-1}"
+ENABLE_USB_NET="${MKP_ENABLE_USB_NET:-1}"
+USB_NET_ADDR="${MKP_USB_NET_ADDR:-192.168.7.2/24}"
 
 if [[ "${EUID}" -ne 0 ]]; then
   echo "setup-configfs-gadget.sh must run as root" >&2
   exit 1
 fi
 
-if [[ -z "${UDC_NAME}" ]]; then
-  echo "no USB device controller found under /sys/class/udc" >&2
-  exit 1
+# Mount configfs when the distro did not already.
+if ! mountpoint -q /sys/kernel/config 2>/dev/null; then
+  mount -t configfs none /sys/kernel/config 2>/dev/null || true
 fi
 
+# Best-effort gadget modules for Raspberry Pi (dwc2) and Allwinner (musb/sunxi).
+# Failures are ignored: the decisive check is a UDC under /sys/class/udc.
+modprobe dwc2 2>/dev/null || true
+modprobe musb_hdrc 2>/dev/null || true
 modprobe libcomposite
+modprobe usb_f_hid 2>/dev/null || true
+modprobe usb_f_mass_storage 2>/dev/null || true
+modprobe usb_f_rndis 2>/dev/null || true
+modprobe usb_f_ecm 2>/dev/null || true
 modprobe loop 2>/dev/null || true
+
+if [[ -z "${UDC_NAME}" ]]; then
+  UDC_NAME="$(ls /sys/class/udc 2>/dev/null | head -n 1 || true)"
+fi
+
+if [[ -z "${UDC_NAME}" ]]; then
+  echo "no USB device controller found under /sys/class/udc" >&2
+  echo "Hints: Orange Pi Zero 2W needs the USB-C *data/OTG* port in peripheral mode;" >&2
+  echo "Raspberry Pi Zero 2 W needs dtoverlay=dwc2,dr_mode=peripheral." >&2
+  exit 1
+fi
 
 # ---------------------------------------------------------------------------
 # Ensure VFAT image exists and mirrors THUMB_FOLDER (one-way: folder -> image).
@@ -117,7 +150,7 @@ EOF
   echo "Thumb image ready: ${DISK_IMAGE} <= ${THUMB_FOLDER}"
 }
 
-# Tear down a previous instance so report_desc / LUNs can be rewritten.
+# Tear down a previous instance so report_desc / LUNs / net can be rewritten.
 if [[ -d "${GADGET_ROOT}" ]]; then
   if [[ -f "${GADGET_ROOT}/UDC" ]]; then
     echo "" > "${GADGET_ROOT}/UDC" || true
@@ -125,6 +158,8 @@ if [[ -d "${GADGET_ROOT}" ]]; then
   sleep 0.3
   rm -f "${GADGET_ROOT}/configs/c.1/hid.keyboard" "${GADGET_ROOT}/configs/c.1/hid.mouse" 2>/dev/null || true
   rm -f "${GADGET_ROOT}/configs/c.1/mass_storage.0" 2>/dev/null || true
+  rm -f "${GADGET_ROOT}/configs/c.1/rndis.usb0" "${GADGET_ROOT}/configs/c.1/ecm.usb0" 2>/dev/null || true
+  rm -f "${GADGET_ROOT}/os_desc/c.1" 2>/dev/null || true
   if [[ -d "${GADGET_ROOT}/functions/mass_storage.0" ]]; then
     for lun in lun.0 lun.1 lun.2 lun.3; do
       if [[ -d "${GADGET_ROOT}/functions/mass_storage.0/${lun}" ]]; then
@@ -136,10 +171,15 @@ if [[ -d "${GADGET_ROOT}" ]]; then
     rmdir "${GADGET_ROOT}/functions/mass_storage.0/lun.3" 2>/dev/null || true
     rmdir "${GADGET_ROOT}/functions/mass_storage.0" 2>/dev/null || true
   fi
+  rmdir "${GADGET_ROOT}/functions/rndis.usb0/os_desc/interface.rndis" 2>/dev/null || true
+  rmdir "${GADGET_ROOT}/functions/rndis.usb0/os_desc" 2>/dev/null || true
+  rmdir "${GADGET_ROOT}/functions/rndis.usb0" 2>/dev/null || true
+  rmdir "${GADGET_ROOT}/functions/ecm.usb0" 2>/dev/null || true
   rmdir "${GADGET_ROOT}/configs/c.1/strings/0x409" 2>/dev/null || true
   rmdir "${GADGET_ROOT}/configs/c.1" 2>/dev/null || true
   rmdir "${GADGET_ROOT}/functions/hid.keyboard" 2>/dev/null || true
   rmdir "${GADGET_ROOT}/functions/hid.mouse" 2>/dev/null || true
+  rmdir "${GADGET_ROOT}/os_desc" 2>/dev/null || true
   rmdir "${GADGET_ROOT}/strings/0x409" 2>/dev/null || true
   rmdir "${GADGET_ROOT}" 2>/dev/null || true
 fi
@@ -147,6 +187,7 @@ fi
 mkdir -p "${GADGET_ROOT}"
 
 echo 0x1d6b > "${GADGET_ROOT}/idVendor"
+# Multifunction composite (HID + storage + net); same class as common g_multi examples.
 echo 0x0104 > "${GADGET_ROOT}/idProduct"
 echo 0x0100 > "${GADGET_ROOT}/bcdDevice"
 echo 0x0200 > "${GADGET_ROOT}/bcdUSB"
@@ -160,11 +201,11 @@ fi
 [[ -n "${SER}" ]] || SER="MKP0001"
 printf '%s' "${SER}" > "${GADGET_ROOT}/strings/0x409/serialnumber"
 printf '%s' "MouseKeyProxy" > "${GADGET_ROOT}/strings/0x409/manufacturer"
-printf '%s' "MouseKeyProxy Pi Appliance" > "${GADGET_ROOT}/strings/0x409/product"
+printf '%s' "MouseKeyProxy HID+Net Appliance" > "${GADGET_ROOT}/strings/0x409/product"
 
 mkdir -p "${GADGET_ROOT}/configs/c.1/strings/0x409"
-printf '%s' "HID + Thumb Drive" > "${GADGET_ROOT}/configs/c.1/strings/0x409/configuration"
-# Self-powered: Pi has its own PSU.
+printf '%s' "HID + Thumb + USB Ethernet" > "${GADGET_ROOT}/configs/c.1/strings/0x409/configuration"
+# Self-powered: board has its own PSU on the power Type-C.
 echo 0xC0 > "${GADGET_ROOT}/configs/c.1/bmAttributes"
 echo 2 > "${GADGET_ROOT}/configs/c.1/MaxPower"
 
@@ -216,10 +257,176 @@ if [[ "${ENABLE_DISK}" == "1" ]]; then
   ln -sfn "${MS}" "${GADGET_ROOT}/configs/c.1/"
   echo "Bound single thumb LUN: ${DISK_IMAGE} (folder ${THUMB_FOLDER})"
 else
-  echo "MKP_ENABLE_DISK=0: HID-only gadget (no mass storage)"
+  echo "MKP_ENABLE_DISK=0: no mass storage LUN"
 fi
 
-echo "${UDC_NAME}" > "${GADGET_ROOT}/UDC"
+# --- Lab USB Ethernet: RNDIS (Windows) + ECM (Linux) ---
+# Windows needs Microsoft OS descriptors on the RNDIS function. Host should use
+# static 192.168.7.1/24; this board uses MKP_USB_NET_ADDR (default 192.168.7.2/24).
+HAVE_RNDIS=0
+HAVE_ECM=0
+if [[ "${ENABLE_USB_NET}" == "1" ]]; then
+  if [[ -d /sys/class/udc ]] && modprobe usb_f_rndis 2>/dev/null; then
+    :
+  fi
+  if mkdir -p "${GADGET_ROOT}/functions/rndis.usb0" 2>/dev/null; then
+    # Locally administered MACs (fixed for lab predictability).
+    printf '%s' "02:22:33:44:55:66" > "${GADGET_ROOT}/functions/rndis.usb0/dev_addr" 2>/dev/null || true
+    printf '%s' "02:22:33:44:55:67" > "${GADGET_ROOT}/functions/rndis.usb0/host_addr" 2>/dev/null || true
+
+    # Microsoft OS descriptors so Windows loads RNDIS automatically.
+    mkdir -p "${GADGET_ROOT}/os_desc"
+    echo 1 > "${GADGET_ROOT}/os_desc/use" 2>/dev/null || true
+    echo 0xcd > "${GADGET_ROOT}/os_desc/b_vendor_code" 2>/dev/null || true
+    printf '%s' "MSFT100" > "${GADGET_ROOT}/os_desc/qw_sign" 2>/dev/null || true
+    mkdir -p "${GADGET_ROOT}/functions/rndis.usb0/os_desc/interface.rndis" 2>/dev/null || true
+    printf '%s' "RNDIS" > "${GADGET_ROOT}/functions/rndis.usb0/os_desc/interface.rndis/compatible_id" 2>/dev/null || true
+    printf '%s' "5162001" > "${GADGET_ROOT}/functions/rndis.usb0/os_desc/interface.rndis/sub_compatible_id" 2>/dev/null || true
+    ln -sfn "${GADGET_ROOT}/configs/c.1" "${GADGET_ROOT}/os_desc/" 2>/dev/null || true
+
+    ln -sfn "${GADGET_ROOT}/functions/rndis.usb0" "${GADGET_ROOT}/configs/c.1/"
+    HAVE_RNDIS=1
+    echo "Bound RNDIS (Windows lab USB net)"
+  else
+    echo "WARNING: usb_f_rndis / rndis.usb0 not available; Windows USB net may not work" >&2
+  fi
+
+  if mkdir -p "${GADGET_ROOT}/functions/ecm.usb0" 2>/dev/null; then
+    printf '%s' "02:22:33:44:55:68" > "${GADGET_ROOT}/functions/ecm.usb0/dev_addr" 2>/dev/null || true
+    printf '%s' "02:22:33:44:55:69" > "${GADGET_ROOT}/functions/ecm.usb0/host_addr" 2>/dev/null || true
+    ln -sfn "${GADGET_ROOT}/functions/ecm.usb0" "${GADGET_ROOT}/configs/c.1/"
+    HAVE_ECM=1
+    echo "Bound ECM (Linux host USB net)"
+  else
+    echo "WARNING: usb_f_ecm / ecm.usb0 not available" >&2
+  fi
+
+  if [[ "${HAVE_RNDIS}" -eq 0 && "${HAVE_ECM}" -eq 0 ]]; then
+    echo "WARNING: MKP_ENABLE_USB_NET=1 but neither RNDIS nor ECM could be created" >&2
+  fi
+else
+  echo "MKP_ENABLE_USB_NET=0: no USB Ethernet (HID/storage only)"
+fi
+
+# ---------------------------------------------------------------------------
+# UDC bind with progressive fallback.
+# Orange Pi musb (and some dwc2 composites) often fail RNDIS with err -19 /
+# "Device or resource busy". HID + mass_storage still works; drop net and retry.
+# ---------------------------------------------------------------------------
+bind_gadget_to_udc() {
+  if echo "${UDC_NAME}" > "${GADGET_ROOT}/UDC" 2>/tmp/mkp-udc-bind.err; then
+    return 0
+  fi
+  return 1
+}
+
+clear_udc_slot() {
+  if [[ -f "${GADGET_ROOT}/UDC" ]]; then
+    echo "" > "${GADGET_ROOT}/UDC" 2>/dev/null || true
+  fi
+  sleep 0.3
+}
+
+strip_rndis() {
+  rm -f "${GADGET_ROOT}/configs/c.1/rndis.usb0" 2>/dev/null || true
+  rm -f "${GADGET_ROOT}/os_desc/c.1" 2>/dev/null || true
+  rmdir "${GADGET_ROOT}/functions/rndis.usb0/os_desc/interface.rndis" 2>/dev/null || true
+  rmdir "${GADGET_ROOT}/functions/rndis.usb0/os_desc" 2>/dev/null || true
+  rmdir "${GADGET_ROOT}/functions/rndis.usb0" 2>/dev/null || true
+  HAVE_RNDIS=0
+}
+
+strip_ecm() {
+  rm -f "${GADGET_ROOT}/configs/c.1/ecm.usb0" 2>/dev/null || true
+  rmdir "${GADGET_ROOT}/functions/ecm.usb0" 2>/dev/null || true
+  HAVE_ECM=0
+}
+
+udc_is_bound() {
+  local cur
+  cur="$(tr -d ' \n\r' < "${GADGET_ROOT}/UDC" 2>/dev/null || true)"
+  [[ -n "${cur}" ]]
+}
+
+if ! bind_gadget_to_udc; then
+  err="$(tr -d '\r' </tmp/mkp-udc-bind.err 2>/dev/null || true)"
+  echo "WARNING: full composite UDC bind failed on ${UDC_NAME} (${err:-unknown}); falling back" >&2
+
+  if [[ "${HAVE_RNDIS}" -eq 1 ]]; then
+    echo "WARNING: dropping RNDIS and retrying UDC bind (common musb -19/EBUSY with rndis)" >&2
+    clear_udc_slot
+    strip_rndis
+    if bind_gadget_to_udc; then
+      echo "WARNING: bound without RNDIS (HID+storage and/or ECM retained)" >&2
+    fi
+  fi
+fi
+
+if ! udc_is_bound; then
+  if [[ "${HAVE_RNDIS}" -eq 1 || "${HAVE_ECM}" -eq 1 ]]; then
+    echo "WARNING: dropping remaining USB net; falling back to HID+storage only" >&2
+    clear_udc_slot
+    [[ "${HAVE_RNDIS}" -eq 1 ]] && strip_rndis
+    [[ "${HAVE_ECM}" -eq 1 ]] && strip_ecm
+    if ! bind_gadget_to_udc; then
+      err="$(tr -d '\r' </tmp/mkp-udc-bind.err 2>/dev/null || true)"
+      echo "ERROR: UDC bind failed for HID+storage on ${UDC_NAME} (${err:-unknown})" >&2
+      exit 5
+    fi
+    echo "WARNING: bound HID+storage only after USB net UDC bind failure" >&2
+  else
+    err="$(tr -d '\r' </tmp/mkp-udc-bind.err 2>/dev/null || true)"
+    echo "ERROR: UDC bind failed on ${UDC_NAME} (${err:-unknown})" >&2
+    exit 5
+  fi
+fi
 
 chmod 0660 /dev/hidg0 /dev/hidg1 2>/dev/null || true
-echo "MouseKeyProxy composite gadget bound to ${UDC_NAME} (kb=${kb_len} ms=${ms_len} binary ok; single thumb LUN)"
+
+# Bring up gadget net interfaces with a static lab address for SSH debug.
+configure_usb_net_iface() {
+  local name="$1"
+  ip link set "${name}" up 2>/dev/null || return 1
+  ip addr flush dev "${name}" 2>/dev/null || true
+  if ip addr add "${USB_NET_ADDR}" dev "${name}" 2>/dev/null; then
+    echo "USB net ${name} address ${USB_NET_ADDR} (set host to .1/24 on the RNDIS/ECM adapter)"
+    return 0
+  fi
+  # Already configured is fine.
+  if ip -4 addr show dev "${name}" 2>/dev/null | grep -q "${USB_NET_ADDR%%/*}"; then
+    echo "USB net ${name} already has ${USB_NET_ADDR}"
+    return 0
+  fi
+  return 1
+}
+
+if [[ "${ENABLE_USB_NET}" == "1" && ( "${HAVE_RNDIS}" -eq 1 || "${HAVE_ECM}" -eq 1 ) ]]; then
+  sleep 0.5
+  configured=0
+  for _try in $(seq 1 40); do
+    for name in usb0 usb1; do
+      if [[ -d "/sys/class/net/${name}" ]]; then
+        if configure_usb_net_iface "${name}"; then
+          configured=1
+        fi
+      fi
+    done
+    # Some kernels name ECM as enx + host MAC without colons.
+    for path in /sys/class/net/enx*; do
+      [[ -e "${path}" ]] || continue
+      name="$(basename "${path}")"
+      if configure_usb_net_iface "${name}"; then
+        configured=1
+      fi
+    done
+    if [[ "${configured}" -eq 1 ]]; then
+      break
+    fi
+    sleep 0.25
+  done
+  if [[ "${configured}" -eq 0 ]]; then
+    echo "WARNING: gadget bound but no usb0/usb1/enx* yet; wait for host RNDIS install, then: ip addr add ${USB_NET_ADDR} dev usb0" >&2
+  fi
+fi
+
+echo "MouseKeyProxy composite gadget bound to ${UDC_NAME} (kb=${kb_len} ms=${ms_len}; disk=${ENABLE_DISK}; rndis=${HAVE_RNDIS}; ecm=${HAVE_ECM})"

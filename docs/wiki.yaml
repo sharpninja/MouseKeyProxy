@@ -44,16 +44,79 @@ documents:
   platforms:
   - github
   - azure
+- id: user-guide
+  title: User Guide
+  source: docs/USER-GUIDE.md
+  target: User-Guide.md
+  platforms:
+  - github
+  - azure
+- id: security-admin
+  title: Security Administration Guide
+  source: docs/SECURITY-ADMIN-GUIDE.md
+  target: Security-Admin-Guide.md
+  platforms:
+  - github
+  - azure
+- id: deploy-pi-service
+  title: Pi Service Deployment
+  source: docs/deployment/Pi-Service-Deployment.md
+  target: Pi-Service-Deployment.md
+  platforms:
+  - github
+  - azure
+- id: hardware-orange-pi
+  title: Orange Pi Zero 2 HID
+  source: docs/hardware/orange-pi-zero-2-hid.md
+  target: Orange-Pi-Zero-2-HID.md
+  platforms:
+  - github
+  - azure
+- id: hardware-pi-zero
+  title: Raspberry Pi Zero 2 HID
+  source: docs/hardware/pi-zero-2-hid.md
+  target: Raspberry-Pi-Zero-2-HID.md
+  platforms:
+  - github
+  - azure
+- id: development-process
+  title: Development Process (v4)
+  source: docs/Development-Process-draft-v4.md
+  target: Development-Process.md
+  platforms:
+  - github
+  - azure
+- id: readme
+  title: Project README
+  source: README.md
+  target: Project-README.md
+  platforms:
+  - github
+  - azure
 navigation:
 - document: home
-  children: &o0 []
+  children: []
+- document: user-guide
+  children: []
+- document: security-admin
+  children: []
+- document: deploy-pi-service
+  children: []
+- document: hardware-orange-pi
+  children: []
+- document: hardware-pi-zero
+  children: []
 - document: functional
-  children: *o0
+  children: []
 - document: technical
-  children: *o0
+  children: []
 - document: testing
-  children: *o0
+  children: []
 - document: mapping
-  children: *o0
+  children: []
 - document: matrix
-  children: *o0
+  children: []
+- document: development-process
+  children: []
+- document: readme
+  children: []

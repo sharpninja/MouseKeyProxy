@@ -39,7 +39,7 @@ public class HardwareHidComplianceTests
         Assert.Contains("C#/.NET 10", functional);
         Assert.Contains("no Python", functional, StringComparison.OrdinalIgnoreCase);
         Assert.Contains("TR-MKP-HID-001", technical);
-        Assert.Contains("linux-arm64", technical);
+        Assert.Contains("linux-arm", technical);
         Assert.Contains("TEST-MKP-027", testing);
         Assert.Contains("TEST-MKP-028", testing);
         Assert.Contains("TEST-MKP-029", testing);
@@ -58,10 +58,10 @@ public class HardwareHidComplianceTests
         var publish = File.ReadAllText(Path.Combine(RepoRoot, "scripts", "pi", "publish-pi-hid.ps1"));
 
         Assert.Contains("<TargetFramework>net10.0</TargetFramework>", piProject);
-        Assert.Contains("linux-arm64", piProject);
+        Assert.Contains("linux-arm", piProject);
         Assert.Contains("MouseKeyProxy.PiHid.csproj", solution);
-        Assert.Contains("dotnet publish src/MouseKeyProxy.PiHid/MouseKeyProxy.PiHid.csproj -c Release -r linux-arm64 --self-contained true", doc);
-        Assert.Contains("dotnet publish src/MouseKeyProxy.PiHid/MouseKeyProxy.PiHid.csproj -c $Configuration -r linux-arm64 --self-contained true", publish);
+        Assert.Contains("dotnet publish src/MouseKeyProxy.PiHid/MouseKeyProxy.PiHid.csproj -c Release -r linux-arm --self-contained true", doc);
+        Assert.Contains("dotnet publish src/MouseKeyProxy.PiHid/MouseKeyProxy.PiHid.csproj -c $Configuration -r linux-arm --self-contained true", publish);
 
         var appliancePaths = Directory.EnumerateFiles(Path.Combine(RepoRoot, "src", "MouseKeyProxy.PiHid"), "*", SearchOption.AllDirectories)
             .Concat(Directory.EnumerateFiles(Path.Combine(RepoRoot, "scripts", "pi"), "*", SearchOption.AllDirectories))

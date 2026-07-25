@@ -25,7 +25,7 @@ public sealed class PiHidEndpointHandlerTests
         Assert.Equal(401, invalid.StatusCode);
         Assert.Equal(200, ok.StatusCode);
         Assert.Contains("runtime=dotnet-10", ok.Body);
-        Assert.Contains("rid=linux-arm64", ok.Body);
+        Assert.Contains("rid=linux-arm", ok.Body);
     }
 
     [Fact]

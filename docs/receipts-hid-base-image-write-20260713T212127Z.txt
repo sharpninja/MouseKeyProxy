@@ -1,0 +1,108 @@
+MouseKeyProxy Base-Image SD Write Receipt
+=========================================
+
+Timestamp (UTC): 2026-07-13T21:21:27Z
+Host: PAYTON-LEGION2
+Result: PASS - untouched Raspberry Pi OS base image written and verified by Rufus.
+
+Requested scope
+---------------
+
+- Write only the base Raspberry Pi OS image to the SD card exposed as G:.
+- Do not apply a MouseKeyProxy profile.
+- Do not stage service payloads or modify config.txt, firstrun, Wi-Fi, SSH, user, or HID settings.
+
+Target identity before successful write
+---------------------------------------
+
+- Drive letter before controller reset: G:
+- Physical disk: 2
+- Device: SDXC
+- Bus type: SD
+- Capacity: 127,865,454,592 bytes (119.1 GiB reported by Rufus)
+- Partition style: MBR
+- Boot disk: no
+- System disk: no
+- Offline: no
+- Read-only: no
+- Operational status: Online
+- Health status: Healthy
+
+Base image
+----------
+
+File:
+  C:\Users\kingd\AppData\Local\MouseKeyProxy\pi-stage\2026-06-18-raspios-trixie-arm64-lite.img.xz
+Size:
+  524,875,608 bytes
+SHA-256 before write and after completion:
+  ACFF736CA7945E3B305F07CDA4ABDB870910E12634991DA69783611756E381B3
+
+Writer
+------
+
+File:
+  F:\GitHub\MouseKeyProxy\assets\rufus\rufus.exe
+Version:
+  Rufus x64 v4.15.2396
+SHA-256:
+  F32880B4ECCBDBB74A7B66C2D11ACBEC653A06BB6BD99DD769FF2962895717A1
+
+Successful command
+------------------
+
+Environment:
+  MKP_PI_STAGE_DIR was cleared before launch.
+
+Arguments:
+  --gui
+  --iso "C:\Users\kingd\AppData\Local\MouseKeyProxy\pi-stage\2026-06-18-raspios-trixie-arm64-lite.img.xz"
+  --mkp-auto-write
+  --device 2
+
+The command deliberately omitted --mkp-pi-profile and every staging/provisioning argument.
+
+Successful write evidence
+-------------------------
+
+- Start: 2026-07-13 16:16:39 local time.
+- Image scan: compressed bootable disk image, projected size 2.8 GB.
+- Target opened: \\.\PhysicalDrive2 for exclusive write access.
+- Full compressed-image progress completed.
+- Rufus result: Image write completed successfully.
+- Post-write verification: target partition data was readable and mounted as G:.
+- Resulting partition table detected by Rufus:
+  - Partition 1: FAT32 LBA, 536,870,912 bytes, start sector 16,384.
+  - Partition 2: GNU/Linux ext4, 2,432,696,320 bytes, start sector 1,064,960.
+- Rufus ejected G: after verification.
+- Process exit code: 0.
+- Rufus ErrorStatus: 0x00000000.
+- Customization-term scan of the successful log found zero matches for profile, provision, MKP_PI_STAGE_DIR, stage-rootfs, firstrun, or config.txt.
+
+Initial failed attempt and recovery
+-----------------------------------
+
+The first launch encountered a stale ejected-controller state. Windows Storage reported Disk 2 as No Media/0 bytes even though Win32_DiskDrive still identified the 127,861,977,600-byte card. Rufus logged device-not-ready, access-denied, and write-error lines while incorrectly emitting its headline success status. That attempt was rejected as evidence.
+
+Recovery:
+
+- Restarted the SD disk PnP device; it still reported No Media.
+- Restarted the parent BayHubTech Integrated MMC/SD controller with pnputil; exit code 0.
+- Re-queried Disk 2 and confirmed the full 127,865,454,592-byte card was Online, Healthy, writable, and neither boot nor system media.
+- Re-ran the same base-only command. The successful run lasted 3 minutes 16 seconds, completed the full progress stream, remounted and verified G:, then ejected it.
+
+Durable logs
+------------
+
+Rejected first-attempt log:
+  docs/rufus-base-write-attempt1-20260713.log
+  SHA-256: EAD9E4353E484DE3D45F1C8B95CA8C41006456A918C4BF2EB51A2A36412C84F2
+
+Successful write log:
+  docs/rufus-base-write-success-20260713.log
+  SHA-256: FF0BA577B7BD5830714590F275E72EBB314A0DF694126BF32B3E96B6ADF22AF2
+
+Conclusion
+----------
+
+PhysicalDrive2 received the untouched 2026-06-18 Raspberry Pi OS Trixie arm64 Lite base image. Rufus verified the written boot partition was readable and then ejected G:. No MouseKeyProxy profile or post-write customization was applied.

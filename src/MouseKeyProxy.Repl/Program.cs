@@ -936,6 +936,12 @@ Explicit 'mkp service install' does NOT happen on 'dotnet tool install'.
     {
         try
         {
+            // TR-MKP-SEC-001: present the same local token the agent minted/persisted.
+            if (string.IsNullOrWhiteSpace(request.AuthToken))
+            {
+                request.AuthToken = Cmn.AgentControlTokenStore.Read(Cmn.AgentControlTokenStore.DefaultPath()) ?? string.Empty;
+            }
+
             using var pipe = new NamedPipeClientStream(
                 ".",
                 Cmn.AgentControlPipe.PipeName,

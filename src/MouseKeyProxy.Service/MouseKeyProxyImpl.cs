@@ -48,6 +48,7 @@ public class MouseKeyProxyImpl : MouseKeyProxy.Network.V1.MouseKeyProxy.MouseKey
     private readonly Device.ISmbShareController? _smb;
     private readonly IInstallTicketStore? _installTickets;
     private readonly IClientInstallIntroMailbox? _clientIntros;
+    private readonly IDeviceDashboardEventSink _dashboardEvents;
 
     /// <summary>Default TTL for clipboard intro mailbox entries.</summary>
     private static readonly TimeSpan DefaultIntroTtl = TimeSpan.FromMinutes(5);
@@ -69,7 +70,8 @@ public class MouseKeyProxyImpl : MouseKeyProxy.Network.V1.MouseKeyProxy.MouseKey
         IClientPairingCodeIssuer? clientPairingCodes = null,
         Device.ISmbShareController? smb = null,
         IInstallTicketStore? installTickets = null,
-        IClientInstallIntroMailbox? clientIntros = null)
+        IClientInstallIntroMailbox? clientIntros = null,
+        IDeviceDashboardEventSink? dashboardEvents = null)
     {
         _logger = logger;
         _dispatcher = dispatcher;
@@ -88,6 +90,7 @@ public class MouseKeyProxyImpl : MouseKeyProxy.Network.V1.MouseKeyProxy.MouseKey
         _smb = smb;
         _installTickets = installTickets;
         _clientIntros = clientIntros;
+        _dashboardEvents = dashboardEvents ?? new NullDeviceDashboardEventSink();
     }
 
     /// <summary>
@@ -269,6 +272,7 @@ public class MouseKeyProxyImpl : MouseKeyProxy.Network.V1.MouseKeyProxy.MouseKey
         _logger.LogInformation(
             "Pair succeeded for PeerId={PeerId}, role={Role}, ip={Ip}, thumbprint={Thumbprint}",
             request.PeerId, role, remoteIp, peerCert.Thumbprint);
+        _ = _dashboardEvents.RecordAsync("host-to-remote", "pair", $"peer={request.PeerId} role={role} ip={remoteIp ?? "unknown"}", context.CancellationToken);
 
         var response = new PairResponse
         {
@@ -733,13 +737,35 @@ public class MouseKeyProxyImpl : MouseKeyProxy.Network.V1.MouseKeyProxy.MouseKey
         _logger.LogInformation("InjectInput events={C} (real dispatch path for AC5)", request.Events?.Count ?? 0);
         if (_dispatcher != null && request.Events != null && request.Events.Count > 0)
         {
-            var evts = new List<MouseKeyProxy.Common.InputEvent>();
-            foreach (var we in request.Events)
+            try
             {
-                evts.Add(ToCommonInputEvent(we));
+                var evts = new List<MouseKeyProxy.Common.InputEvent>();
+                foreach (var we in request.Events)
+                {
+                    evts.Add(ToCommonInputEvent(we));
+                }
+
+                await _dispatcher.HandleInputBatchAsync(evts, context.CancellationToken).ConfigureAwait(false);
             }
-            await _dispatcher.HandleInputBatchAsync(evts, context.CancellationToken);
+            catch (Exception ex)
+            {
+                // Surface HID/USB host-link loss as a soft CommandResult so the host Agent can fall back
+                // to local control without treating it as an unhandled gRPC fault.
+                var disconnected = MouseKeyProxy.PiHid.HidLinkHealth.IsDisconnectError(ex.Message);
+                var err = disconnected
+                    ? MouseKeyProxy.PiHid.HidLinkHealth.DisconnectedErrorCode
+                    : "INJECT_INPUT_FAILED";
+                _logger.LogWarning(ex, "InjectInput failed err={Err}", err);
+                await _dashboardEvents.RecordAsync(
+                    "host-to-remote",
+                    "inject-input-failed",
+                    $"peer={ResolveCallerPeerId(context) ?? context.Peer} err={err} {ex.Message}",
+                    context.CancellationToken).ConfigureAwait(false);
+                return new CommandResult { Ok = false, Err = err, Msg = ex.Message };
+            }
         }
+
+        await _dashboardEvents.RecordAsync("host-to-remote", "inject-input", $"peer={ResolveCallerPeerId(context) ?? context.Peer} events={request.Events?.Count ?? 0}", context.CancellationToken).ConfigureAwait(false);
         return new CommandResult { Ok = true, Msg = "ok" };
     }
 
@@ -749,6 +775,8 @@ public class MouseKeyProxyImpl : MouseKeyProxy.Network.V1.MouseKeyProxy.MouseKey
             "ClearModifiers peerId={PeerId} correlationId={CorrelationId}",
             request.PeerId,
             request.CorrelationId);
+
+        await _dashboardEvents.RecordAsync("host-to-remote", "clear-modifiers", $"peer={request.PeerId} correlationId={request.CorrelationId}", context.CancellationToken).ConfigureAwait(false);
 
         if (_modifierReleaseController is not null)
         {
@@ -810,6 +838,8 @@ public class MouseKeyProxyImpl : MouseKeyProxy.Network.V1.MouseKeyProxy.MouseKey
         {
             await responseStream.WriteAsync(new ScreenshotChunk { Index = 0, Last = true, Metadata = metadata });
         }
+
+        await _dashboardEvents.RecordAsync("remote-to-host", "screenshot", $"peer={request.PeerId} bytes={capture.Png.Length} target={request.Target} correlationId={request.CorrelationId}", context.CancellationToken).ConfigureAwait(false);
     }
 
     public override Task<CommandResult> EmergencyRelease(
@@ -826,6 +856,7 @@ public class MouseKeyProxyImpl : MouseKeyProxy.Network.V1.MouseKeyProxy.MouseKey
             return Task.FromResult(UnavailableResult());
         }
 
+        _ = _dashboardEvents.RecordAsync("host-to-remote", "emergency-release", $"peer={request.PeerId} correlationId={request.CorrelationId}", context.CancellationToken);
         var result = _emergencyReleaseController.EmergencyRelease(request.PeerId, request.CorrelationId);
         return Task.FromResult(ToCommandResult(result));
     }
@@ -846,6 +877,7 @@ public class MouseKeyProxyImpl : MouseKeyProxy.Network.V1.MouseKeyProxy.MouseKey
             request.Mode,
             request.CorrelationId);
 
+        _ = _dashboardEvents.RecordAsync("host-to-remote", "shutdown", $"peer={request.PeerId} mode={request.Mode} correlationId={request.CorrelationId}", context.CancellationToken);
         var result = _powerController.Trigger(reboot);
         if (result.Ok)
         {
@@ -882,6 +914,8 @@ public class MouseKeyProxyImpl : MouseKeyProxy.Network.V1.MouseKeyProxy.MouseKey
             request.FsAccess,
             request.HasCdromEnabled ? request.CdromEnabled.ToString() : "unchanged",
             request.HasFloppyEnabled ? request.FloppyEnabled.ToString() : "unchanged");
+
+        await _dashboardEvents.RecordAsync("host-to-remote", "configure-device", $"peer={request.PeerId} keyboard={request.KeyboardEnabled} mouse={request.MouseEnabled} fs={request.FsEnabled}", context.CancellationToken).ConfigureAwait(false);
 
         if (_deviceFunctions is null)
         {
@@ -930,6 +964,7 @@ public class MouseKeyProxyImpl : MouseKeyProxy.Network.V1.MouseKeyProxy.MouseKey
         GetDeviceConfigurationRequest request,
         ServerCallContext context)
     {
+
         if (_deviceFunctions is null)
         {
             return Task.FromResult(new GetDeviceConfigurationResponse

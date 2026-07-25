@@ -15,7 +15,7 @@ public static class PiHidEndpointHandlers
         var body = string.Join('\n',
             "MouseKeyProxy Pi HID service",
             "runtime=dotnet-10",
-            "rid=linux-arm64",
+            "rid=linux-arm",
             $"keyboardDevice={writer.KeyboardDevice}",
             $"mouseDevice={writer.MouseDevice}",
             $"capturedAtUtc={DateTimeOffset.UtcNow:O}");

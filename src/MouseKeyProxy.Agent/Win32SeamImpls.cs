@@ -583,12 +583,21 @@ public class Win32HotkeyMonitor : IHotkeyMonitor
 {
     private const int WH_KEYBOARD_LL = 13;
     private const int WM_KEYDOWN = 0x0100;
+    private const int WM_KEYUP = 0x0101;
     private const int WM_SYSKEYDOWN = 0x0104;
+    private const int WM_SYSKEYUP = 0x0105;
     private const uint VK_F1 = 0x70;
     private const uint VK_F2 = 0x71;
     private const uint VK_F3 = 0x72;
     private const uint VK_CONTROL = 0x11;
     private const uint VK_MENU = 0x12;
+    private const uint VK_SHIFT = 0x10;
+    private const uint VK_LWIN = 0x5B;
+    private const uint VK_RWIN = 0x5C;
+    private const uint VK_LCONTROL = 0xA2;
+    private const uint VK_RCONTROL = 0xA3;
+    private const uint VK_LMENU = 0xA4;
+    private const uint VK_RMENU = 0xA5;
     private static readonly TimeSpan ToggleDebounceWindow = TimeSpan.FromMilliseconds(300);
 
     public event EventHandler<ToggleEventArgs>? ToggleRequested;
@@ -611,6 +620,11 @@ public class Win32HotkeyMonitor : IHotkeyMonitor
     private long _lastToggleTimestamp;
     private long _lastEmergencyTimestamp;
     private readonly HotkeyConfig _config;
+    // Tracked from the LL hook itself: GetAsyncKeyState(VK_LWIN) is unreliable while Win is held as a modifier.
+    private bool _ctrlDown;
+    private bool _altDown;
+    private bool _shiftDown;
+    private bool _winDown;
 
     public Win32HotkeyMonitor() : this(new HotkeyConfig())
     {
@@ -642,7 +656,7 @@ public class Win32HotkeyMonitor : IHotkeyMonitor
         _keyboardHook = SetWindowsHookEx(WH_KEYBOARD_LL, _keyboardProc, moduleHandle, 0);
         if (_keyboardHook == IntPtr.Zero)
         {
-            throw new InvalidOperationException($"SetWindowsHookEx failed for Ctrl-Alt-F1/Ctrl-Alt-F2 hotkey monitor win32={Marshal.GetLastWin32Error()}");
+            throw new InvalidOperationException($"SetWindowsHookEx failed for toggle/emergency hotkey monitor win32={Marshal.GetLastWin32Error()}");
         }
     }
 
@@ -693,10 +707,17 @@ public class Win32HotkeyMonitor : IHotkeyMonitor
 
     private IntPtr KeyboardHookCallback(int nCode, IntPtr wParam, IntPtr lParam)
     {
-        if (nCode >= 0 && IsKeyDownMessage(wParam.ToInt32()))
+        if (nCode < 0)
         {
-            var data = Marshal.PtrToStructure<KBDLLHOOKSTRUCT>(lParam);
+            return CallNextHookEx(_keyboardHook, nCode, wParam, lParam);
+        }
 
+        var message = wParam.ToInt32();
+        var data = Marshal.PtrToStructure<KBDLLHOOKSTRUCT>(lParam);
+        UpdateTrackedModifiers(data.vkCode, isDown: IsKeyDownMessage(message));
+
+        if (IsKeyDownMessage(message))
+        {
             // Dedicated emergency-release hotkey takes precedence over toggle.
             if (MatchesChord(data.vkCode, _config.EmergencyReleaseVk, _config.EmergencyReleaseMods) || IsCtrlAltF3(data.vkCode))
             {
@@ -704,15 +725,44 @@ public class Win32HotkeyMonitor : IHotkeyMonitor
                 return new IntPtr(1);
             }
 
-            // Toggle: configured binding, plus the legacy Ctrl-Alt-F1/F2 chords for back-compat.
-            if (MatchesChord(data.vkCode, _config.ToggleVk, _config.ToggleMods) || IsCtrlAltF1(data.vkCode) || IsCtrlAltF2(data.vkCode))
+            // Toggle: configured binding (default Ctrl-Win-F1), plus legacy Ctrl-Alt-F1/F2 for back-compat.
+            if (MatchesChord(data.vkCode, _config.ToggleVk, _config.ToggleMods) || IsCtrlWinF1(data.vkCode) || IsCtrlAltF1(data.vkCode) || IsCtrlAltF2(data.vkCode))
             {
-                RaiseToggle(data.vkCode == VK_F2 ? "Ctrl-Alt-F2" : "Ctrl-Alt-F1", false);
+                var chord = MatchesChord(data.vkCode, _config.ToggleVk, _config.ToggleMods) || IsCtrlWinF1(data.vkCode)
+                    ? "Ctrl-Win-F1"
+                    : (data.vkCode == VK_F2 ? "Ctrl-Alt-F2" : "Ctrl-Alt-F1");
+                RaiseToggle(chord, false);
                 return new IntPtr(1);
             }
         }
 
         return CallNextHookEx(_keyboardHook, nCode, wParam, lParam);
+    }
+
+    private void UpdateTrackedModifiers(uint vk, bool isDown)
+    {
+        switch (vk)
+        {
+            case VK_CONTROL:
+            case VK_LCONTROL:
+            case VK_RCONTROL:
+                _ctrlDown = isDown;
+                break;
+            case VK_MENU:
+            case VK_LMENU:
+            case VK_RMENU:
+                _altDown = isDown;
+                break;
+            case VK_SHIFT:
+            case 0xA0: // VK_LSHIFT
+            case 0xA1: // VK_RSHIFT
+                _shiftDown = isDown;
+                break;
+            case VK_LWIN:
+            case VK_RWIN:
+                _winDown = isDown;
+                break;
+        }
     }
 
     private static bool ShouldDispatch(ref long lastTimestamp)
@@ -728,7 +778,7 @@ public class Win32HotkeyMonitor : IHotkeyMonitor
         return true;
     }
 
-    private static bool MatchesChord(uint vk, uint targetVk, uint mods)
+    private bool MatchesChord(uint vk, uint targetVk, uint mods)
     {
         if (vk != targetVk)
         {
@@ -736,10 +786,10 @@ public class Win32HotkeyMonitor : IHotkeyMonitor
         }
 
         const uint modAlt = 0x0001, modControl = 0x0002, modShift = 0x0004, modWin = 0x0008;
-        if ((mods & modControl) != 0 && !IsKeyDown(VK_CONTROL)) return false;
-        if ((mods & modAlt) != 0 && !IsKeyDown(VK_MENU)) return false;
-        if ((mods & modShift) != 0 && !IsKeyDown(0x10)) return false;   // VK_SHIFT
-        if ((mods & modWin) != 0 && !IsKeyDown(0x5B) && !IsKeyDown(0x5C)) return false; // L/R Win
+        if ((mods & modControl) != 0 && !IsControlDown()) return false;
+        if ((mods & modAlt) != 0 && !IsAltDown()) return false;
+        if ((mods & modShift) != 0 && !IsShiftDown()) return false;
+        if ((mods & modWin) != 0 && !IsWinDown()) return false;
         return true;
     }
 
@@ -748,22 +798,36 @@ public class Win32HotkeyMonitor : IHotkeyMonitor
         return message is WM_KEYDOWN or WM_SYSKEYDOWN;
     }
 
-    private static bool IsCtrlAltF1(uint vk)
+    private bool IsCtrlWinF1(uint vk)
     {
-        return vk == VK_F1 && IsKeyDown(VK_CONTROL) && IsKeyDown(VK_MENU);
+        return vk == VK_F1 && IsControlDown() && IsWinDown();
     }
 
-    private static bool IsCtrlAltF2(uint vk)
+    private bool IsCtrlAltF1(uint vk)
     {
-        return vk == VK_F2 && IsKeyDown(VK_CONTROL) && IsKeyDown(VK_MENU);
+        return vk == VK_F1 && IsControlDown() && IsAltDown();
     }
 
-    private static bool IsCtrlAltF3(uint vk)
+    private bool IsCtrlAltF2(uint vk)
     {
-        return vk == VK_F3 && IsKeyDown(VK_CONTROL) && IsKeyDown(VK_MENU);
+        return vk == VK_F2 && IsControlDown() && IsAltDown();
     }
 
-    private static bool IsKeyDown(uint vk)
+    private bool IsCtrlAltF3(uint vk)
+    {
+        return vk == VK_F3 && IsControlDown() && IsAltDown();
+    }
+
+    private bool IsControlDown() => _ctrlDown || IsKeyDownAsync(VK_CONTROL) || IsKeyDownAsync(VK_LCONTROL) || IsKeyDownAsync(VK_RCONTROL);
+
+    private bool IsAltDown() => _altDown || IsKeyDownAsync(VK_MENU) || IsKeyDownAsync(VK_LMENU) || IsKeyDownAsync(VK_RMENU);
+
+    private bool IsShiftDown() => _shiftDown || IsKeyDownAsync(VK_SHIFT);
+
+    // Prefer hook-tracked Win state: GetAsyncKeyState(VK_*WIN) is often clear while Win is held as a chord modifier.
+    private bool IsWinDown() => _winDown || IsKeyDownAsync(VK_LWIN) || IsKeyDownAsync(VK_RWIN);
+
+    private static bool IsKeyDownAsync(uint vk)
     {
         return (GetAsyncKeyState((int)vk) & 0x8000) != 0;
     }

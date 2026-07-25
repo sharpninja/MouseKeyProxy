@@ -1,0 +1,46 @@
+MouseKeyProxy Pi Zero 2 WH seven-blink diagnosis receipt
+Timestamp UTC: 2026-07-13T20:38:17Z
+Host: PAYTON-LEGION2
+
+Observed failure
+- Board: official Raspberry Pi Zero 2 WH, confirmed by operator.
+- LED pattern: seven short flashes, pause, repeat.
+- Official Raspberry Pi diagnostic: 0 long + 7 short flashes means Kernel image not found.
+- Source: https://www.raspberrypi.com/documentation/computers/configuration.html#led-warning-flash-codes
+
+Card identity
+- Drive: G:
+- Physical disk: 2
+- Device: SDXC
+- Bus: SD
+- Capacity: 119.08 GB
+- Boot/system disk: no/no
+- Boot partition: FAT32 bootfs, 512 MB
+- Windows health after rebuild: Healthy
+
+Boot-media validation
+- chkdsk result: no filesystem problems; no action required.
+- kernel8.img exists, size 10,168,774 bytes.
+- initramfs8 exists, size 16,338,081 bytes.
+- start.elf, fixup.dat, bootcode.bin, and bcm2710-rpi-zero-2-w.dtb exist.
+- Original config.txt contained arm_64bit=1 and auto_initramfs=1.
+- Official compressed image SHA-256 was previously verified as ACFF736CA7945E3B305F07CDA4ABDB870910E12634991DA69783611756E381B3.
+
+Official-image comparison
+- kernel8.img SHA-256: 9CF86CFBE4E8E47B3C30EE4D1DEDF805354637C1E90508D880AA5CEA9A69935A, exact match.
+- initramfs8 SHA-256: FA5B9FE1E2F5212C3AC694FBD476580C4CB39969F31792F1D430B326A12E9E39, exact match.
+- start.elf SHA-256: 55049E2E35D6DDFF3E5B93D6CFACE5CDC6DF4E7AB1474AF78D1AF6CE8DB4C9DF, exact match.
+- fixup.dat SHA-256: B2D19B8C300B5A4DDBD0FCFF3A0F7DE61A171046269D8724E74F616058417D4B, exact match.
+- original config.txt SHA-256: 90A446821551A9DF109EC1A77A79F6518FE974517D982D371C5E9EFD6BBC98C3, exact match.
+- Result: core boot files are present and byte-for-byte identical to the official image.
+
+Diagnostic change
+- Added explicit kernel=kernel8.img under [all] in G:\config.txt.
+- Updated config.txt SHA-256: E116671378531C71FC7847D21E1BF3242C726CBDD0AE67533518448885AFBD51.
+- Deployed staged and card hashes matched.
+- Write-VolumeCache completed successfully after the change.
+- Final bootfs state: FAT32, Healthy, OperationalStatus OK.
+
+Next gate
+- Safely remove the card, insert it into the Pi Zero 2 WH, and power on.
+- If seven flashes persist with explicit kernel selection, test the same card in the Pi 3 or test a second known-good microSD card in the Zero 2 WH to isolate board/card-reader behavior.

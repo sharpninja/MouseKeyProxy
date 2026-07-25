@@ -193,13 +193,27 @@ public sealed class PiHidEncoder
 
     private static byte DefaultButtonBit(InputEvent e)
     {
-        // Flags may encode right/middle; default to the left button when unspecified.
-        return e.Flags switch
+        // Match Win32 MOUSEEVENTF_* values used by RemoteInputForwarder.TranslateMouseMessage.
+        // LEFTDOWN=0x0002, RIGHTDOWN=0x0008, MIDDLEDOWN=0x0020 (and matching *UP bits).
+        const uint mouseeventfLeft = 0x0002 | 0x0004;
+        const uint mouseeventfRight = 0x0008 | 0x0010;
+        const uint mouseeventfMiddle = 0x0020 | 0x0040;
+        if ((e.Flags & mouseeventfRight) != 0)
         {
-            2 => 0x02, // right
-            4 => 0x04, // middle
-            _ => 0x01, // left
-        };
+            return 0x02;
+        }
+
+        if ((e.Flags & mouseeventfMiddle) != 0)
+        {
+            return 0x04;
+        }
+
+        if ((e.Flags & mouseeventfLeft) != 0)
+        {
+            return 0x01;
+        }
+
+        return 0x01; // left when unspecified
     }
 
     private void EncodeWheel(int wheelDelta, List<HidReport> reports)

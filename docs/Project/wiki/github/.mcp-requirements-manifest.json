@@ -1,13 +1,20 @@
 {
   "schema": "mcp-requirements-wiki/v1",
   "platform": "github",
-  "generatedAtUtc": "2026-07-11T14:00:57.0481702+00:00",
+  "generatedAtUtc": "2026-07-25T14:06:55.4876504+00:00",
   "documents": [
     "Home.md",
     "Functional-Requirements.md",
     "Technical-Requirements.md",
     "Testing-Requirements.md",
     "TR-per-FR-Mapping.md",
-    "Requirements-Matrix.md"
+    "Requirements-Matrix.md",
+    "User-Guide.md",
+    "Security-Admin-Guide.md",
+    "Pi-Service-Deployment.md",
+    "Orange-Pi-Zero-2-HID.md",
+    "Raspberry-Pi-Zero-2-HID.md",
+    "Development-Process.md",
+    "Project-README.md"
   ]
 }

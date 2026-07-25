@@ -1,0 +1,16 @@
+[Unit]
+Description=MouseKeyProxy one-shot appliance firstboot
+ConditionPathExists=!/var/lib/mousekeyproxy/firstboot.done
+After=local-fs.target network-pre.target
+# Finish user/wifi/ssh provisioning before gadget and gRPC service start.
+# The firstboot script must only enable (or start --no-block) those units;
+# a blocking systemctl start of them from this oneshot deadlocks multi-user.
+Before=mkp-hid-gadget.service mousekeyproxy.service
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+ExecStart=/usr/local/sbin/mkp-firstboot-linux-appliance.sh
+
+[Install]
+WantedBy=multi-user.target

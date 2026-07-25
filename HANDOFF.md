@@ -1,132 +1,293 @@
-# MouseKeyProxy - Session Handoff
+# MouseKeyProxy - Hardware HID Handoff
 
-Last updated: 2026-07-09 (GrokCode wrap-up → handoff to Claude)
+Last updated: 2026-07-16 by Codex
 
-## TL;DR (current blocker)
+## Pickup Trigger
 
-**Goal:** Pi SD image boots and DESKTOP sees **one** USB thumb LUN (`MKP-SHARE`) with client MSI.
+Resume this work after the correct Raspberry Pi hardware is available. The device needed for the .NET appliance path is a Raspberry Pi Zero 2 W or newer ARMv7/ARMv8-capable Pi with USB OTG data connected to the Windows target host.
 
-**Where we are:**
-- Image pipeline can write SD unattended (BuildSdCard / CreatePiImage).
-- Latest write (2026-07-09 ~18:18 local) claimed exit 0 with firstrun + share MSI staged.
-- **Pi still:** ICMP up at `192.168.1.190` (RPi MAC `B8-16-5F-BA-7E-CC`), **SSH :22 closed, telnet :23 closed**.
-- **DESKTOP still:** **0** present `VID_1D6B` / USBSTOR (no drive letter). No MKP-SHARE volume.
+Do not continue trying to make the current board run the .NET appliance. The attached board proved to be a Raspberry Pi Zero W Rev 1.1, which is ARMv6.
 
-**Why (evidence, not cable speculation):**
-1. User established earlier: motherboard USB-A + 4-wire Micro-USB + Windows beep = data path is live. Prior sessions **did** enumerate `VID_1D6B` / `MKP-SHARE` on DESKTOP. Do **not** re-litigate the cable.
-2. First-boot used `systemd.unit=kernel-command-line.target`, which **isolates** firstrun so multi-user (and stock `/boot/ssh` → sshd) never start. Hung firstrun = Wi-Fi only (ICMP), zero TCP services, gadget never bound.
-3. That isolation was **removed in rufus-mkp** and rebuilt into `assets/rufus/rufus.exe`. Last successful write should have used the fixed cmdline. **Verify on next access** by reading `/proc/cmdline` or `G:\cmdline.txt` before eject: must **NOT** contain `kernel-command-line.target`.
+## Current Hard Stop
 
-## Environment / Facts
+Current hardware proof from the live Pi:
 
-| Item | Value |
-|------|--------|
-| Pi IP (current DHCP) | `192.168.1.190` (not the old static `.200`) |
-| Pi MAC | `B8-16-5F-BA-7E-CC` |
-| Hostname target | `mkp-hid-pi` (profile default) |
-| SSH user | `mkp` (lab password set in firstrun: `mkp` / `root:mkp`) |
-| SSH key (when working) | `C:\Users\kingd\mkp_pi_hid_ed25519.key` |
-| DESKTOP | PAYTON-DESKTOP via WSMan + `~/.creds/paytondesktop.cred.xml` |
-| SD writer host | LEGION2 / this machine; SDXC = **Disk 2**, often `G:\` bootfs |
-| Rufus source | `F:\GitHub\rufus-mkp` (fork; dirty working tree) |
-| Rufus binary | `F:\GitHub\MouseKeyProxy\assets\rufus\rufus.exe` (also `F:\GitHub\rufus-mkp\src\rufus.exe`) |
-| Stage dir | `output/pi-stage` (`service/`, `repl/`, `share/` MSI, `install/`) |
-| Nuke write | `gsudo pwsh -File output\write-sd-now.ps1` or CreatePiImage `--AutoWrite true --RufusDevice 2` |
-
-## Done this Grok session (uncommitted / partial)
-
-### Image / SD pipeline
-- `CreatePiImage` **DependsOn** `PublishPi` + `StagePiInstallMedia` (ordering race fixed).
-- Stage copies MSI into `pi-stage/share` for thumb LUN seed (~102711296 bytes).
-- Unattended Rufus write + eject works when it does not hit exit **5** (cancel dialog race; retry usually succeeds).
-- `install/` rootfs stage failure is **non-fatal** (share/ is the thumb seed).
-
-### Firstrun (`F:\GitHub\rufus-mkp\src\rufus.c` - dirty)
-- Single-thumb gadget only (`share` → `/var/lib/mousekeyproxy/thumb.img`, no empty lun.1/2).
-- Early recovery attempt: telnetd/python on :23, watchdog, non-blocking systemctl (still insufficient while isolation was on).
-- **Critical fix:** drop `systemd.unit=kernel-command-line.target` from `first_boot_args` so multi-user can start alongside `systemd.run=firstrun.sh`.
-- Cleanup trap still strips systemd.run* and reboots after firstrun.
-
-### Durable scripts
-- `scripts/pi/setup-configfs-gadget.sh`: single LUN, folder-backed VFAT thumb, base64 HID descriptors.
-
-### DESKTOP evidence (historical, this session)
-- Ghost/stale PnP: `MKP-SHARE`, `Linux File-Stor Gadget`, `VID_1D6B` (Present=false after disconnect).
-- Live present count after last boots: **0** (gadget not bound on Pi).
-
-## What Claude should do next (ordered)
-
-1. **Confirm cmdline on card or live Pi**
-   - No `kernel-command-line.target`.
-   - Has `systemd.run=/boot/firmware/firstrun.sh` until firstrun cleanup.
-2. **If Pi still has no SSH after 5–10 min with fixed cmdline**
-   - Pull card; inspect `G:\cmdline.txt`, `G:\firstrun.sh`, `G:\mkp-firstboot.log` (if any), `G:\ssh`.
-   - Optionally patch boot partition only (faster than full image rewrite) then re-insert.
-3. **When SSH works** (`ssh -i ... mkp@192.168.1.190`)
-   - `systemctl status mkp-hid-gadget mousekeyproxy ssh`
-   - `cat /sys/kernel/config/usb_gadget/*/UDC`; force `/usr/local/sbin/mkp-hid-gadget-setup.sh` if empty.
-   - `ls -la /var/lib/mousekeyproxy/thumb.img`; ensure MSI path seed under `/mnt/mkp-deploy/share` if needed.
-4. **On DESKTOP (WSMan)**
-   - `Get-PnpDevice -PresentOnly | ? { $_.InstanceId -match 'VID_1D6B|USBSTOR' }`
-   - Expect one mass-storage LUN / volume label `MKP-SHARE` with MSI.
-5. **If firstrun still bricks remote access**
-   - Prefer rootfs-staged systemd units for gadget + recovery (via `MkpPiHidStageRootFs` in `format_ext.c`) so multi-user enables them without waiting on firstrun body.
-   - Keep firstrun for wifi/user/pwsh only; never block recovery on apt/pwsh.
-
-## Commands
-
-```pwsh
-# Write SD (elevated)
-gsudo pwsh -NoProfile -ExecutionPolicy Bypass -File F:\GitHub\MouseKeyProxy\output\write-sd-now.ps1
-
-# Or Nuke only image write
-$env:MKP_PI_STAGE_DIR = "F:\GitHub\MouseKeyProxy\output\pi-stage"
-dotnet run --project build/MouseKeyProxy.Build.csproj -- --target CreatePiImage --AutoWrite true --RufusDevice 2 --RufusProfile default
-
-# DESKTOP check
-$cred = Import-Clixml "$HOME\.creds\paytondesktop.cred.xml"
-Invoke-Command -ComputerName PAYTON-DESKTOP -Credential $cred -ScriptBlock {
-  Get-PnpDevice -PresentOnly | ? { $_.InstanceId -match 'VID_1D6B|USBSTOR' }
-  Get-Volume | ? { $_.FileSystemLabel -match 'MKP|SHARE' }
-}
-
-# Pi (when SSH up)
-ssh -i C:\Users\kingd\mkp_pi_hid_ed25519.key -o StrictHostKeyChecking=no mkp@192.168.1.190
+```text
+/proc/device-tree/model: Raspberry Pi Zero W Rev 1.1
+uname -m: armv6l
+getconf LONG_BIT: 32
+OS: Raspbian GNU/Linux 11 (bullseye)
 ```
 
-## Rufus auto-write notes
-- Exit codes: `0=ok`, `1=write fail`, `2=need --device`, `3=no device`, `4=image scan fail`, **`5=cancelled`**.
-- Exit 5 seen when cancel confirmation dialog was auto-accepted mid-write; **retry** usually works. Log: `F:\GitHub\rufus-mkp\src\rufus-mkp-autowrite.log`.
-- Card left unpartitioned after cancel once; full rewrite recovered.
+Current .NET 10 service proof:
 
-## Git state (at handoff)
+```text
+/opt/mousekeyproxy/MouseKeyProxy.Service: ELF 32-bit ARM, EABI5, hard-float
+Tag_CPU_name: "7-A"
+Tag_CPU_arch: v7
+Tag_THUMB_ISA_use: Thumb-2
+Tag_FP_arch: VFPv3-D16
+```
 
-### MouseKeyProxy (`master` vs origin/master)
-- **Many** dirty/untracked files (device management, packaging, bootstrap, tests, etc.) - **not** all from this SD task.
-- SD-related dirty highlights: `assets/rufus/rufus.exe`, `build/Build.cs`, `scripts/pi/setup-configfs-gadget.sh`, `HANDOFF.md`, `build.cmd`/`build.sh`/`build.ps1`.
-- Do **not** dump-commit the whole tree without review.
+Current .NET 8 proof:
 
-### rufus-mkp (`master` vs sharpninja/master)
-- Dirty: `src/rufus.c` (firstrun + cmdline isolation fix + recovery), `format_ext.c` (share stage non-fatal install), `format.c`, etc.
-- Recent local commits exist for HID/base64 and rootfs staging; firstrun isolation fix **needs commit**.
+```text
+dotnet publish -c Release -r linux-arm --self-contained true produced an ARMv7 executable.
+Tag_CPU_name: "7-A"
+Tag_CPU_arch: v7
+Running it on the Zero W failed with Illegal instruction.
+Exit code: 132
+```
 
-## Design decisions (log for Claude)
+Conclusion: .NET 8 and .NET 10 `linux-arm` do not solve this board. The OS can fix glibc/libstdc++ version gaps, but it cannot make an ARMv6 CPU execute an ARMv7 runtime. Supporting this exact Zero W would require a separate non-.NET ARMv6-compatible appliance implementation, which is outside the current C#/.NET-only plan.
 
-| Decision | Why | Rejected |
-|----------|-----|----------|
-| Single thumb LUN only | Empty multi-LUN showed as dead drives on Windows | lun.1/2 empty mass storage |
-| Folder → VFAT `thumb.img` | configfs mass_storage cannot bind a directory | binding bare folder |
-| MSI in `share/` | Client install media on DESKTOP thumb | MSI only on install/ |
-| Drop `kernel-command-line.target` | Isolation prevents multi-user/sshd while firstrun hangs | Isolation + telnet-inside-firstrun only |
-| install/ stage non-fatal | Share seed is the thumb path; install staging was flaky | Failing entire write on install/ |
+## Relevant Repos
 
-## Do not
-- Blame the USB cable without new Present=0 **and** prior success re-proven absent.
-- Hand-edit MCP TODO/requirements storage files; use plugin/API.
-- Push to `github` remote unless asked; origin/Azure DevOps is primary per workspace rules where applicable.
+Primary target repo:
 
-## Success criteria for next agent
-1. `ssh mkp@<pi-ip>` works after first boot (or after firstrun reboot).
-2. DESKTOP shows **one** present USB mass-storage device / `MKP-SHARE` with MSI.
-3. `mkp-hid-gadget` active; UDC non-empty; `thumb.img` present.
-4. Firstrun not leaving the machine permanently without remote access.
+```text
+F:\GitHub\MouseKeyProxy
+```
+
+Customized Rufus repo:
+
+```text
+F:\GitHub\rufus-mkp
+```
+
+MCP/orchestration workspace:
+
+```text
+F:\GitHub\MouseKeyProxy-Fresh
+```
+
+The current MCP plugin cache used for wrap-up/session logging is:
+
+```text
+C:\Users\kingd\.codex\plugins\cache\mcpserver-codex-plugin\mcpserver\1.74.0
+F:\GitHub\MouseKeyProxy-Fresh\.mcpServer\codex
+```
+
+The older requested skill path under plugin 1.73.0 is stale in this session. Use the active 1.74.0 wrapper.
+
+## Current Dirty State Summary
+
+`F:\GitHub\rufus-mkp` has active WIP changes including:
+
+```text
+M  scripts/stage-mkp-pi-image.ps1
+M  src/rufus.c
+M  staging/mkp-pi/manifest.json
+?? rufus.com
+?? src/rufus.com
+```
+
+Important completed Rufus changes in `src/rufus.c`:
+
+```text
+HDMI forced to Full HD 1080p60:
+  hdmi_force_hotplug=1
+  hdmi_group=1
+  hdmi_mode=16
+  framebuffer_width=1920
+  framebuffer_height=1080
+  video=HDMI-A-1:1920x1080M@60D
+
+Console sleep disabled:
+  consoleblank=0
+  proof metadata: consoleBlanking=disabled,consoleblank=0
+```
+
+Last known Rufus build passed:
+
+```powershell
+$env:MSYSTEM = 'MINGW64'
+& 'C:\msys64\usr\bin\bash.exe' -lc 'cd /f/GitHub/rufus-mkp && make -j2'
+```
+
+Last rebuilt executable observed:
+
+```text
+F:\GitHub\rufus-mkp\src\rufus.exe
+Length: 10830382
+LastWriteTime: 2026-07-16T11:35:16.7532748-05:00
+```
+
+`F:\GitHub\MouseKeyProxy` has broader WIP for Pi HID service, docs, tests, and receipts. Do not assume all dirty files were created in one coherent commit. Inspect before committing.
+
+`F:\GitHub\MouseKeyProxy-Fresh` also has generated/docs WIP. It is orchestration state, not the implementation target.
+
+## Last Known SD Image Path
+
+```text
+F:\GitHub\rufus-mkp\staging\mkp-pi\raspios-lite-armhf.img
+```
+
+This image is Bullseye-era armhf and booted the wrong Zero W. For the correct device, prefer staging a newer Raspberry Pi OS 32-bit Bookworm/Trixie image before enabling the .NET 10 service. Bullseye caused GLIBC/GLIBCXX runtime failures for the current .NET 10 publish.
+
+## Last Known Pi Access
+
+```text
+Host: mkp-hid-pi.local
+User: mkp
+SSH key: C:\Users\kingd\mkp_pi_hid_ed25519.key
+Wi-Fi SSID staged by Rufus profile: BYRD3.1
+```
+
+Use host-key bypass for lab images because every rewritten SD image changes the host key:
+
+```powershell
+$key = 'C:\Users\kingd\mkp_pi_hid_ed25519.key'
+ssh -o BatchMode=yes -o StrictHostKeyChecking=no -o UserKnownHostsFile=NUL -o GlobalKnownHostsFile=NUL -o UpdateHostKeys=no -o ConnectTimeout=8 -o ServerAliveInterval=2 -o ServerAliveCountMax=2 -i $key mkp@mkp-hid-pi.local 'hostname; cat /proc/device-tree/model; uname -m'
+```
+
+OpenSSH often hung locally after remote output. Use a bounded `Start-Process` wrapper and kill the local SSH process after timeout while preserving stdout/stderr.
+
+## Correct Device Resume Checklist
+
+1. Insert the correct Pi and boot a freshly written card.
+2. Verify hardware before debugging software:
+
+```sh
+cat /proc/device-tree/model
+uname -m
+getconf LONG_BIT
+```
+
+Expected acceptable results:
+
+```text
+Raspberry Pi Zero 2 W or newer
+armv7l on 32-bit OS, or aarch64 on 64-bit OS
+```
+
+If it reports `armv6l`, stop and replace the board.
+
+3. Verify the .NET apphost/runtime CPU tags on the Pi:
+
+```sh
+readelf -A /opt/mousekeyproxy/MouseKeyProxy.Service | egrep 'Tag_CPU|Tag_ABI|Tag_FP|Tag_THUMB'
+```
+
+For the .NET `linux-arm` path, ARMv7 tags are expected and acceptable only on ARMv7-capable hardware.
+
+4. Verify OS runtime baseline before enabling the service:
+
+```sh
+cat /etc/os-release
+ldd --version
+strings /lib/arm-linux-gnueabihf/libc.so.6 | grep GLIBC_ | tail
+strings /lib/arm-linux-gnueabihf/libstdc++.so.6 | grep GLIBCXX_ | tail
+```
+
+For .NET 10 arm32, prefer Debian/Raspberry Pi OS 12+ or newer. If sticking with .NET 8, still use a real ARMv7 board; .NET 8 does not run on ARMv6 Zero W.
+
+5. Verify first-boot provisioning actually ran:
+
+```sh
+ls -l /boot/firstrun.sh /boot/mkp-headless-firstboot.log 2>&1
+ls -l /etc/systemd/system/mousekeyproxy.service /etc/systemd/system/mkp-hid-gadget.service 2>&1
+systemctl is-enabled mousekeyproxy.service mkp-hid-gadget.service
+systemctl is-active mousekeyproxy.service mkp-hid-gadget.service
+systemctl is-active getty@tty1.service
+```
+
+Current known issue on the wrong Zero W image: the binaries were staged into rootfs, but first-boot service installation did not run. Evidence observed:
+
+```text
+/opt/mousekeyproxy/MouseKeyProxy.Service existed
+/usr/local/bin/mkp existed
+/etc/systemd/system/mousekeyproxy.service missing
+/etc/systemd/system/mkp-hid-gadget.service missing
+/etc/mousekeyproxy/status.env missing
+/var/lib/mousekeyproxy/pairing.env missing
+/boot/firstrun.sh still present
+/boot/mkp-headless-firstboot.log missing
+getty@tty1.service active
+```
+
+Do not one-off patch this on the live card as the durable fix. Fix Rufus/image provisioning so first boot installs and enables the units through the supported path.
+
+6. Verify HDMI/dashboard behavior:
+
+```text
+config.txt should include 1080p60 HDMI settings.
+cmdline.txt should include video=HDMI-A-1:1920x1080M@60D and consoleblank=0.
+Dashboard target is MouseKeyProxy.Service on /dev/tty1.
+```
+
+If login prompt appears instead of the dashboard, check whether `getty@tty1.service` still owns tty1 and whether `mousekeyproxy.service` is installed/running.
+
+7. Verify USB HID behavior only after the service and gadget units are active:
+
+```sh
+ls -l /dev/hidg0 /dev/hidg1
+systemctl status mkp-hid-gadget.service --no-pager
+systemctl status mousekeyproxy.service --no-pager
+```
+
+Then run the Windows-side hardware HID tests from MouseKeyProxy.
+
+## SD Card Write Command
+
+Recheck Disk 2 before every destructive write. Previous target was a 31.9 GB SDHC card on Disk 2, but do not assume it.
+
+```powershell
+$disk = Get-Disk -Number 2 -ErrorAction Stop
+if ($disk.BusType -ne 'SD' -or $disk.Size -lt 1GB -or $disk.Size -gt 128GB -or $disk.IsBoot -or $disk.IsSystem) {
+  throw "Refusing write: disk 2 safety check failed: $($disk | ConvertTo-Json -Compress)"
+}
+$env:MKP_PI_STAGE_DIR = 'F:\GitHub\MouseKeyProxy\output\pi-stage'
+& gsudo --copyev --chdir 'F:\GitHub\rufus-mkp' 'F:\GitHub\rufus-mkp\src\rufus.exe' --gui "--iso=F:\GitHub\rufus-mkp\staging\mkp-pi\raspios-lite-armhf.img" --mkp-pi-profile=default --device 2 --mkp-auto-write
+```
+
+After writing, inspect the mounted boot partition before ejecting:
+
+```powershell
+Select-String -Path 'G:\config.txt' -Pattern 'MouseKeyProxy|hdmi_|framebuffer_'
+Get-Content -LiteralPath 'G:\cmdline.txt' -Raw
+Get-Content -LiteralPath 'G:\mkp-pi-headless-provisioning.txt' -Raw
+```
+
+The proof file should include:
+
+```text
+hdmiConfig=firmware-hotplug,CEA-1080p60,kms-video-arg
+consoleBlanking=disabled,consoleblank=0
+hidBackend=physical-pi-configfs
+```
+
+## Validation Already Run In This Session
+
+Rufus source/build:
+
+```text
+git -C F:\GitHub\rufus-mkp diff --check -- src/rufus.c
+make -j2 under MSYS2 MINGW64
+```
+
+Live hardware/runtime probes:
+
+```text
+Pi came online as mkp-hid-pi.local over SSH.
+Current board proved to be Raspberry Pi Zero W Rev 1.1 armv6l.
+.NET 10 service was ARMv7-tagged and failed on Bullseye glibc/libstdc++.
+.NET 8 test app was ARMv7-tagged and failed on ARMv6 with Illegal instruction exit 132.
+```
+
+## Wrap-Up Status
+
+This handoff intentionally does not claim Transition/hardware acceptance complete. The hardware gate is blocked until a correct Zero 2-class board is available and verified.
+
+No commit/push was performed in this wrap-up because multiple repos have broad WIP and the commit-sync acknowledgement contract was not initiated. Before committing, inspect dirty files in all three repos and create an intentional commit boundary.
+
+## Next Agent Instruction
+
+Start with live proof, not assumptions:
+
+1. Verify the newly supplied board identity.
+2. If it is ARMv7/ARMv8-capable, update the staged base image to a current Raspberry Pi OS 32-bit image and rewrite the SD through customized Rufus.
+3. Fix first-boot service installation if units are still missing.
+4. Only then run HID keyboard/mouse E2E and dashboard/HDMI acceptance.
+
+Do not resume by debugging the old Zero W unless the plan explicitly changes away from C#/.NET-only.

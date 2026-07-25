@@ -119,6 +119,9 @@ public static class ServiceHost
             builder.Services.AddSingleton<ISystemPowerController, SystemctlPowerController>();
             // FR-MKP-013: configfs-backed enable/disable of keyboard, mouse, mass-storage FS (+ RO/RW).
             builder.Services.AddSingleton<IDeviceFunctionController, Device.ConfigfsDeviceFunctionController>();
+            builder.Services.AddSingleton<HdmiStatusDashboard>();
+            builder.Services.AddSingleton<IDeviceDashboardEventSink>(sp => sp.GetRequiredService<HdmiStatusDashboard>());
+            builder.Services.AddHostedService(sp => sp.GetRequiredService<HdmiStatusDashboard>());
         }
         else
         {
@@ -126,6 +129,7 @@ public static class ServiceHost
             builder.Services.AddSingleton<ISystemPowerController, UnsupportedPowerController>();
             // Windows service does not own a USB gadget; in-memory controller keeps the API queryable in tests.
             builder.Services.AddSingleton<IDeviceFunctionController, InMemoryDeviceFunctionController>();
+            builder.Services.AddSingleton<IDeviceDashboardEventSink, NullDeviceDashboardEventSink>();
         }
 
         builder.Services.AddSingleton<IDeviceEventBus, DeviceEventBus>();

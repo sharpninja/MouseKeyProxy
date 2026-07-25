@@ -1,0 +1,123 @@
+MouseKeyProxy Raspberry Pi Image QEMU Verification Receipt
+==========================================================
+
+Timestamp (UTC): 2026-07-13T21:01:59Z
+Host: PAYTON-LEGION2, Windows, x86_64
+Result: PASS for kernel, SD image, root filesystem, and userspace bootability under QEMU's raspi3b model.
+
+Scope and limitations
+---------------------
+
+- QEMU's raspi3b machine was used because it models a Cortex-A53 Raspberry Pi 3-class system, the same CPU generation used by Raspberry Pi Zero 2 W.
+- This is not an exact Raspberry Pi Zero 2 WH firmware, LED, Wi-Fi, Bluetooth, or USB OTG/gadget emulation.
+- The raw disk was always attached with snapshot=on; QEMU did not persist writes to the source image.
+- The official image's kernel8.img is gzip-compressed. QEMU direct kernel loading required the decompressed ARM64 Image.
+
+Inputs
+------
+
+Compressed source image:
+  C:\Users\kingd\AppData\Local\MouseKeyProxy\pi-stage\2026-06-18-raspios-trixie-arm64-lite.img.xz
+  SHA-256: ACFF736CA7945E3B305F07CDA4ABDB870910E12634991DA69783611756E381B3
+
+Extracted raw image:
+  F:\tmp\mkp-image-check-20260713\2026-06-18-raspios-trixie-arm64-lite.img
+  Size: 2,977,955,840 bytes
+  SHA-256: E235FD24FC5F039C08DABA7D3ABC04AECC7313F979D16D2A3FDAD29DD44C33A9
+
+Decompressed kernel:
+  F:\tmp\mkp-image-check-20260713\kernel-raw\kernel8
+  Size: 25,373,184 bytes
+  SHA-256: 50345E69023290315140E0C9395C323EE2124EB641A70E13501E18ED39519E0B
+
+Device tree:
+  F:\tmp\mkp-image-check-20260713\fat-files\bcm2710-rpi-3-b.dtb
+  SHA-256: CD922193672E391B6194D6D94E34FFAB6FC154205375FCFB362CAD191F7F8AAE
+
+Emulator
+--------
+
+Executable: C:\Program Files\qemu\qemu-system-aarch64.exe
+Version: QEMU 11.0.50 (v11.0.0-12631-g54e84cdc7a)
+Machine: raspi3b
+CPU: cortex-a53
+RAM: 1 GiB
+Acceleration: tcg,thread=multi
+
+Final control command
+---------------------
+
+qemu-system-aarch64.exe
+  -machine raspi3b
+  -cpu cortex-a53
+  -m 1G
+  -accel tcg,thread=multi
+  -kernel F:\tmp\mkp-image-check-20260713\kernel-raw\kernel8
+  -dtb F:\tmp\mkp-image-check-20260713\fat-files\bcm2710-rpi-3-b.dtb
+  -drive file=F:\tmp\mkp-image-check-20260713\2026-06-18-raspios-trixie-arm64-lite.img,format=raw,index=0,media=disk,snapshot=on
+  -append "rw earlyprintk loglevel=8 earlycon=pl011,mmio32,0x3f201000 console=ttyAMA0,115200 dwc_otg.lpm_enable=0 root=/dev/mmcblk0p2 rootdelay=1 net.ifnames=0"
+  -display none
+  -serial file:F:\tmp\mkp-qemu-serial-20260713-r8.log
+  -monitor none
+  -no-reboot
+  -d guest_errors,unimp
+  -D F:\tmp\mkp-qemu-debug-20260713-r8.log
+
+Observed boot evidence
+----------------------
+
+1. Linux entered successfully:
+   Linux version 6.18.34+rpt-rpi-v8, Debian 1:6.18.34-1+rpt1 (2026-06-09).
+
+2. The guest recognized the QEMU target:
+   Machine model: Raspberry Pi 3 Model B.
+
+3. The emulated SD card and partition table were readable:
+   mmcblk0: mmc0:f484 QEMU! 2.77 GiB
+   mmcblk0: p1 p2
+
+4. The real root partition mounted successfully:
+   EXT4-fs (mmcblk0p2): mounted filesystem 15f4c6be-1102-4331-9904-f78e78afd1fd r/w.
+   VFS: Mounted root (ext4 filesystem) on device 179:2.
+
+5. Userspace started from the image:
+   Run /sbin/init as init process.
+   systemd 257.13-1~deb13u1 running in system mode.
+   Detected architecture arm64.
+   Detected first boot.
+   Hostname set to <raspberrypi>.
+
+6. QEMU exited with code 0 after the guest wrote the emulated watchdog/reset register.
+   The final emulator diagnostic was: bcm2835_powermgt_write: WDOG.
+   Because -no-reboot was set, this stopped the run at the first guest-requested reset.
+
+Control observations
+--------------------
+
+- A run that supplied the image's initramfs reached the same SD card and mounted mmcblk0p2, but the initramfs exited with status 1 and caused "Attempted to kill init". Omitting the initramfs, as in QEMU's published direct-root Raspberry Pi command, allowed /sbin/init and systemd to start.
+- QEMU emitted expected model limitations for unimplemented Raspberry Pi mailbox/property, GPIO, AUX UART, DWC2, and optional SD commands. These are emulator limitations and do not establish a physical-board failure.
+- No qemu-system-aarch64 process remained after verification.
+
+Durable artifacts
+-----------------
+
+Serial transcript:
+  docs/qemu-serial-20260713-r8.log
+  SHA-256: 8FE0E73169B1E3E89AABAC0A15822CC9E2288C5436F052DF3618AA8993F61EEA
+
+QEMU diagnostic log:
+  docs/qemu-debug-20260713-r8.log
+  SHA-256: D51CEE5D0285C9434B4B9FDBA527CACEC21054393EF75D86F40172B68B929E16
+
+References
+----------
+
+- QEMU Raspberry Pi machine documentation:
+  https://www.qemu.org/docs/master/system/arm/raspi.html
+- QEMU issue #2351, Raspberry Pi direct-kernel/direct-root command and newer Raspberry Pi OS compatibility context:
+  https://gitlab.com/qemu-project/qemu/-/issues/2351
+
+Conclusion
+----------
+
+The staged Raspberry Pi OS image is bootable under QEMU through Linux kernel initialization, SD partition discovery, ext4 root mount, /sbin/init, and systemd first-boot execution. This rules out a missing or unreadable kernel/root filesystem in the staged image. It does not validate the Raspberry Pi boot ROM/EEPROM path or Zero 2 WH-specific hardware behavior.

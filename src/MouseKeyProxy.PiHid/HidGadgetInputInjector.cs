@@ -37,6 +37,14 @@ public sealed class HidGadgetInputInjector : IInputInjector
     {
         lock (_gate)
         {
+            // Fail closed when the OTG link is down so the host Agent can restore local control.
+            if (!HidLinkHealth.IsHostLinkUp())
+            {
+                var state = HidLinkHealth.TryReadUdcState() ?? "unknown";
+                error = HidLinkHealth.FormatDisconnectError($"UDC state={state}");
+                return false;
+            }
+
             var reports = _encoder.Encode(events, out error);
             if (error is not null)
             {
@@ -59,7 +67,9 @@ public sealed class HidGadgetInputInjector : IInputInjector
             }
             catch (Exception ex)
             {
-                error = ex.Message;
+                error = HidLinkHealth.IsDisconnectError(ex.Message)
+                    ? HidLinkHealth.FormatDisconnectError(ex.Message)
+                    : ex.Message;
                 return false;
             }
 

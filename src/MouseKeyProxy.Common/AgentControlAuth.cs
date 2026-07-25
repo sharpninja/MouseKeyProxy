@@ -38,17 +38,30 @@ public static class AgentControlAuth
 }
 
 /// <summary>
-/// TR-MKP-SEC-001: user-scoped persistence for the agent-control auth token. On Windows the file is
-/// ACL-restricted to the current user; on other platforms POSIX file permissions (0600) are applied.
+/// TR-MKP-SEC-001: persistence for the agent-control auth token. The interactive agent writes the
+/// user LocalAppData path and a machine-local ProgramData mirror so the Windows service
+/// (LocalSystem) can present the same token when calling the user-session agent pipe.
 /// </summary>
 public static class AgentControlTokenStore
 {
-    /// <summary>The default token path under the user's local application data.</summary>
+    /// <summary>The default token path under the current process user's local application data.</summary>
     /// <returns>The absolute token file path.</returns>
     public static string DefaultPath() => Path.Combine(
         Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
         "MouseKeyProxy",
         "agent-control.token");
+
+    /// <summary>
+    /// Machine-local mirror path (Windows ProgramData) readable by LocalSystem and the interactive user.
+    /// </summary>
+    /// <returns>The absolute shared token path, or empty when ProgramData is unavailable.</returns>
+    public static string MachinePath()
+    {
+        var root = Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData);
+        return string.IsNullOrWhiteSpace(root)
+            ? string.Empty
+            : Path.Combine(root, "MouseKeyProxy", "agent-control.token");
+    }
 
     /// <summary>Writes the token to <paramref name="path"/> with owner-only permissions.</summary>
     /// <param name="path">The token file path.</param>
@@ -58,6 +71,48 @@ public static class AgentControlTokenStore
         ArgumentException.ThrowIfNullOrWhiteSpace(path);
         ArgumentException.ThrowIfNullOrWhiteSpace(token);
 
+        WriteCore(path, token);
+
+        // Mirror for LocalSystem service → user-session agent IPC (Windows).
+        var machine = MachinePath();
+        if (!string.IsNullOrWhiteSpace(machine) &&
+            !string.Equals(Path.GetFullPath(path), Path.GetFullPath(machine), StringComparison.OrdinalIgnoreCase))
+        {
+            try
+            {
+                WriteCore(machine, token);
+            }
+            catch
+            {
+                // Best effort: user-scoped token still works for same-user callers.
+            }
+        }
+    }
+
+    /// <summary>Reads the token from <paramref name="path"/>, or null when the file is absent.</summary>
+    /// <param name="path">The token file path.</param>
+    /// <returns>The token, or null.</returns>
+    public static string? Read(string path)
+    {
+        var direct = ReadCore(path);
+        if (direct is not null)
+        {
+            return direct;
+        }
+
+        // Service (LocalSystem) has a different LocalAppData; fall back to the machine mirror.
+        var machine = MachinePath();
+        if (!string.IsNullOrWhiteSpace(machine) &&
+            !string.Equals(path, machine, StringComparison.OrdinalIgnoreCase))
+        {
+            return ReadCore(machine);
+        }
+
+        return null;
+    }
+
+    private static void WriteCore(string path, string token)
+    {
         var directory = Path.GetDirectoryName(path);
         if (!string.IsNullOrEmpty(directory))
         {
@@ -68,10 +123,7 @@ public static class AgentControlTokenStore
         RestrictToOwner(path);
     }
 
-    /// <summary>Reads the token from <paramref name="path"/>, or null when the file is absent.</summary>
-    /// <param name="path">The token file path.</param>
-    /// <returns>The token, or null.</returns>
-    public static string? Read(string path)
+    private static string? ReadCore(string path)
     {
         if (string.IsNullOrWhiteSpace(path) || !File.Exists(path))
         {

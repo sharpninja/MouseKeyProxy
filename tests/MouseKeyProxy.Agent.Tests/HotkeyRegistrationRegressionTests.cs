@@ -14,7 +14,7 @@ public class HotkeyRegistrationRegressionTests
 
         Assert.Contains("WM_HOTKEY", source, StringComparison.Ordinal);
         Assert.Contains("HotkeyMessageForm", source, StringComparison.Ordinal);
-        Assert.Contains("RaiseToggle(\"Ctrl-Alt-F1\"", source, StringComparison.Ordinal);
+        Assert.Contains("RaiseToggle(\"Ctrl-Win-F1\"", source, StringComparison.Ordinal);
         Assert.Contains("WndProc", source, StringComparison.Ordinal);
     }
 
@@ -90,18 +90,29 @@ public class HotkeyRegistrationRegressionTests
         Assert.Contains("RemoteConnectionState.NotConnected", source, StringComparison.Ordinal);
         Assert.Contains("Not paired", source, StringComparison.Ordinal);
         Assert.Contains("Not connected to a remote", source, StringComparison.Ordinal);
-        Assert.Contains("AddConnectedRemoteMenuAction(menu, \"Toggle Active - Desktop Control (Ctrl-Alt-F1)\"", mainMenu, StringComparison.Ordinal);
+        Assert.Contains("AddConnectedRemoteMenuAction(menu, \"Toggle Active - Desktop Control (Ctrl-Win-F1)\"", mainMenu, StringComparison.Ordinal);
         Assert.Contains("AddConnectedRemoteMenuAction(menu, \"Clipboard\"", mainMenu, StringComparison.Ordinal);
         Assert.Contains("AddConnectedRemoteMenuAction(menu, \"Inject Text to Remote...\"", mainMenu, StringComparison.Ordinal);
         Assert.Contains("AddPairedRemoteMenuAction(menu, \"Reconnect\"", mainMenu, StringComparison.Ordinal);
         Assert.Contains("menu.Items.Add(\"Emergency release\"", mainMenu, StringComparison.Ordinal);
         Assert.Contains("_primaryRemoteButton = CreateDashboardButton(\"Pair\")", source, StringComparison.Ordinal);
+        Assert.Contains("_toggleModeButton = CreateDashboardButton(ToggleModeButtonText())", source, StringComparison.Ordinal);
+        Assert.Contains("DoRealToggle()", source, StringComparison.Ordinal);
+        Assert.Contains("Input mode", source, StringComparison.Ordinal);
         Assert.Contains("UpdatePrimaryRemoteButton", source, StringComparison.Ordinal);
+        Assert.Contains("UpdateToggleModeButton", source, StringComparison.Ordinal);
         Assert.Contains("_primaryRemoteButton.Text = \"Pair\"", source, StringComparison.Ordinal);
         Assert.Contains("_primaryRemoteButton.Text = \"Reconnect\"", source, StringComparison.Ordinal);
         Assert.Contains("ShowPairingForm();", source, StringComparison.Ordinal);
         Assert.Contains("binding.EnabledText} ({reason})", source, StringComparison.Ordinal);
         Assert.Contains("EnsureConnectedRemoteAction(\"Toggle Active - Desktop Control\")", toggleHelper, StringComparison.Ordinal);
+        // Toggle off uses OnForwarderReturnedToLocal (which notifies local); toggle on uses nowActive.
+        Assert.Contains("NotifyToggleMode(remoteActive: nowActive", toggleHelper, StringComparison.Ordinal);
+        Assert.Contains("NotifyToggleMode(remoteActive: false", source, StringComparison.Ordinal);
+        Assert.Contains("Device HID link lost", source, StringComparison.Ordinal);
+        Assert.Contains("FallbackToLocal", source, StringComparison.Ordinal);
+        Assert.Contains("ShowTrayNotification", source, StringComparison.Ordinal);
+        Assert.Contains("ShowBalloonTip", source, StringComparison.Ordinal);
         Assert.Contains("EnsureConnectedRemoteAction(\"Inject Text to Remote\")", injectHelper, StringComparison.Ordinal);
         Assert.Contains("EnsureConnectedRemoteAction(\"Clipboard\")", source, StringComparison.Ordinal);
         Assert.Contains("EnsurePairedRemoteAction(\"Reconnect\")", source, StringComparison.Ordinal);
@@ -155,7 +166,10 @@ public class HotkeyRegistrationRegressionTests
         Assert.Contains("SetWindowsHookEx(WH_KEYBOARD_LL", source, StringComparison.Ordinal);
         Assert.Contains("KeyboardHookCallback", source, StringComparison.Ordinal);
         Assert.Contains("IsCtrlAltF1", source, StringComparison.Ordinal);
-        Assert.Contains("vk == VK_F1 && IsKeyDown(VK_CONTROL) && IsKeyDown(VK_MENU)", source, StringComparison.Ordinal);
+        Assert.Contains("IsCtrlWinF1", source, StringComparison.Ordinal);
+        Assert.Contains("UpdateTrackedModifiers", source, StringComparison.Ordinal);
+        Assert.Contains("_winDown", source, StringComparison.Ordinal);
+        Assert.Contains("IsControlDown()", source, StringComparison.Ordinal);
         Assert.Contains("UnhookWindowsHookEx", source, StringComparison.Ordinal);
     }
 
@@ -184,10 +198,17 @@ public class HotkeyRegistrationRegressionTests
         Assert.True(hookStart >= 0 && hookEnd > hookStart, "KeyboardHookCallback helper was not found.");
         var hook = source[hookStart..hookEnd];
 
-        Assert.Contains("if (!IsToggleChord(data.vkCode))", hook, StringComparison.Ordinal);
+        // Escape chords restore host control; all other active keys are enqueued and consumed.
+        Assert.Contains("IsToggleChord(data.vkCode)", hook, StringComparison.Ordinal);
+        Assert.Contains("IsEmergencyChord(data.vkCode)", hook, StringComparison.Ordinal);
+        Assert.Contains("RequestEscape", hook, StringComparison.Ordinal);
         Assert.Contains("return new IntPtr(1);", hook, StringComparison.Ordinal);
         Assert.DoesNotContain("IsLocalPassThroughKey", source, StringComparison.Ordinal);
         Assert.DoesNotContain("CallNextHookEx(_keyboardHook, nCode, wParam, lParam) :", hook, StringComparison.Ordinal);
+        // TR-MKP-RELI-001: HID USB host-link loss returns control to the host immediately.
+        Assert.Contains("DEVICE_HID_DISCONNECTED", source, StringComparison.Ordinal);
+        Assert.Contains("RequestHidLostFallback", source, StringComparison.Ordinal);
+        Assert.Contains("IsDeviceHidLost", source, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -202,9 +223,18 @@ public class HotkeyRegistrationRegressionTests
         Assert.Contains("AgentControlPipe.EmergencyRelease", pipeSource, StringComparison.Ordinal);
         Assert.Contains("ExecuteEmergencyReleaseCommand", programSource, StringComparison.Ordinal);
         Assert.Contains("PerformEmergencyRelease(showUi: false, notifyPeer: request.NotifyPeer", programSource, StringComparison.Ordinal);
-        Assert.Contains("_forwarder?.Stop();", programSource, StringComparison.Ordinal);
+        // Host restore must not wait on peer RPC.
+        Assert.Contains("_forwarder?.Stop(releaseRemoteModifiers: false)", programSource, StringComparison.Ordinal);
         Assert.Contains("_clip?.Release();", programSource, StringComparison.Ordinal);
         Assert.Contains("_state?.Reset();", programSource, StringComparison.Ordinal);
         Assert.Contains("ForwardingActive = _forwarder?.IsActive ?? false", programSource, StringComparison.Ordinal);
+        var emergencyStart = programSource.IndexOf("private static AgentControlResponse PerformEmergencyRelease", StringComparison.Ordinal);
+        Assert.True(emergencyStart >= 0, "PerformEmergencyRelease not found");
+        var emergencyEnd = programSource.IndexOf("private static RemoteControlResult? TryRequestDeviceClearModifiers", emergencyStart, StringComparison.Ordinal);
+        Assert.True(emergencyEnd > emergencyStart, "PerformEmergencyRelease end not found");
+        var emergencyBody = programSource[emergencyStart..emergencyEnd];
+        var stopIdx = emergencyBody.IndexOf("_forwarder?.Stop(releaseRemoteModifiers: false)", StringComparison.Ordinal);
+        var peerIdx = emergencyBody.IndexOf("TryRequestDeviceClearModifiers", StringComparison.Ordinal);
+        Assert.True(stopIdx >= 0 && peerIdx > stopIdx, "Local forwarder stop must run before peer notify.");
     }
 }

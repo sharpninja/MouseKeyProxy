@@ -1,0 +1,19 @@
+[Unit]
+Description=MouseKeyProxy USB composite gadget (HID + thumb + lab RNDIS/ECM)
+Documentation=file:///usr/local/share/doc/mousekeyproxy/orange-pi-zero-2-hid.md
+DefaultDependencies=no
+After=local-fs.target sys-kernel-config.mount
+Before=mousekeyproxy.service
+Wants=sys-kernel-config.mount
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+Environment=MKP_ENABLE_DISK=1
+Environment=MKP_ENABLE_USB_NET=1
+Environment=MKP_USB_NET_ADDR=192.168.7.2/24
+ExecStart=/usr/local/sbin/mkp-hid-gadget-setup.sh
+ExecStop=/bin/bash -c 'G=/sys/kernel/config/usb_gadget/mkp_hid; if [ -f "$G/UDC" ]; then echo "" >"$G/UDC" || true; fi'
+
+[Install]
+WantedBy=multi-user.target

@@ -164,7 +164,7 @@ Scope: layer-1+
 **Acceptance Criteria:**
 - [ ] The Pi Zero 2 is provisioned as mkp-hid-pi and is reachable from payton-legion2 over the lab network. (evidence: docs\receipts-hid-provision-20260707T103933Z.txt shows DNS unresolved for mkp-hid-pi.)
 - [ ] The controlled Windows host enumerates the Pi as standard HID keyboard and relative mouse devices without vendor Windows drivers.
-- [x] The Pi HID appliance service is implemented in C# targeting .NET 10 and published self-contained for linux-arm64. (evidence: src\MouseKeyProxy.PiHid; dotnet publish src\MouseKeyProxy.PiHid\MouseKeyProxy.PiHid.csproj -c Release -r linux-arm64 --self-contained true)
+- [x] The Pi HID appliance service is implemented in C# targeting .NET 10 and published self-contained for linux-arm. (evidence: src\MouseKeyProxy.PiHid; dotnet publish src\MouseKeyProxy.PiHid\MouseKeyProxy.PiHid.csproj -c Release -r linux-arm --self-contained true)
 - [x] The HID appliance implementation and provisioning path contain no Python code, Python scripts, or Python runtime dependency. (evidence: dotnet test tests\MouseKeyProxy.Compliance.Tests -c Release --filter Category=HardwareHID)
 - [ ] Alt-Space, Win-Arrow, and relative mouse movement through the Pi are proven by WindowProbe JSON and timestamped screenshot evidence.
 

@@ -15,11 +15,11 @@ namespace MouseKeyProxy.Repl;
 /// </summary>
 public sealed class PiProvisionOptions
 {
-    /// <summary>Default Raspberry Pi OS Lite arm64 image URL (compressed .img.xz).</summary>
-    public const string DefaultImageUrl = "https://downloads.raspberrypi.org/raspios_lite_arm64/images/raspios_lite_arm64-2026-06-19/2026-06-18-raspios-trixie-arm64-lite.img.xz";
+    /// <summary>Default Raspberry Pi OS Lite 32-bit ARM image URL (compressed .img.xz).</summary>
+    public const string DefaultImageUrl = "https://downloads.raspberrypi.org/raspios_lite_armhf/images/raspios_lite_armhf-2023-02-22/2023-02-21-raspios-bullseye-armhf-lite.img.xz";
 
-    /// <summary>Expected SHA-256 of the default compressed image (lowercase hex).</summary>
-    public const string DefaultSha256 = "acff736ca7945e3b305f07cda4abdb870910e12634991da69783611756e381b3";
+    /// <summary>Expected SHA-256 of the default compressed image (lowercase hex), or empty to skip default verification.</summary>
+    public const string DefaultSha256 = "";
 
     /// <summary>Default staging directory under the local application data folder.</summary>
     public static string DefaultStageRoot => Path.Combine(
@@ -143,7 +143,7 @@ public sealed class PiImageProvisioner
         var fileName = Path.GetFileName(options.ImageUrl.LocalPath);
         if (string.IsNullOrWhiteSpace(fileName))
         {
-            fileName = "raspios-lite-arm64.img.xz";
+            fileName = "raspios-lite-armhf.img.xz";
         }
 
         var imagePath = Path.Combine(options.StageRoot, fileName);

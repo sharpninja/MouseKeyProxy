@@ -1,0 +1,77 @@
+MouseKeyProxy Base-Image Physical Boot Observation
+==================================================
+
+Timestamp (UTC): 2026-07-13T21:25:59Z
+Target board: Official Raspberry Pi Zero 2 WH
+Result: FAIL - boot firmware repeats the seven-short-flash error code; no HDMI video observed.
+
+Operator observation
+--------------------
+
+- The newly written base-image card was inserted into the Raspberry Pi Zero 2 WH.
+- Power-on returned to the same repeating cycle of seven short LED flashes followed by a pause.
+- No video was observed from HDMI.
+
+Confirmed image evidence
+------------------------
+
+- The card was written with the untouched 2026-06-18 Raspberry Pi OS Trixie arm64 Lite base image.
+- Source image SHA-256:
+  ACFF736CA7945E3B305F07CDA4ABDB870910E12634991DA69783611756E381B3
+- Rufus completed the full write, remounted and verified the boot partition as readable, exited 0 with ErrorStatus 0, and ejected the card.
+- No --mkp-pi-profile or staging/provisioning argument was used; MKP_PI_STAGE_DIR was cleared.
+- Base write receipt:
+  docs/receipts-hid-base-image-write-20260713T212127Z.txt
+  SHA-256: 2D6919556C0CC6782F98AE0E1E011A0552DBA170B1D2FA3EBBE28EDD16860C70
+
+Independent image boot evidence
+-------------------------------
+
+- QEMU raspi3b booted the same image through Linux 6.18.34, SD partition discovery, ext4 root mount, /sbin/init, and systemd first-boot execution.
+- QEMU receipt:
+  docs/receipts-hid-qemu-20260713T210159Z.txt
+  SHA-256: 0B7458EC6C32634F42B28DBF33D899845952ECD85BAC95F51668997AA353106C
+
+Official diagnostic meaning
+---------------------------
+
+Raspberry Pi documentation defines zero long flashes followed by seven short flashes as:
+
+  Kernel image not found
+
+Sources:
+
+- https://www.raspberrypi.com/documentation/computers/configuration.html#led-warning-flash-codes
+- https://www.raspberrypi.com/documentation/computers/raspberry-pi.html
+
+Assessment
+----------
+
+Facts:
+
+- The failure happens before Linux starts.
+- The failure persists with an untouched base image.
+- The source image contains a bootable kernel and root filesystem under QEMU.
+- Rufus verified the written FAT boot partition was readable on Windows.
+- HDMI absence does not add a separate Linux failure signal because the firmware has already reported a pre-kernel error.
+
+Inference:
+
+- MouseKeyProxy configuration and post-write customization are eliminated as causes.
+- General source-image corruption is unlikely.
+- The remaining fault domain is the physical boot path: the current card as read by this board, the Zero 2 WH SD interface/board, board-specific kernel selection compatibility, or power integrity during SD access.
+
+Next isolation gates
+--------------------
+
+1. Boot this exact, unchanged card in the known-available Raspberry Pi 3.
+   - Pi 3 boots: card and current write are good; focus on Zero 2 WH board, SD contacts/interface, and power.
+   - Pi 3 also shows seven flashes: focus on the current card/write path despite host-side verification.
+2. If the Pi 3 boots, retry the Zero 2 WH with only SD and a known-good 5 V supply connected to the PWR port; HDMI is optional for the LED-code test.
+3. If the Zero 2 WH still reports seven flashes, test a second known-good microSD with official Raspberry Pi OS Lite 32-bit to isolate kernel8/arm64 selection from a board defect.
+4. If a second card with the 32-bit image also produces seven flashes while the Pi 3 boots it, classify the Zero 2 WH as defective and replace/return it.
+
+Conclusion
+----------
+
+The physical Zero 2 WH still cannot load the kernel from a verified untouched image. The next highest-value receipt is whether this exact card boots in the Pi 3; no further edits to the current card should be made before that comparison.

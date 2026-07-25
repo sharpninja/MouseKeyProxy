@@ -1,0 +1,80 @@
+MouseKeyProxy Pi 3 Control-Boot Receipt
+=======================================
+
+Timestamp (UTC): 2026-07-13T21:38:05Z
+Operator result: The exact unchanged base-image SD card boots successfully in Raspberry Pi 3.
+Comparison target: Official Raspberry Pi Zero 2 WH repeats zero long plus seven short flashes and does not reach HDMI/Linux boot.
+
+Controlled comparison
+---------------------
+
+- Card: same physical SD card; not rewritten between the Zero 2 WH failure and Pi 3 success.
+- Image: untouched 2026-06-18 Raspberry Pi OS Trixie arm64 Lite base image.
+- Source image SHA-256:
+  ACFF736CA7945E3B305F07CDA4ABDB870910E12634991DA69783611756E381B3
+- Base-write receipt:
+  docs/receipts-hid-base-image-write-20260713T212127Z.txt
+- Zero 2 WH failure receipt:
+  docs/receipts-hid-base-image-physical-boot-20260713T212559Z.txt
+
+Boot-partition evidence from the exact source image
+---------------------------------------------------
+
+- config.txt contains auto_initramfs=1.
+- config.txt contains arm_64bit=1.
+- config.txt SHA-256:
+  90A446821551A9DF109EC1A77A79F6518FE974517D982D371C5E9EFD6BBC98C3
+- kernel8.img is present, size 10,168,774 bytes.
+- kernel8.img SHA-256:
+  9CF86CFBE4E8E47B3C30EE4D1DEDF805354637C1E90508D880AA5CEA9A69935A
+- bcm2710-rpi-zero-2-w.dtb is present, size 33,708 bytes.
+- start.elf and fixup.dat are present.
+
+Official kernel-selection behavior
+----------------------------------
+
+Raspberry Pi documentation states:
+
+- The normal 32-bit kernel default for Raspberry Pi 2, 3, 3+, and Zero 2 W is kernel7.img.
+- Setting arm_64bit=1 makes firmware choose the appropriate 64-bit kernel, such as kernel8.img.
+- An explicit kernel= option overrides automatic selection.
+- Raspberry Pi Zero 2 W supports arm_64bit.
+- The Zero 2 W 64-bit kernel build is kernel8.
+
+Sources:
+
+- https://www.raspberrypi.com/documentation/computers/config_txt.html#kernel
+- https://www.raspberrypi.com/documentation/computers/config_txt.html#arm_64bit
+- https://www.raspberrypi.com/documentation/computers/linux_kernel.html
+
+Assessment
+----------
+
+Facts:
+
+- The Pi 3 boots the exact card that fails in the Zero 2 WH.
+- The card therefore contains a readable FAT boot partition and working kernel/root filesystem.
+- The source image contains the Zero 2 W DTB and the kernel8 image selected by arm_64bit=1.
+- The Zero 2 WH reaches firmware far enough to emit the official kernel-image-not-found code.
+
+Inference:
+
+- The SD card, base image, Rufus write, kernel file, and general filesystem integrity are eliminated as primary causes.
+- The remaining fault domain is Zero 2 WH-specific: firmware kernel auto-selection, SD reads on that board, board hardware, SD-slot contacts, or power integrity.
+- The earlier kernel=kernel8.img test changed the Zero 2 symptom, so a repeat of that single-line override on this now-proven card is the final useful software-side isolation step.
+
+Next gate
+---------
+
+1. Return this unchanged card to Windows as G:.
+2. Add only kernel=kernel8.img under [all] in config.txt.
+3. Verify the deployed config hash and flush/eject the card.
+4. Boot the Zero 2 WH using the same known-good power supply/cable where practical, with only SD and power connected.
+5. Interpret the result:
+   - Seven-flash loop disappears: automatic kernel selection is the failing path; collect the new boot behavior before changing anything else.
+   - Seven-flash loop persists: classify the new Zero 2 WH as defective after one second-card confirmation, or return/replace it immediately if minimizing further diagnostics.
+
+Conclusion
+----------
+
+The Pi 3 control boot proves the current card and base image are bootable. The failure is isolated to the Zero 2 WH path, with one justified kernel-selection override remaining before hardware replacement.

@@ -46,7 +46,7 @@ public class PiImageProvisionerTests : IDisposable
     private PiProvisionOptions OptionsFor(byte[] payload, bool force = false, bool launch = false)
         => new()
         {
-            ImageUrl = new Uri("https://example.test/raspios-lite-arm64.img.xz"),
+            ImageUrl = new Uri("https://example.test/raspios-lite-armhf.img.xz"),
             ExpectedSha256 = Sha256Hex(payload),
             StageRoot = _stageRoot,
             Profile = "default",
@@ -67,7 +67,7 @@ public class PiImageProvisionerTests : IDisposable
 
         Assert.Equal(1, handler.CallCount);
         Assert.True(File.Exists(imagePath));
-        Assert.Equal("raspios-lite-arm64.img.xz", Path.GetFileName(imagePath));
+        Assert.Equal("raspios-lite-armhf.img.xz", Path.GetFileName(imagePath));
         Assert.Equal(payload, await File.ReadAllBytesAsync(imagePath, TestContext.Current.CancellationToken));
         Assert.True(File.Exists(Path.Combine(_stageRoot, "manifest.json")));
         Assert.False(File.Exists(imagePath + ".download"));
@@ -80,7 +80,7 @@ public class PiImageProvisionerTests : IDisposable
     {
         var payload = new byte[] { 9, 9, 9 };
         Directory.CreateDirectory(_stageRoot);
-        var existing = Path.Combine(_stageRoot, "raspios-lite-arm64.img.xz");
+        var existing = Path.Combine(_stageRoot, "raspios-lite-armhf.img.xz");
         await File.WriteAllBytesAsync(existing, payload, TestContext.Current.CancellationToken);
 
         var handler = new StubHttpMessageHandler(payload) { ThrowIfCalled = true };
@@ -99,7 +99,7 @@ public class PiImageProvisionerTests : IDisposable
     {
         var payload = new byte[] { 4, 5, 6 };
         Directory.CreateDirectory(_stageRoot);
-        await File.WriteAllBytesAsync(Path.Combine(_stageRoot, "raspios-lite-arm64.img.xz"), new byte[] { 0 }, TestContext.Current.CancellationToken);
+        await File.WriteAllBytesAsync(Path.Combine(_stageRoot, "raspios-lite-armhf.img.xz"), new byte[] { 0 }, TestContext.Current.CancellationToken);
 
         var handler = new StubHttpMessageHandler(payload);
         var provisioner = new PiImageProvisioner(new HttpClient(handler));
@@ -120,7 +120,7 @@ public class PiImageProvisionerTests : IDisposable
         var provisioner = new PiImageProvisioner(new HttpClient(handler));
         var options = new PiProvisionOptions
         {
-            ImageUrl = new Uri("https://example.test/raspios-lite-arm64.img.xz"),
+            ImageUrl = new Uri("https://example.test/raspios-lite-armhf.img.xz"),
             ExpectedSha256 = Sha256Hex(new byte[] { 0, 0, 0 }),
             StageRoot = _stageRoot,
             LaunchRufus = false
@@ -129,8 +129,8 @@ public class PiImageProvisionerTests : IDisposable
         await Assert.ThrowsAsync<InvalidOperationException>(
             () => provisioner.StageImageAsync(options, TestContext.Current.CancellationToken));
 
-        Assert.False(File.Exists(Path.Combine(_stageRoot, "raspios-lite-arm64.img.xz")));
-        Assert.False(File.Exists(Path.Combine(_stageRoot, "raspios-lite-arm64.img.xz.download")));
+        Assert.False(File.Exists(Path.Combine(_stageRoot, "raspios-lite-armhf.img.xz")));
+        Assert.False(File.Exists(Path.Combine(_stageRoot, "raspios-lite-armhf.img.xz.download")));
     }
 
     /// <summary>Builds the exact Rufus argument list expected by the custom rufus-mkp CLI.</summary>
@@ -172,9 +172,9 @@ public class PiImageProvisionerTests : IDisposable
         Assert.True(result.Ok);
         Assert.Equal(fakeRufus, launcher.ExePath);
         Assert.Contains("--gui --iso", launcher.Arguments);
-        Assert.Contains("raspios-lite-arm64.img.xz", launcher.Arguments);
+        Assert.Contains("raspios-lite-armhf.img.xz", launcher.Arguments);
         Assert.Contains("--mkp-pi-profile=default", launcher.Arguments);
-        Assert.Equal(result.ImagePath, Path.Combine(_stageRoot, "raspios-lite-arm64.img.xz"));
+        Assert.Equal(result.ImagePath, Path.Combine(_stageRoot, "raspios-lite-armhf.img.xz"));
     }
 
     /// <summary>Returns Ok=false and does not launch when the bundled Rufus executable is missing.</summary>

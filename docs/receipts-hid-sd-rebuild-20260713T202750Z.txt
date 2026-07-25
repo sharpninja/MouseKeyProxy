@@ -1,0 +1,44 @@
+MouseKeyProxy SD-card rebuild receipt
+Timestamp UTC: 2026-07-13T20:27:50Z
+Host: PAYTON-LEGION2
+
+Target identity before write
+- Drive letter: G:
+- Physical disk: 2
+- Device: SDXC
+- Bus type: SD
+- Capacity: 119.08 GB
+- Boot/system disk: no/no
+- Initial partition: FAT32 bootfs, 0.5 GB
+- Initial Windows volume health: Warning
+- Disk was writable and online.
+
+Image
+- File: C:\Users\kingd\AppData\Local\MouseKeyProxy\pi-stage\2026-06-18-raspios-trixie-arm64-lite.img.xz
+- Size: 524,875,608 bytes
+- SHA-256: ACFF736CA7945E3B305F07CDA4ABDB870910E12634991DA69783611756E381B3
+- Expected SHA-256: acff736ca7945e3b305f07cda4abdb870910e12634991da69783611756e381b3
+- Checksum result: matched
+
+Rufus version correction
+- Installed MouseKeyProxy.Repl 0.5.5 payload was rejected as stale.
+- Stale payload SHA-256: F070B8001786C00E64365BE659AE75757B25F3A2D561C1CC16697A1AF18C8F70
+- Current repo payload: F:\GitHub\MouseKeyProxy\assets\rufus\rufus.exe
+- Current payload SHA-256: F32880B4ECCBDBB74A7B66C2D11ACBEC653A06BB6BD99DD769FF2962895717A1
+- Current rufus-mkp commit: f1989e2235c44c4dda85e2aea374c6944fb07af2
+- Current build controls verified through UI Automation: Save, Load, virtual-device toggles, autorun CD, default CD media, and default floppy media.
+- Current UI target verified as bootfs (G:) [128 GB].
+- Current Pi profile status verified as Pi HID ready.
+- Secrets and credentials were not copied into this receipt.
+
+Write progress observed
+- Writing image: 33.8%
+- Writing image: 57.3%
+- Writing image: 72.1%
+- Writing image: 87.4%
+- Final Rufus status: READY
+
+Post-write state
+- Disk 2 disappeared from Windows storage enumeration after completion because the card was removed and inserted into the target device.
+- Operator reported the target device is booting from the rebuilt card.
+- Post-write file-level inspection was therefore not performed on Windows.

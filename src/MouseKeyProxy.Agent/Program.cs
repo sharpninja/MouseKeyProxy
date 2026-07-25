@@ -49,8 +49,10 @@ internal static class Program
     private static Label? _pairingStatusValue;
     private static Label? _activePeerValue;
     private static Label? _remoteEndpointValue;
+    private static Label? _inputModeValue;
     private static Label? _recentErrorsValue;
     private static Button? _primaryRemoteButton;
+    private static Button? _toggleModeButton;
 
     [STAThread]
     public static void Main()
@@ -60,9 +62,19 @@ internal static class Program
         _injector = new Win32InputInjector();
         _clip = new Win32CursorClip();
         _state = new ToggleStateMachine();
-        _hotkey = new Win32HotkeyMonitor(HotkeyConfigStore.Load(HotkeyConfigStore.DefaultPath()));
+        var hotkeyConfig = HotkeyConfigStore.Load(HotkeyConfigStore.DefaultPath());
+        _hotkey = new Win32HotkeyMonitor(hotkeyConfig);
         _controlPipe = AgentControlPipeServer.Start(new Win32DesktopController(), _injector, NotifyPairingState, GetAgentStatus, ExecuteEmergencyReleaseCommand, new Win32ScreenshotCapture());
-        _forwarder = new RemoteInputForwarder(CreateRemoteChannel);
+        // Same hotkey config as the tray monitor so Ctrl-Win-F1 / emergency work while capture hooks are first in the chain.
+        _forwarder = new RemoteInputForwarder(CreateRemoteChannel, hotkeyConfig);
+        _forwarder.FallbackToLocal += (_, _) => OnForwarderReturnedToLocal(
+            "Device HID link lost or input path failed; returned to local control.",
+            emergency: false);
+        _forwarder.EscapeRequested += (_, e) => OnForwarderReturnedToLocal(
+            e.Emergency
+                ? "Emergency release: local keyboard and mouse restored."
+                : "Toggle: local keyboard and mouse restored.",
+            emergency: e.Emergency);
         LoadPersistedPairingState();
         try
         {
@@ -93,7 +105,7 @@ internal static class Program
 
         var menu = new ContextMenuStrip();
         menu.Items.Add("MouseKeyProxy dashboard", null, (_, _) => ShowDashboardForm());
-        AddConnectedRemoteMenuAction(menu, "Toggle Active - Desktop Control (Ctrl-Alt-F1)", (_, _) => DoRealToggle());
+        AddConnectedRemoteMenuAction(menu, "Toggle Active - Desktop Control (Ctrl-Win-F1)", (_, _) => DoRealToggle());
         menu.Items.Add("Pairing", null, (_, _) => ShowPairingForm());
         AddPairedRemoteMenuAction(menu, "Unpair remote…", (_, _) => UnpairRemoteInteractive());
         AddPairedRemoteMenuAction(menu, "Reconnect", (_, _) => TryReconnect());
@@ -131,8 +143,19 @@ internal static class Program
         };
         _clipboardIntroTimer.Start();
 
-        _hotkeyWindow = new HotkeyMessageForm(() => _hotkey.RaiseToggle("Ctrl-Alt-F1", false));
-        _hotkey.RegisterForWindow(_hotkeyWindow.Handle, 0x0003, (uint)Keys.F1);
+        _hotkeyWindow = new HotkeyMessageForm(() => _hotkey.RaiseToggle("Ctrl-Win-F1", false));
+        // RegisterHotKey is a convenience path; LL keyboard hooks still deliver the configured toggle chord.
+        // Do not abort agent startup when the chord is already owned (win32 1459) or registration fails:
+        // the service inject path needs the agent control pipe alive on the remote.
+        try
+        {
+            _hotkey.RegisterForWindow(_hotkeyWindow.Handle, _hotkey.Config.ToggleMods, _hotkey.Config.ToggleVk);
+        }
+        catch (InvalidOperationException ex)
+        {
+            _lastRemoteError = ex.Message;
+            System.Diagnostics.Debug.WriteLine(ex.Message);
+        }
 
         Application.ApplicationExit += (_, _) => CleanupApplication();
         ShowDashboardForm();
@@ -247,6 +270,7 @@ internal static class Program
         _pairingStatusValue = AddDashboardRow(layout, "Pairing", RemotePairingStatusText());
         _activePeerValue = AddDashboardRow(layout, "Active peer", RemoteActivePeerText());
         _remoteEndpointValue = AddDashboardRow(layout, "Remote endpoint", RemoteEndpointStatusText());
+        _inputModeValue = AddDashboardRow(layout, "Input mode", InputModeStatusText());
         AddDashboardRow(layout, "Clipboard", "Idle");
         _recentErrorsValue = AddDashboardRow(layout, "Recent errors", RecentErrorsText());
 
@@ -259,6 +283,10 @@ internal static class Program
             Margin = Padding.Empty,
             Padding = Padding.Empty
         };
+        // Primary face control: local <-> remote HID toggle (same path as Ctrl-Win-F1).
+        _toggleModeButton = CreateDashboardButton(ToggleModeButtonText());
+        _toggleModeButton.Click += (_, _) => DoRealToggle();
+        actions.Controls.Add(_toggleModeButton);
         _primaryRemoteButton = CreateDashboardButton("Pair");
         _primaryRemoteButton.Click += (_, _) =>
         {
@@ -417,6 +445,7 @@ internal static class Program
         ApplyRemoteActionAvailability(PairedRemoteActions, _remoteState != RemoteConnectionState.NotPaired, NotPairedText);
         ApplyRemoteActionAvailability(ConnectedRemoteActions, _remoteState == RemoteConnectionState.Connected, RemoteActionBlockReason());
         UpdatePrimaryRemoteButton();
+        UpdateToggleModeButton();
         UpdateDashboardStatusLabels();
     }
 
@@ -438,6 +467,35 @@ internal static class Program
         _primaryRemoteButton.Text = "Reconnect";
         _primaryRemoteButton.Enabled = true;
         DashboardToolTip.SetToolTip(_primaryRemoteButton, $"Reconnect to {CurrentRemotePeer()}");
+    }
+
+    /// <summary>Refreshes the face Toggle button label/enabled state from pairing + forwarder state.</summary>
+    private static void UpdateToggleModeButton()
+    {
+        if (_toggleModeButton is null || _toggleModeButton.IsDisposed)
+        {
+            return;
+        }
+
+        var connected = _remoteState == RemoteConnectionState.Connected;
+        _toggleModeButton.Text = ToggleModeButtonText();
+        _toggleModeButton.Enabled = connected;
+        DashboardToolTip.SetToolTip(
+            _toggleModeButton,
+            connected
+                ? "Toggle local vs remote input (Ctrl-Win-F1)"
+                : $"Toggle requires a paired and connected remote. {RemoteActionBlockReason()}");
+    }
+
+    private static string ToggleModeButtonText()
+    {
+        var remoteActive = _forwarder?.IsActive == true;
+        return remoteActive ? "Toggle → Local" : "Toggle → Remote";
+    }
+
+    private static string InputModeStatusText()
+    {
+        return _forwarder?.IsActive == true ? "Remote (forwarding)" : "Local";
     }
 
     private static void ApplyRemoteActionAvailability(
@@ -474,6 +532,11 @@ internal static class Program
         if (_activePeerValue is not null && !_activePeerValue.IsDisposed)
         {
             _activePeerValue.Text = RemoteActivePeerText();
+        }
+
+        if (_inputModeValue is not null && !_inputModeValue.IsDisposed)
+        {
+            _inputModeValue.Text = InputModeStatusText();
         }
 
         if (_remoteEndpointValue is not null && !_remoteEndpointValue.IsDisposed)
@@ -563,8 +626,11 @@ internal static class Program
     private static void ShowBlockedRemoteAction(string action, string reason)
     {
         UpdateRemoteActionAvailability();
+        var detail = $"{action} requires a paired and connected remote. {reason}.";
+        // Tray balloon so hotkey presses are never silent when Focus Assist hides dialogs.
+        ShowTrayNotification(action, detail, ToolTipIcon.Warning);
         MessageBox.Show(
-            $"{action} requires a paired and connected remote. {reason}.",
+            detail,
             action,
             MessageBoxButtons.OK,
             MessageBoxIcon.Warning);
@@ -1208,13 +1274,11 @@ internal static class Program
     private static AgentControlResponse PerformEmergencyRelease(bool showUi, bool notifyPeer, string? source)
     {
         var failures = new List<string>();
-        ClearLocalModifiers();
-        var peerClear = notifyPeer ? TryRequestPeerClearModifiers() : null;
-        var peerRelease = notifyPeer ? TryRequestPeerEmergencyRelease() : null;
 
+        // Local first, always: never wait on peer RPC before restoring host keyboard/mouse.
         try
         {
-            _forwarder?.Stop();
+            _forwarder?.Stop(releaseRemoteModifiers: false);
         }
         catch (Exception ex)
         {
@@ -1230,58 +1294,100 @@ internal static class Program
             failures.Add($"cursor release failed: {ex.Message}");
         }
 
+        ClearLocalModifiers();
         _state?.Reset();
         UpdateRemoteActionAvailability();
+        NotifyToggleMode(remoteActive: false, remotePeer: CurrentRemotePeer(), remoteUrl: ResolveDeviceGrpcUrl());
 
-        if (peerClear is { Ok: false })
-        {
-            failures.Add($"peer modifier clear failed: {peerClear.Value.ErrorCode}: {peerClear.Value.Message}");
-        }
-
-        if (peerRelease is { Ok: false })
-        {
-            failures.Add($"peer release failed: {peerRelease.Value.ErrorCode}: {peerRelease.Value.Message}");
-        }
-
-        var ok = failures.Count == 0;
         var sourceSuffix = string.IsNullOrWhiteSpace(source) ? string.Empty : $" requested by {source.Trim()}";
-        var message = ok
-            ? $"Emergency release completed{sourceSuffix}. Local forwarding is stopped and keyboard/mouse are restored."
-            : $"Emergency release completed locally{sourceSuffix}, but {string.Join("; ", failures)}.";
+        var message =
+            $"Emergency release completed{sourceSuffix}. Local forwarding is stopped and keyboard/mouse are restored.";
 
         if (showUi)
         {
-            MessageBox.Show(
-                message,
-                "Emergency release",
-                MessageBoxButtons.OK,
-                ok ? MessageBoxIcon.Information : MessageBoxIcon.Warning);
+            ShowTrayNotification("MouseKeyProxy: Local", message, ToolTipIcon.Warning);
         }
 
-        return ok
+        if (notifyPeer)
+        {
+            // Peer cleanup is best-effort and never blocks host recovery.
+            _ = Task.Run(() =>
+            {
+                try
+                {
+                    TryRequestDeviceClearModifiers(TimeSpan.FromSeconds(1));
+                    TryRequestDeviceEmergencyRelease(TimeSpan.FromSeconds(1));
+                }
+                catch (Exception ex)
+                {
+                    System.Diagnostics.Debug.WriteLine($"Emergency peer notify failed: {ex.Message}");
+                }
+            });
+        }
+
+        return failures.Count == 0
             ? AgentControlResponse.Success(message)
-            : AgentControlResponse.Failure("EMERGENCY_RELEASE_PARTIAL", message);
+            : AgentControlResponse.Failure("EMERGENCY_RELEASE_PARTIAL", $"{message} ({string.Join("; ", failures)})");
     }
 
-    private static RemoteControlResult? TryRequestPeerClearModifiers()
+    /// <summary>
+    /// FR-MKP-027: clear stuck modifiers on the <see cref="PeerEffectRole.DeviceAppliance"/> (Pi HID),
+    /// never on the Windows USB host / clipboard peer. Keyboard/mouse effects go only to the device.
+    /// </summary>
+    private static RemoteControlResult? TryRequestDeviceClearModifiers(TimeSpan? timeout = null)
     {
-        if (_remoteState == RemoteConnectionState.NotPaired || string.IsNullOrWhiteSpace(_activeRemoteGrpcUrl))
+        var deviceUrl = ResolveDeviceGrpcUrl();
+        if (_remoteState == RemoteConnectionState.NotPaired || string.IsNullOrWhiteSpace(deviceUrl))
         {
             return null;
         }
 
+        var bound = timeout ?? TimeSpan.FromSeconds(5);
         try
         {
-            // TR-MKP-AGENTIPC-001: dispatch through the shared command implementation (same code the REPL uses).
-            using var channel = CreateRemoteChannel(_activeRemoteGrpcUrl);
-            var commands = new RemoteServiceCommands(() => channel is null ? null : new Wire.MouseKeyProxy.MouseKeyProxyClient(channel));
-            return commands.ClearModifiersAsync(Environment.MachineName.ToLowerInvariant(), Guid.NewGuid().ToString("N"))
-                .GetAwaiter().GetResult();
+            PeerTrafficPolicy.EnsureAllowed(PeerEffectRole.DeviceAppliance, PeerTrafficPolicy.EffectKind.Input, deviceUrl);
+
+            // Bound channel create + RPC so a hung device never freezes toggle forever.
+            return Task.Run(() =>
+            {
+                using var cts = new CancellationTokenSource(bound);
+                using var channel = CreateRemoteChannel(deviceUrl);
+                var commands = new RemoteServiceCommands(() => channel is null ? null : new Wire.MouseKeyProxy.MouseKeyProxyClient(channel));
+                return commands.ClearModifiersAsync(
+                        Environment.MachineName.ToLowerInvariant(),
+                        Guid.NewGuid().ToString("N"),
+                        cts.Token)
+                    .GetAwaiter()
+                    .GetResult();
+            }).WaitAsync(bound).GetAwaiter().GetResult();
+        }
+        catch (TimeoutException)
+        {
+            return RemoteControlResult.Failure("CLEAR_MODIFIERS_TIMEOUT", $"Device clear-modifiers timed out after {bound.TotalSeconds:0.#}s.");
+        }
+        catch (OperationCanceledException)
+        {
+            return RemoteControlResult.Failure("CLEAR_MODIFIERS_TIMEOUT", $"Device clear-modifiers timed out after {bound.TotalSeconds:0.#}s.");
         }
         catch (Exception ex)
         {
             return RemoteControlResult.Failure("CLEAR_MODIFIERS_RPC_FAILED", ex.Message);
         }
+    }
+
+    /// <summary>
+    /// FR-MKP-027: gRPC URL of the HID device appliance (Pi). Input + modifier clear target this only;
+    /// clipboard/screenshot peers are separate (<see cref="_clipboardPeerUrl"/>).
+    /// </summary>
+    private static string ResolveDeviceGrpcUrl()
+    {
+        // Primary paired device endpoint (settings / agent-pairing), not the clipboard client.
+        if (!string.IsNullOrWhiteSpace(_activeRemoteGrpcUrl))
+        {
+            return _activeRemoteGrpcUrl!;
+        }
+
+        return ResolveRemoteGrpcUrl();
     }
 
     private static AgentControlResponse ClearLocalModifiers()
@@ -1297,20 +1403,41 @@ internal static class Program
             : AgentControlResponse.Failure("LOCAL_CLEAR_MODIFIERS_FAILED", error ?? "Local modifier cleanup failed.");
     }
 
-    private static RemoteControlResult? TryRequestPeerEmergencyRelease()
+    /// <summary>
+    /// FR-MKP-027: emergency modifier release on the device appliance (Pi HID path), not the Windows peer.
+    /// </summary>
+    private static RemoteControlResult? TryRequestDeviceEmergencyRelease(TimeSpan? timeout = null)
     {
-        if (_remoteState == RemoteConnectionState.NotPaired || string.IsNullOrWhiteSpace(_activeRemoteGrpcUrl))
+        var deviceUrl = ResolveDeviceGrpcUrl();
+        if (_remoteState == RemoteConnectionState.NotPaired || string.IsNullOrWhiteSpace(deviceUrl))
         {
             return null;
         }
 
+        var bound = timeout ?? TimeSpan.FromSeconds(2);
         try
         {
-            // TR-MKP-AGENTIPC-001: dispatch through the shared command implementation (same code the REPL uses).
-            using var channel = CreateRemoteChannel(_activeRemoteGrpcUrl);
-            var commands = new RemoteServiceCommands(() => channel is null ? null : new Wire.MouseKeyProxy.MouseKeyProxyClient(channel));
-            return commands.EmergencyReleaseAsync(Environment.MachineName.ToLowerInvariant(), Guid.NewGuid().ToString("N"))
-                .GetAwaiter().GetResult();
+            PeerTrafficPolicy.EnsureAllowed(PeerEffectRole.DeviceAppliance, PeerTrafficPolicy.EffectKind.Input, deviceUrl);
+            return Task.Run(() =>
+            {
+                using var cts = new CancellationTokenSource(bound);
+                using var channel = CreateRemoteChannel(deviceUrl);
+                var commands = new RemoteServiceCommands(() => channel is null ? null : new Wire.MouseKeyProxy.MouseKeyProxyClient(channel));
+                return commands.EmergencyReleaseAsync(
+                        Environment.MachineName.ToLowerInvariant(),
+                        Guid.NewGuid().ToString("N"),
+                        cts.Token)
+                    .GetAwaiter()
+                    .GetResult();
+            }).WaitAsync(bound).GetAwaiter().GetResult();
+        }
+        catch (TimeoutException)
+        {
+            return RemoteControlResult.Failure("EMERGENCY_RELEASE_TIMEOUT", $"Device emergency-release timed out after {bound.TotalSeconds:0.#}s.");
+        }
+        catch (OperationCanceledException)
+        {
+            return RemoteControlResult.Failure("EMERGENCY_RELEASE_TIMEOUT", $"Device emergency-release timed out after {bound.TotalSeconds:0.#}s.");
         }
         catch (Exception ex)
         {
@@ -1354,18 +1481,67 @@ internal static class Program
 
     private static void ApplyClipForActive(bool active)
     {
-        if (active)
+        // Relative HID capture re-centers the host pointer in RemoteInputForwarder; do not use a 1x1
+        // ClipCursor (that zeroes LL-hook deltas and can dump clicks onto host UI).
+        _clip?.Release();
+        if (!active)
         {
-            _clip?.ClipToPoint(100, 100);
+            return;
+        }
+
+        var bounds = Screen.PrimaryScreen?.Bounds ?? new Rectangle(0, 0, 800, 600);
+        var cx = bounds.Left + bounds.Width / 2;
+        var cy = bounds.Top + bounds.Height / 2;
+        SetCursorPos(cx, cy);
+    }
+
+    /// <summary>
+    /// Host control restored by the forwarder (toggle chord, emergency chord, or failsafe).
+    /// Hooks are already stopped; sync toggle state + UI.
+    /// </summary>
+    private static void OnForwarderReturnedToLocal(string message, bool emergency)
+    {
+        void Apply()
+        {
+            try
+            {
+                ApplyClipForActive(false);
+                _state?.Reset();
+                ClearLocalModifiers();
+                if (emergency)
+                {
+                    _ = Task.Run(() => TryRequestDeviceClearModifiers(TimeSpan.FromSeconds(2)));
+                }
+
+                NotifyToggleMode(remoteActive: false, remotePeer: CurrentRemotePeer(), remoteUrl: ResolveDeviceGrpcUrl());
+                ShowTrayNotification("MouseKeyProxy: Local", message, emergency ? ToolTipIcon.Warning : ToolTipIcon.Info);
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"OnForwarderReturnedToLocal failed: {ex.Message}");
+            }
+        }
+
+        if (_dashboardForm is not null && !_dashboardForm.IsDisposed && _dashboardForm.InvokeRequired)
+        {
+            _dashboardForm.BeginInvoke(new Action(Apply));
+        }
+        else if (_tray is not null)
+        {
+            // No dashboard; still update tray on whatever thread we have.
+            Apply();
         }
         else
         {
-            _clip?.Release();
+            Apply();
         }
     }
 
-    // async void: this is a WinForms event handler (menu click + hotkey). Awaiting keeps the UI
-    // message pump live during the toggle RPC instead of blocking it with .GetResult().
+    [System.Runtime.InteropServices.DllImport("user32.dll")]
+    private static extern bool SetCursorPos(int x, int y);
+
+    // async void: WinForms event handler (menu / face button / hotkey). Never block the UI thread
+    // on peer RPCs - ClearModifiers to a hung device was freezing the Toggle button pressed-in.
     private static async void DoRealToggle()
     {
         if (!EnsureConnectedRemoteAction("Toggle Active - Desktop Control"))
@@ -1373,36 +1549,183 @@ internal static class Program
             return;
         }
 
+        // If capture is active, stop hooks first (no peer wait) so host input returns immediately.
+        if (_forwarder?.IsActive == true)
+        {
+            try
+            {
+                _forwarder.Stop(releaseRemoteModifiers: false);
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"DoRealToggle Stop failed: {ex.Message}");
+            }
+
+            OnForwarderReturnedToLocal("Toggle: local keyboard and mouse restored.", emergency: false);
+            // Best-effort device modifier clear off the UI thread.
+            _ = Task.Run(() => TryRequestDeviceClearModifiers(TimeSpan.FromSeconds(1)));
+            return;
+        }
+
+        SetToggleBusy(true);
         try
         {
-            ClearLocalModifiers();
-            TryRequestPeerClearModifiers();
-            var remoteUrl = ResolveRemoteGrpcUrl();
-            var activePeer = remoteUrl;
-            bool active = await InputCommandHandler.ToggleAsync(_state!, null, activePeer);
-            if (active)
+            var deviceUrl = ResolveDeviceGrpcUrl();
+            var devicePeer = CurrentRemotePeer();
+
+            // Network-only work off the UI thread. Low-level keyboard/mouse hooks MUST be installed
+            // on a thread with a message pump (the UI thread).
+            await Task.Run(() =>
             {
-                // Engage the cursor clip so the local pointer is confined while input forwards to the
-                // remote (previously ApplyClipForActive(true) was never called - the clip never engaged).
+                ClearLocalModifiers();
+                TryRequestDeviceClearModifiers(TimeSpan.FromSeconds(2));
+            }).ConfigureAwait(true);
+
+            var nowActive = await InputCommandHandler.ToggleAsync(_state!, null, deviceUrl)
+                .ConfigureAwait(true);
+
+            if (nowActive)
+            {
+                PeerTrafficPolicy.EnsureAllowed(
+                    PeerEffectRole.DeviceAppliance,
+                    PeerTrafficPolicy.EffectKind.Input,
+                    deviceUrl);
+                // UI thread: SetWindowsHookEx + raw-input HWND require this apartment/message loop.
+                _forwarder!.Start(deviceUrl);
                 ApplyClipForActive(true);
-                _forwarder!.Start(remoteUrl);
             }
             else
             {
                 _forwarder?.Stop();
                 ApplyClipForActive(false);
                 ClearLocalModifiers();
-                TryRequestPeerClearModifiers();
+                _ = Task.Run(() => TryRequestDeviceClearModifiers(TimeSpan.FromSeconds(2)));
             }
+
+            NotifyToggleMode(remoteActive: nowActive, remotePeer: devicePeer, remoteUrl: deviceUrl);
         }
         catch (Exception ex)
         {
-            _forwarder?.Stop();
-            _clip?.Release();
-            ClearLocalModifiers();
-            TryRequestPeerClearModifiers();
+            try
+            {
+                _forwarder?.Stop();
+                _clip?.Release();
+                ClearLocalModifiers();
+            }
+            catch
+            {
+                // best effort cleanup
+            }
+
             MarkRemoteDisconnected(ex);
             Console.WriteLine($"toggle FAILED: {ex.Message}");
+            ShowTrayNotification(
+                "MouseKeyProxy toggle failed",
+                ex.Message,
+                ToolTipIcon.Error);
+            UpdateToggleModeButton();
+            UpdateDashboardStatusLabels();
+        }
+        finally
+        {
+            SetToggleBusy(false);
+        }
+    }
+
+    private static void SetToggleBusy(bool busy)
+    {
+        void Apply()
+        {
+            if (_toggleModeButton is null || _toggleModeButton.IsDisposed)
+            {
+                return;
+            }
+
+            if (busy)
+            {
+                _toggleModeButton.Enabled = false;
+                _toggleModeButton.Text = "Toggling…";
+            }
+            else
+            {
+                UpdateToggleModeButton();
+            }
+        }
+
+        if (_dashboardForm is not null && !_dashboardForm.IsDisposed && _dashboardForm.InvokeRequired)
+        {
+            _dashboardForm.BeginInvoke(new Action(Apply));
+        }
+        else
+        {
+            Apply();
+        }
+    }
+
+    /// <summary>
+    /// FR-MKP-001: operator-visible feedback when hotkey/menu toggles local vs remote control.
+    /// </summary>
+    private static void NotifyToggleMode(bool remoteActive, string remotePeer, string remoteUrl)
+    {
+        if (remoteActive)
+        {
+            var target = string.IsNullOrWhiteSpace(remotePeer) ? remoteUrl : remotePeer;
+            ShowTrayNotification(
+                "MouseKeyProxy: Remote",
+                $"Input is forwarding to {target}.",
+                ToolTipIcon.Info);
+            if (_tray is not null)
+            {
+                _tray.Text = "MouseKeyProxy (Remote)";
+            }
+        }
+        else
+        {
+            ShowTrayNotification(
+                "MouseKeyProxy: Local",
+                "Input is local on this PC.",
+                ToolTipIcon.Info);
+            if (_tray is not null)
+            {
+                _tray.Text = "MouseKeyProxy (Local)";
+            }
+        }
+
+        // Keep face button/status in sync with hotkey toggles.
+        if (_dashboardForm is not null && !_dashboardForm.IsDisposed && _dashboardForm.InvokeRequired)
+        {
+            _dashboardForm.BeginInvoke(new Action(() =>
+            {
+                UpdateToggleModeButton();
+                UpdateDashboardStatusLabels();
+            }));
+        }
+        else
+        {
+            UpdateToggleModeButton();
+            UpdateDashboardStatusLabels();
+        }
+    }
+
+    /// <summary>Shows a short balloon tip from the tray icon (best effort).</summary>
+    private static void ShowTrayNotification(string title, string text, ToolTipIcon icon)
+    {
+        if (_tray is null)
+        {
+            return;
+        }
+
+        try
+        {
+            // Windows may suppress balloons when Focus Assist is on; Text still updates.
+            _tray.BalloonTipTitle = title.Length > 63 ? title[..63] : title;
+            _tray.BalloonTipText = text.Length > 255 ? text[..255] : text;
+            _tray.BalloonTipIcon = icon;
+            _tray.ShowBalloonTip(3000);
+        }
+        catch
+        {
+            // Never fail toggle because the shell refused a balloon.
         }
     }
 

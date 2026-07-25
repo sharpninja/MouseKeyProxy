@@ -1,13 +1,16 @@
 [Unit]
-Description=MouseKeyProxy gRPC service (Pi HID gadget peer)
+Description=MouseKeyProxy gRPC service (Linux HID gadget peer)
 Documentation=https://github.com/sharpninja/MouseKeyProxy
-After=network-online.target sys-kernel-config.mount
+After=network-online.target sys-kernel-config.mount mkp-hid-gadget.service
 Wants=network-online.target
+Wants=mkp-hid-gadget.service
 
 [Service]
 Type=simple
 # The service must run as root to open /dev/hidg0 and /dev/hidg1.
 User=root
+WorkingDirectory=/opt/mousekeyproxy
+EnvironmentFile=-/etc/mousekeyproxy/status.env
 ExecStart=/opt/mousekeyproxy/MouseKeyProxy.Service
 Environment=MKP_HID_KEYBOARD_DEVICE=/dev/hidg0
 Environment=MKP_HID_MOUSE_DEVICE=/dev/hidg1
@@ -22,3 +25,4 @@ StandardError=journal
 
 [Install]
 WantedBy=multi-user.target
+

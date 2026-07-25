@@ -1,0 +1,64 @@
+MouseKeyProxy PI1541 Card Compatibility Receipt
+===============================================
+
+Timestamp (UTC): 2026-07-13T21:56:05Z
+Operator observation: Raspberry Pi Zero 2 WH does not boot from this card.
+Result: INVALID CONTROL - the card is a PI1541 bare-metal card, not a Raspberry Pi OS image for Zero 2 W.
+
+Live device identity
+--------------------
+
+- Drive: G:
+- Physical disk: 2
+- Device: SD
+- Capacity: 503,316,480 bytes
+- Volume label: PI1541
+- Filesystem: FAT32
+- Operational status: Online/OK
+- Health status: Healthy
+- Writable: yes
+
+Boot-file inventory
+-------------------
+
+Present:
+
+- bootcode.bin, 52,476 bytes
+  SHA-256: CE1FD90B85D35AA2BCE267196AC7C014C873AFC05D73313F8C41B4C861D7E21D
+- start.elf, 2,975,680 bytes
+  SHA-256: D1743D09D916706883E084C16CAC01544D426D4AE30286E86F2B3A33B5E4AA5B
+- kernel.img, 503,736 bytes
+  SHA-256: CC8335979F19DAECA149B79F04F4D4576A5303F022CEE3299B6A4053C89BA046
+- config.txt, 41 bytes
+  SHA-256: 6B8749C5FFF3E0FF8E180859B022F92A85DC77BDA21E9AD31995E065BC1CF8B6
+- PI1541 data files, including dos1541, chargen, Jiffy.bin, options.txt, and a 1541 directory containing .d64 disk images.
+
+Absent:
+
+- kernel7.img
+- kernel8.img
+- bcm2710-rpi-zero-2-w.dtb
+
+config.txt content
+------------------
+
+kernel_address=0x1f00000
+force_turbo=1
+
+There is no kernel= override and no arm_64bit setting.
+
+Compatibility assessment
+------------------------
+
+Official Raspberry Pi documentation states that the normal kernel filename for Raspberry Pi 2, 3, 3+, and Zero 2 W is kernel7.img. In 64-bit mode, Zero 2 W uses an appropriate 64-bit kernel such as kernel8.img. This card supplies neither filename and does not explicitly direct firmware to kernel.img.
+
+Source:
+
+- https://www.raspberrypi.com/documentation/computers/config_txt.html#kernel
+
+The observed Zero 2 boot failure is therefore expected from this card's contents and provides no new evidence about the Zero 2 WH hardware.
+
+Conclusion
+----------
+
+Do not use this 480 MiB PI1541 card as the second Raspberry Pi OS control. It is too small for the 2.8 GB Raspberry Pi OS image and lacks the Zero 2 W kernel and device tree. A valid second-card control requires a known-good card of at least 4 GB, preferably 8 GB or larger.

@@ -110,7 +110,11 @@ internal sealed class AgentControlPipeServer : IDisposable
         }
     }
 
-    /// <summary>Creates the control pipe, ACL-restricted to the current user on Windows.</summary>
+    /// <summary>
+    /// Creates the control pipe. ACL allows the interactive user and LOCAL SYSTEM so the
+    /// Windows service (session 0, AgentPipeInputInjector) can reach the user-session agent.
+    /// Authorization remains token-based in <see cref="Handle"/>.
+    /// </summary>
     private static NamedPipeServerStream CreatePipe()
     {
         if (OperatingSystem.IsWindows())
@@ -120,6 +124,11 @@ internal sealed class AgentControlPipeServer : IDisposable
             security.AddAccessRule(new PipeAccessRule(
                 owner,
                 PipeAccessRights.ReadWrite | PipeAccessRights.CreateNewInstance,
+                AccessControlType.Allow));
+            // MouseKeyProxy.Service runs as LocalSystem and must open this pipe for InjectInput.
+            security.AddAccessRule(new PipeAccessRule(
+                new SecurityIdentifier(WellKnownSidType.LocalSystemSid, null),
+                PipeAccessRights.ReadWrite,
                 AccessControlType.Allow));
 
             return NamedPipeServerStreamAcl.Create(
