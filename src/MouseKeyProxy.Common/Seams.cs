@@ -79,6 +79,18 @@ public interface ICursorClip
     bool IsClipped { get; }
 }
 
+/// <summary>
+/// Controls the host pointer's visual state while keyboard and mouse input are owned by the remote.
+/// </summary>
+public interface IHostCursorIndicator
+{
+    /// <summary>
+    /// Shows the busy pointer while <paramref name="remoteControlActive"/> is true and restores the
+    /// normal pointer when control returns to the host.
+    /// </summary>
+    void SetRemoteControlActive(bool remoteControlActive);
+}
+
 public interface IRemoteDesktopController
 {
     RemoteControlResult SetMousePosition(string displayId, int x, int y);

@@ -32,6 +32,7 @@ Default configured toggle: **Ctrl+Win+F1**. Default configured emergency release
 
 - Explicit hotkey toggle only; no mirror mode and no edge-of-screen switching.
 - Exclusive input forwarding so one machine (or HID target) receives keyboard and mouse at a time.
+- A Windows busy pointer marks remote-control ownership on the host and returns to the normal pointer whenever local control is restored.
 - **Host restore first:** toggle, emergency release, and HID link-loss always unhook local capture before any peer RPC; a hung appliance cannot trap the control host.
 - Pairing (mTLS + one-time code or ToFU discovery), status, service lifecycle, emergency release, logs, clipboard, and remote-control commands through the canonical `mkp` CLI/REPL surface.
 - Optional **DeviceAppliance** path: Linux USB HID gadget (keyboard + relative mouse) as a full paired peer; letters, digits, and US punctuation map to boot-protocol HID usages.

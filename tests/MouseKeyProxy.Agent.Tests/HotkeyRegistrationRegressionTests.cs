@@ -248,6 +248,43 @@ public class HotkeyRegistrationRegressionTests
     }
 
     [Fact]
+    [Trait("Category", "RemoteState")]
+    public void Agent_Shows_Busy_Host_Cursor_Only_While_Remote_Control_Is_Active()
+    {
+        var programPath = Path.Combine(RepoRoot, "src", "MouseKeyProxy.Agent", "Program.cs");
+        var programSource = File.ReadAllText(programPath);
+        var forwarderPath = Path.Combine(RepoRoot, "src", "MouseKeyProxy.Agent", "RemoteInputForwarder.cs");
+        var forwarderSource = File.ReadAllText(forwarderPath);
+        var seamPath = Path.Combine(RepoRoot, "src", "MouseKeyProxy.Agent", "Win32SeamImpls.cs");
+        var seamSource = File.ReadAllText(seamPath);
+
+        Assert.Contains("new Win32HostCursorIndicator()", programSource, StringComparison.Ordinal);
+        Assert.Contains(
+            "Cursor.Current = remoteControlActive ? Cursors.WaitCursor : Cursors.Default;",
+            seamSource,
+            StringComparison.Ordinal);
+
+        var startBegin = forwarderSource.IndexOf("public void Start(string remoteUrl)", StringComparison.Ordinal);
+        var startEnd = forwarderSource.IndexOf("public void Stop(bool releaseRemoteModifiers", startBegin, StringComparison.Ordinal);
+        Assert.True(startBegin >= 0 && startEnd > startBegin, "RemoteInputForwarder.Start was not found.");
+        var startBody = forwarderSource[startBegin..startEnd];
+        var activeIndex = startBody.IndexOf("IsActive = true;", StringComparison.Ordinal);
+        var busyIndex = startBody.IndexOf("SetHostCursorIndicator(remoteControlActive: true);", StringComparison.Ordinal);
+        Assert.True(activeIndex >= 0 && busyIndex > activeIndex, "Busy cursor must follow successful remote activation.");
+
+        var stopBegin = forwarderSource.IndexOf("private void StopCore(bool sendModifierRelease)", StringComparison.Ordinal);
+        var stopEnd = forwarderSource.IndexOf("private void SetHostCursorIndicator", stopBegin, StringComparison.Ordinal);
+        Assert.True(stopBegin >= 0 && stopEnd > stopBegin, "RemoteInputForwarder.StopCore was not found.");
+        var stopBody = forwarderSource[stopBegin..stopEnd];
+        Assert.Contains("SetHostCursorIndicator(remoteControlActive: false);", stopBody, StringComparison.Ordinal);
+        Assert.True(
+            stopBody.IndexOf("UnhookWindowsHookEx(_mouseHook)", StringComparison.Ordinal)
+                < stopBody.LastIndexOf("SetHostCursorIndicator(remoteControlActive: false);", StringComparison.Ordinal),
+            "Normal cursor must be restored after the host mouse hook is removed.");
+        Assert.Contains("host cursor indicator failed", forwarderSource, StringComparison.Ordinal);
+    }
+
+    [Fact]
     [Trait("Category", "EmergencyRelease")]
     public void Agent_Emergency_Release_Stops_Forwarder_And_Is_Available_Over_Control_Pipe()
     {

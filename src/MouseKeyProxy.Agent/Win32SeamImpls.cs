@@ -578,6 +578,19 @@ public class Win32CursorClip : ICursorClip
     public bool IsClipped => _clipped;
 }
 
+/// <summary>
+/// Displays a non-persistent busy pointer while this host is forwarding its input to a remote.
+/// The next host-side cursor update can still select the appropriate normal cursor (for example,
+/// an I-beam over text) after control returns.
+/// </summary>
+public sealed class Win32HostCursorIndicator : IHostCursorIndicator
+{
+    public void SetRemoteControlActive(bool remoteControlActive)
+    {
+        Cursor.Current = remoteControlActive ? Cursors.WaitCursor : Cursors.Default;
+    }
+}
+
 // Real hotkey using RegisterHotKey (shipped, no 'demo'/'sim')
 public class Win32HotkeyMonitor : IHotkeyMonitor
 {

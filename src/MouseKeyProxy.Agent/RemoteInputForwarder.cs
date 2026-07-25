@@ -72,6 +72,7 @@ public sealed class RemoteInputForwarder : IDisposable
     private DateTimeOffset _passThroughUntilUtc;
     private bool _disposed;
     private readonly Func<string, GrpcChannel?>? _channelFactory;
+    private readonly IHostCursorIndicator? _hostCursorIndicator;
     private readonly ConnectionFailsafe _failsafe = new();
     private Task? _watchdog;
     private int _lastMouseX = int.MinValue;
@@ -97,10 +98,15 @@ public sealed class RemoteInputForwarder : IDisposable
     /// (returns null when unpaired). When omitted, a plain channel is used (test/local paths).
     /// </param>
     /// <param name="hotkeys">Toggle/emergency chords (same config as the tray hotkey monitor).</param>
-    public RemoteInputForwarder(Func<string, GrpcChannel?>? channelFactory = null, HotkeyConfig? hotkeys = null)
+    /// <param name="hostCursorIndicator">Host pointer state to update while remote control is active.</param>
+    public RemoteInputForwarder(
+        Func<string, GrpcChannel?>? channelFactory = null,
+        HotkeyConfig? hotkeys = null,
+        IHostCursorIndicator? hostCursorIndicator = null)
     {
         _channelFactory = channelFactory;
         _hotkeys = hotkeys ?? new HotkeyConfig();
+        _hostCursorIndicator = hostCursorIndicator;
         _keyboardProc = KeyboardHookCallback;
         _mouseProc = MouseHookCallback;
     }
@@ -168,6 +174,7 @@ public sealed class RemoteInputForwarder : IDisposable
             }
 
             IsActive = true;
+            SetHostCursorIndicator(remoteControlActive: true);
         }
     }
 
@@ -494,6 +501,7 @@ public sealed class RemoteInputForwarder : IDisposable
     {
         if (!IsActive && _queue is null && _channel is null && _rawMouseWindow is null)
         {
+            SetHostCursorIndicator(remoteControlActive: false);
             return;
         }
 
@@ -512,6 +520,8 @@ public sealed class RemoteInputForwarder : IDisposable
             UnhookWindowsHookEx(_mouseHook);
             _mouseHook = IntPtr.Zero;
         }
+
+        SetHostCursorIndicator(remoteControlActive: false);
 
         _rawMouseWindow?.Dispose();
         _rawMouseWindow = null;
@@ -558,6 +568,19 @@ public sealed class RemoteInputForwarder : IDisposable
         else
         {
             try { channel?.Dispose(); } catch { /* ignore */ }
+        }
+    }
+
+    private void SetHostCursorIndicator(bool remoteControlActive)
+    {
+        try
+        {
+            _hostCursorIndicator?.SetRemoteControlActive(remoteControlActive);
+        }
+        catch (Exception ex)
+        {
+            // Cursor state is an operator aid; it must never prevent capture or emergency release.
+            Debug.WriteLine($"MouseKeyProxy host cursor indicator failed: {ex.Message}");
         }
     }
 

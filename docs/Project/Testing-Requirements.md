@@ -131,7 +131,7 @@ Verify Alt-Space and permitted Win+Arrow chords preserve modifier ordering, key-
 
 ### TEST-MKP-024
 
-Verify mouse forwarding uses raw relative deltas while the local cursor is clipped, unregisters raw input on stop, releases ClipCursor, and local mouse control is immediately usable without Alt-Tab.
+Verify mouse forwarding uses raw relative deltas while the local cursor is clipped, shows the Windows busy pointer on the host only while remote control is active, restores the normal pointer on every stop and fallback path, unregisters raw input on stop, releases ClipCursor, and leaves local mouse control immediately usable without Alt-Tab.
 
 **Acceptance Criteria:**
 - [x] Mouse movement forwarding uses raw relative WM_INPUT deltas while the local cursor is clipped. (evidence: dotnet test tests\MouseKeyProxy.Agent.Tests -c Release --filter Category=RawMouseCapture)

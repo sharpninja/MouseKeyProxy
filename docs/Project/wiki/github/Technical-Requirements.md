@@ -92,7 +92,7 @@ Scope: layer-1+
 
 ## TR-MKP-INPUT-001
 
-**Input support matrix and limits** — Document and enforce supported keyboard, mouse, focus, and window-control inputs. Treat DELETE, INSERT, HOME, END, PAGE UP, and PAGE DOWN as ordinary extended keys through capture and HID translation. Exclude the Secure Attention Sequence/Ctrl+Alt+Del, secure desktop, lock/login screens, and UIPI-blocked scenarios without misclassifying an ordinary DELETE press. Unsupported operations must return observable failures and release any captured local state.
+**Input support matrix and limits** — Document and enforce supported keyboard, mouse, focus, and window-control inputs. Treat DELETE, INSERT, HOME, END, PAGE UP, and PAGE DOWN as ordinary extended keys through capture and HID translation. Exclude the Secure Attention Sequence/Ctrl+Alt+Del, secure desktop, lock/login screens, and UIPI-blocked scenarios without misclassifying an ordinary DELETE press. Unsupported operations must return observable failures and release any captured local state. The Agent must show a transient Windows busy pointer on the host while remote input capture is active and restore the normal pointer after normal toggle-off, emergency release, disconnect or HID-loss fallback, watchdog fallback, startup cleanup, and application exit. Cursor-indicator failure must never block capture release.
 **Covered by:** FR: FR-HOTKEY-001, FR-MKP-001, FR-MKP-002, FR-MKP-003, FR-MKP-005; TEST: TEST-HOTKEY-001, TEST-MKP-001, TEST-MKP-008, TEST-MKP-012, TEST-MKP-023, TEST-MKP-024, TEST-MKP-003, TEST-MKP-005, TEST-MKP-009, TEST-MKP-026, TEST-MKP-028, TEST-MKP-029, TEST-MKP-010, TEST-MKP-011, TEST-MKP-014, TEST-MKP-020, TEST-MKP-025
 **Status:** in_progress
 Scope: layer-1+

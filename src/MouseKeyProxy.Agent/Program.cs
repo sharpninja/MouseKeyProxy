@@ -66,7 +66,10 @@ internal static class Program
         _hotkey = new Win32HotkeyMonitor(hotkeyConfig);
         _controlPipe = AgentControlPipeServer.Start(new Win32DesktopController(), _injector, NotifyPairingState, GetAgentStatus, ExecuteEmergencyReleaseCommand, new Win32ScreenshotCapture());
         // Same hotkey config as the tray monitor so Ctrl-Win-F1 / emergency work while capture hooks are first in the chain.
-        _forwarder = new RemoteInputForwarder(CreateRemoteChannel, hotkeyConfig);
+        _forwarder = new RemoteInputForwarder(
+            CreateRemoteChannel,
+            hotkeyConfig,
+            new Win32HostCursorIndicator());
         _forwarder.FallbackToLocal += (_, _) => OnForwarderReturnedToLocal(
             "Device HID link lost or input path failed; returned to local control.",
             emergency: false);

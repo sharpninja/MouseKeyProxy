@@ -24,7 +24,7 @@ Scope: layer-1+
 
 ## FR-MKP-002 Keyboard focus follows
 
-When the active machine changes through a hotkey or explicit command, keyboard input and mouse input, when applicable, are proxied to the focused machine.
+When the active machine changes through a hotkey or explicit command, keyboard input and mouse input, when applicable, are proxied to the focused machine. While remote control is active, the host mouse pointer displays the Windows busy cursor; every return-to-host path restores a normal pointer.
 
 Acceptance Criteria:
 - Focus state is observable through REPL/tray status.

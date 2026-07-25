@@ -103,6 +103,7 @@ When remote forwarding is active:
 
 - Normal keyboard and mouse input is forwarded to the device appliance (Pi HID path for inject).
 - Local applications should not receive those forwarded events.
+- The host mouse pointer shows the Windows busy cursor until control returns locally; toggle-off, emergency release, disconnect/HID-loss fallback, watchdog fallback, and application exit restore the normal pointer.
 - Escape chords are handled **inside the capture hook first** so the host can always get control back even if RegisterHotKey never sees the keys.
 - Host restore does **not** wait on peer RPC: unhook and local modifiers clear first; device clear-modifiers / emergency is best-effort in the background.
 - If the appliance loses USB HID link to its host (`DEVICE_HID_DISCONNECTED` / UDC not attached), the agent falls back to local control automatically and shows a tray notice.
