@@ -10,6 +10,7 @@ MouseKeyProxy provides a Windows service, a user-session tray/dashboard agent, a
 - [Security Administration Guide](docs/SECURITY-ADMIN-GUIDE.md)
 - [Pi service deployment](docs/deployment/Pi-Service-Deployment.md)
 - [Orange Pi Zero 2 / 2W HID](docs/hardware/orange-pi-zero-2-hid.md)
+- [Orange Pi Zero 2W printable case (OpenSCAD)](cad/orange-pi-zero-2w/README.md)
 - [Raspberry Pi Zero 2 W HID](docs/hardware/pi-zero-2-hid.md)
 - [Logo Branding Contract](assets/logo.branding.md)
 - [Requirements matrix](docs/Project/Requirements-Matrix.md)

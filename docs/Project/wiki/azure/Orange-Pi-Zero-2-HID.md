@@ -96,6 +96,17 @@ journalctl -u mousekeyproxy -b --no-pager | tail
 
 Pair from the control host with `mkp pair discover` (ToFU) or code-based pairing.
 
+## Printable enclosure (Zero 2W)
+
+OpenSCAD case for the **65 x 30 mm** Zero 2W form factor lives under `cad/orange-pi-zero-2w/`:
+
+- Full-length open connector edge (dual USB-C + mini-HDMI)
+- M2.5 SHCS + hex-nut stack through the four board mounting holes
+- Lid posts: wide head boss (printable counterbore wall) for 1.6 mm below the lid underside, then 45° blend to a narrower shaft
+- Export multi-object 3MF for Orca: `pwsh -File cad/orange-pi-zero-2w/export-3mf.ps1 -OpenInOrca`
+
+See [cad/orange-pi-zero-2w/README.md](../../cad/orange-pi-zero-2w/README.md).
+
 ## Validation
 
 Same CLI path as the Raspberry appliance (`hid provision-check`, `hid test-key`, `hid test-mouse`) once the host can reach the board and HID is bound.

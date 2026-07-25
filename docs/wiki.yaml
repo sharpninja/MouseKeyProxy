@@ -72,6 +72,13 @@ documents:
   platforms:
   - github
   - azure
+- id: cad-orange-pi-zero-2w-case
+  title: Orange Pi Zero 2W Printable Case
+  source: cad/orange-pi-zero-2w/README.md
+  target: Orange-Pi-Zero-2W-Printable-Case.md
+  platforms:
+  - github
+  - azure
 - id: hardware-pi-zero
   title: Raspberry Pi Zero 2 HID
   source: docs/hardware/pi-zero-2-hid.md
@@ -103,6 +110,8 @@ navigation:
 - document: deploy-pi-service
   children: []
 - document: hardware-orange-pi
+  children: []
+- document: cad-orange-pi-zero-2w-case
   children: []
 - document: hardware-pi-zero
   children: []

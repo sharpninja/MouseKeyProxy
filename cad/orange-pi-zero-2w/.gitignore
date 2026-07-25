@@ -1,0 +1,8 @@
+# OpenSCAD / export intermediates (source of truth is *.scad + export scripts)
+*.stl
+*.stl.log
+*.stl.log.out
+_*.log
+_*.log.out
+zero2w-case-20*.3mf
+_pack-helpers.ps1

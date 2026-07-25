@@ -3,6 +3,7 @@
 - [Security Administration Guide](Security-Admin-Guide)
 - [Pi Service Deployment](Pi-Service-Deployment)
 - [Orange Pi Zero 2 HID](Orange-Pi-Zero-2-HID)
+- [Orange Pi Zero 2W Printable Case](Orange-Pi-Zero-2W-Printable-Case)
 - [Raspberry Pi Zero 2 HID](Raspberry-Pi-Zero-2-HID)
 - [Functional Requirements](Functional-Requirements)
 - [Technical Requirements](Technical-Requirements)
