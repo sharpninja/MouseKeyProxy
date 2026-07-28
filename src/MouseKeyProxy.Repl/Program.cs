@@ -81,6 +81,7 @@ Commands:
   mkp pair unpair | clear                                    (clear local credential; Unpair RPC on device when connected)
   mkp pair reset-device                                      (paired client: revoke ALL peers on the device / re-open ToFU)
   mkp share discover | info | list [dir] | get <remote> <local> | put <local> <remote>
+  mkp share mkdir <remoteDir> | rm <remotePath> [--recursive] | mv <from> <to>
   mkp toggle
   mkp emergency-release [--json]
   mkp clear-modifiers
@@ -414,8 +415,50 @@ Explicit 'mkp service install' does NOT happen on 'dotnet tool install'.
                     Console.WriteLine($"[share put] ok={result.Ok} err={result.ErrorCode} {result.Message}");
                     return result.Ok ? 0 : 1;
                 }
+                case "mkdir":
+                {
+                    if (args.Length < 3)
+                    {
+                        Console.WriteLine("usage: mkp share mkdir <remoteRelativeDir>");
+                        return 1;
+                    }
+
+                    var result = share.CreateDirectoryAsync(args[2]).GetAwaiter().GetResult();
+                    Console.WriteLine($"[share mkdir] ok={result.Ok} err={result.ErrorCode} {result.Message}");
+                    return result.Ok ? 0 : 1;
+                }
+                case "rm":
+                case "delete":
+                {
+                    if (args.Length < 3)
+                    {
+                        Console.WriteLine("usage: mkp share rm <remoteRelativePath> [--recursive]");
+                        return 1;
+                    }
+
+                    var recursive = args.Any(a => string.Equals(a, "--recursive", StringComparison.OrdinalIgnoreCase)
+                        || string.Equals(a, "-r", StringComparison.OrdinalIgnoreCase));
+                    var result = share.DeleteAsync(args[2], recursive).GetAwaiter().GetResult();
+                    Console.WriteLine($"[share rm] ok={result.Ok} err={result.ErrorCode} {result.Message}");
+                    return result.Ok ? 0 : 1;
+                }
+                case "mv":
+                case "rename":
+                {
+                    if (args.Length < 4)
+                    {
+                        Console.WriteLine("usage: mkp share mv <fromRelative> <toRelative>");
+                        return 1;
+                    }
+
+                    var overwrite = args.Any(a => string.Equals(a, "--overwrite", StringComparison.OrdinalIgnoreCase));
+                    var result = share.RenameAsync(args[2], args[3], overwrite).GetAwaiter().GetResult();
+                    Console.WriteLine($"[share mv] ok={result.Ok} err={result.ErrorCode} {result.Message}");
+                    return result.Ok ? 0 : 1;
+                }
                 default:
-                    Console.WriteLine("usage: mkp share discover|info|list [dir]|get <remote> <local>|put <local> <remote>");
+                    Console.WriteLine(
+                        "usage: mkp share discover|info|list [dir]|get <remote> <local>|put <local> <remote>|mkdir <dir>|rm <path> [--recursive]|mv <from> <to>");
                     return 1;
             }
         }

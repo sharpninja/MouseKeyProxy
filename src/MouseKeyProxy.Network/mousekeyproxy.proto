@@ -48,6 +48,10 @@ service MouseKeyProxy {
   rpc ListFolderShare (ListFolderShareRequest) returns (ListFolderShareResponse);
   rpc DownloadFolderShareFile (DownloadFolderShareFileRequest) returns (stream FolderShareChunk);
   rpc UploadFolderShareFile (stream UploadFolderShareFileRequest) returns (CommandResult);
+  // Full host-side control of share contents (sandboxed root only).
+  rpc CreateFolderShareDirectory (CreateFolderShareDirectoryRequest) returns (CommandResult);
+  rpc DeleteFolderShareEntry (DeleteFolderShareEntryRequest) returns (CommandResult);
+  rpc RenameFolderShareEntry (RenameFolderShareEntryRequest) returns (CommandResult);
 }
 
 enum ShutdownMode {
@@ -490,4 +494,33 @@ message UploadFolderShareFileRequest {
   bytes data = 6;
   bool last = 7;
   string sha256 = 8; // expected hash on last message (optional)
+}
+
+message CreateFolderShareDirectoryRequest {
+  string protocolVersion = 1;
+  string peerId = 2;
+  string correlationId = 3;
+  // Relative directory path under the share root (created if missing; parents created).
+  string relative_directory = 4;
+}
+
+message DeleteFolderShareEntryRequest {
+  string protocolVersion = 1;
+  string peerId = 2;
+  string correlationId = 3;
+  // Relative file or directory path under the share root.
+  string relative_path = 4;
+  // When true, delete non-empty directories recursively.
+  bool recursive = 5;
+}
+
+message RenameFolderShareEntryRequest {
+  string protocolVersion = 1;
+  string peerId = 2;
+  string correlationId = 3;
+  string relative_path = 4;
+  // Destination relative path (may be in another directory under the share root).
+  string new_relative_path = 5;
+  // When true, replace an existing destination file.
+  bool overwrite = 6;
 }

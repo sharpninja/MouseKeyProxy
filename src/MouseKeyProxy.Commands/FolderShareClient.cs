@@ -127,4 +127,50 @@ public sealed class FolderShareClient
         var response = await call.ResponseAsync.ConfigureAwait(false);
         return new RemoteControlResult(response.Ok, response.Err, response.Msg);
     }
+
+    /// <summary>Creates a directory (and parents) under the share root.</summary>
+    public async Task<RemoteControlResult> CreateDirectoryAsync(string relativeDirectory, CancellationToken ct = default)
+    {
+        var response = await _client.CreateFolderShareDirectoryAsync(new CreateFolderShareDirectoryRequest
+        {
+            ProtocolVersion = "v1",
+            PeerId = _peerId,
+            CorrelationId = Guid.NewGuid().ToString("n"),
+            RelativeDirectory = relativeDirectory ?? string.Empty,
+        }, cancellationToken: ct).ResponseAsync.ConfigureAwait(false);
+        return new RemoteControlResult(response.Ok, response.Err, response.Msg);
+    }
+
+    /// <summary>Deletes a file or directory under the share root.</summary>
+    public async Task<RemoteControlResult> DeleteAsync(string relativePath, bool recursive = false, CancellationToken ct = default)
+    {
+        var response = await _client.DeleteFolderShareEntryAsync(new DeleteFolderShareEntryRequest
+        {
+            ProtocolVersion = "v1",
+            PeerId = _peerId,
+            CorrelationId = Guid.NewGuid().ToString("n"),
+            RelativePath = relativePath ?? string.Empty,
+            Recursive = recursive,
+        }, cancellationToken: ct).ResponseAsync.ConfigureAwait(false);
+        return new RemoteControlResult(response.Ok, response.Err, response.Msg);
+    }
+
+    /// <summary>Renames or moves an entry within the share root.</summary>
+    public async Task<RemoteControlResult> RenameAsync(
+        string relativePath,
+        string newRelativePath,
+        bool overwrite = false,
+        CancellationToken ct = default)
+    {
+        var response = await _client.RenameFolderShareEntryAsync(new RenameFolderShareEntryRequest
+        {
+            ProtocolVersion = "v1",
+            PeerId = _peerId,
+            CorrelationId = Guid.NewGuid().ToString("n"),
+            RelativePath = relativePath ?? string.Empty,
+            NewRelativePath = newRelativePath ?? string.Empty,
+            Overwrite = overwrite,
+        }, cancellationToken: ct).ResponseAsync.ConfigureAwait(false);
+        return new RemoteControlResult(response.Ok, response.Err, response.Msg);
+    }
 }

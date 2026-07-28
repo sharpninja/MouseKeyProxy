@@ -217,6 +217,9 @@ internal sealed class DeviceManagementForm : Form
         var btnShareUp = new Button { Text = "Up", AutoSize = true, Margin = new Padding(4) };
         var btnShareGet = new Button { Text = "Download…", AutoSize = true, Margin = new Padding(4) };
         var btnSharePut = new Button { Text = "Upload…", AutoSize = true, Margin = new Padding(4) };
+        var btnShareMkdir = new Button { Text = "New folder…", AutoSize = true, Margin = new Padding(4) };
+        var btnShareRename = new Button { Text = "Rename…", AutoSize = true, Margin = new Padding(4) };
+        var btnShareDelete = new Button { Text = "Delete…", AutoSize = true, Margin = new Padding(4) };
         var btnOpenSmb = new Button { Text = "Open SMB…", AutoSize = true, Margin = new Padding(4) };
         var btnCopyUnc = new Button { Text = "Copy UNC", AutoSize = true, Margin = new Padding(4) };
         btnShareRefresh.Click += async (_, _) => await RefreshShareAsync().ConfigureAwait(true);
@@ -227,6 +230,9 @@ internal sealed class DeviceManagementForm : Form
         };
         btnShareGet.Click += async (_, _) => await DownloadSelectedAsync().ConfigureAwait(true);
         btnSharePut.Click += async (_, _) => await UploadFileAsync().ConfigureAwait(true);
+        btnShareMkdir.Click += async (_, _) => await CreateShareDirectoryAsync().ConfigureAwait(true);
+        btnShareRename.Click += async (_, _) => await RenameSelectedShareEntryAsync().ConfigureAwait(true);
+        btnShareDelete.Click += async (_, _) => await DeleteSelectedShareEntryAsync().ConfigureAwait(true);
         btnOpenSmb.Click += (_, _) => OpenSmbShare();
         btnCopyUnc.Click += (_, _) =>
         {
@@ -240,6 +246,9 @@ internal sealed class DeviceManagementForm : Form
         shareButtons.Controls.Add(btnShareUp);
         shareButtons.Controls.Add(btnShareGet);
         shareButtons.Controls.Add(btnSharePut);
+        shareButtons.Controls.Add(btnShareMkdir);
+        shareButtons.Controls.Add(btnShareRename);
+        shareButtons.Controls.Add(btnShareDelete);
         shareButtons.Controls.Add(btnOpenSmb);
         shareButtons.Controls.Add(btnCopyUnc);
         _shareList = new ListBox { Dock = DockStyle.Fill };
@@ -793,6 +802,207 @@ internal sealed class DeviceManagementForm : Form
         {
             SetStatus($"Upload failed: {ex.Message}");
         }
+    }
+
+    private string? TryGetSelectedShareRelativePath(out bool isDirectory)
+    {
+        isDirectory = false;
+        if (_shareList.SelectedItem is null)
+        {
+            return null;
+        }
+
+        var text = _shareList.SelectedItem.ToString() ?? string.Empty;
+        if (text.StartsWith("(empty)", StringComparison.Ordinal) || text.StartsWith("list error:", StringComparison.Ordinal))
+        {
+            return null;
+        }
+
+        isDirectory = text.StartsWith("[dir]", StringComparison.Ordinal);
+        var pathPart = text
+            .Replace("[dir]", string.Empty, StringComparison.Ordinal)
+            .Replace("[file]", string.Empty, StringComparison.Ordinal)
+            .Trim();
+        var paren = pathPart.LastIndexOf(" (", StringComparison.Ordinal);
+        if (paren > 0)
+        {
+            pathPart = pathPart[..paren].Trim();
+        }
+
+        return string.IsNullOrWhiteSpace(pathPart) ? null : pathPart;
+    }
+
+    private async Task CreateShareDirectoryAsync()
+    {
+        var name = PromptForText("New folder", "Folder name (relative to current share directory):", "NewFolder");
+        if (string.IsNullOrWhiteSpace(name))
+        {
+            return;
+        }
+
+        name = name.Trim().Replace('\\', '/').Trim('/');
+        if (name.Contains("..", StringComparison.Ordinal) || name.Contains('/', StringComparison.Ordinal))
+        {
+            MessageBox.Show(this, "Use a single folder name without path separators or '..'.", Text, MessageBoxButtons.OK, MessageBoxIcon.Warning);
+            return;
+        }
+
+        var remote = string.IsNullOrEmpty(_shareDir) ? name : $"{_shareDir.TrimEnd('/')}/{name}";
+        var client = CreateClient(out var error);
+        if (client is null)
+        {
+            SetStatus(error!);
+            return;
+        }
+
+        try
+        {
+            var share = new FolderShareClient(client, _peerId);
+            var result = await share.CreateDirectoryAsync(remote).ConfigureAwait(true);
+            SetStatus(result.Ok ? $"Created folder {remote}" : $"{result.ErrorCode}: {result.Message}");
+            if (result.Ok)
+            {
+                await RefreshShareAsync().ConfigureAwait(true);
+            }
+        }
+        catch (Exception ex)
+        {
+            SetStatus($"New folder failed: {ex.Message}");
+        }
+    }
+
+    private async Task RenameSelectedShareEntryAsync()
+    {
+        var path = TryGetSelectedShareRelativePath(out _);
+        if (path is null)
+        {
+            MessageBox.Show(this, "Select a file or folder first.", Text, MessageBoxButtons.OK, MessageBoxIcon.Information);
+            return;
+        }
+
+        var leaf = Path.GetFileName(path.Replace('/', Path.DirectorySeparatorChar));
+        var newLeaf = PromptForText("Rename", "New name:", leaf);
+        if (string.IsNullOrWhiteSpace(newLeaf) || string.Equals(newLeaf.Trim(), leaf, StringComparison.Ordinal))
+        {
+            return;
+        }
+
+        newLeaf = newLeaf.Trim().Replace('\\', '/').Trim('/');
+        if (newLeaf.Contains("..", StringComparison.Ordinal) || newLeaf.Contains('/', StringComparison.Ordinal))
+        {
+            MessageBox.Show(this, "Use a single name without path separators or '..'.", Text, MessageBoxButtons.OK, MessageBoxIcon.Warning);
+            return;
+        }
+
+        var parent = ParentRelativeDir(path);
+        var dest = string.IsNullOrEmpty(parent) ? newLeaf : $"{parent}/{newLeaf}";
+        var client = CreateClient(out var error);
+        if (client is null)
+        {
+            SetStatus(error!);
+            return;
+        }
+
+        try
+        {
+            var share = new FolderShareClient(client, _peerId);
+            var result = await share.RenameAsync(path, dest, overwrite: false).ConfigureAwait(true);
+            SetStatus(result.Ok ? $"Renamed to {dest}" : $"{result.ErrorCode}: {result.Message}");
+            if (result.Ok)
+            {
+                await RefreshShareAsync().ConfigureAwait(true);
+            }
+        }
+        catch (Exception ex)
+        {
+            SetStatus($"Rename failed: {ex.Message}");
+        }
+    }
+
+    private async Task DeleteSelectedShareEntryAsync()
+    {
+        var path = TryGetSelectedShareRelativePath(out var isDirectory);
+        if (path is null)
+        {
+            MessageBox.Show(this, "Select a file or folder first.", Text, MessageBoxButtons.OK, MessageBoxIcon.Information);
+            return;
+        }
+
+        var recursive = false;
+        if (isDirectory)
+        {
+            var answer = MessageBox.Show(
+                this,
+                $"Delete folder '{path}' and all of its contents?",
+                "Delete folder",
+                MessageBoxButtons.YesNo,
+                MessageBoxIcon.Warning);
+            if (answer != DialogResult.Yes)
+            {
+                return;
+            }
+
+            recursive = true;
+        }
+        else
+        {
+            var answer = MessageBox.Show(
+                this,
+                $"Delete file '{path}'?",
+                "Delete file",
+                MessageBoxButtons.YesNo,
+                MessageBoxIcon.Warning);
+            if (answer != DialogResult.Yes)
+            {
+                return;
+            }
+        }
+
+        var client = CreateClient(out var error);
+        if (client is null)
+        {
+            SetStatus(error!);
+            return;
+        }
+
+        try
+        {
+            var share = new FolderShareClient(client, _peerId);
+            var result = await share.DeleteAsync(path, recursive).ConfigureAwait(true);
+            SetStatus(result.Ok ? $"Deleted {path}" : $"{result.ErrorCode}: {result.Message}");
+            if (result.Ok)
+            {
+                await RefreshShareAsync().ConfigureAwait(true);
+            }
+        }
+        catch (Exception ex)
+        {
+            SetStatus($"Delete failed: {ex.Message}");
+        }
+    }
+
+    private static string? PromptForText(string title, string prompt, string defaultValue)
+    {
+        using var form = new Form
+        {
+            Text = title,
+            FormBorderStyle = FormBorderStyle.FixedDialog,
+            StartPosition = FormStartPosition.CenterParent,
+            MinimizeBox = false,
+            MaximizeBox = false,
+            ClientSize = new Size(420, 120),
+        };
+        var label = new Label { Left = 12, Top = 12, Width = 390, Text = prompt };
+        var box = new TextBox { Left = 12, Top = 36, Width = 390, Text = defaultValue };
+        var ok = new Button { Text = "OK", DialogResult = DialogResult.OK, Left = 246, Top = 72, Width = 75 };
+        var cancel = new Button { Text = "Cancel", DialogResult = DialogResult.Cancel, Left = 327, Top = 72, Width = 75 };
+        form.Controls.Add(label);
+        form.Controls.Add(box);
+        form.Controls.Add(ok);
+        form.Controls.Add(cancel);
+        form.AcceptButton = ok;
+        form.CancelButton = cancel;
+        return form.ShowDialog() == DialogResult.OK ? box.Text : null;
     }
 
     private async Task IssuePairingCodeAsync()

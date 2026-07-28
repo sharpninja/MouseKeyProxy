@@ -1275,6 +1275,96 @@ public class MouseKeyProxyImpl : MouseKeyProxy.Network.V1.MouseKeyProxy.MouseKey
         }
     }
 
+    /// <summary>FR-MKP-014: create a directory under the device folder share.</summary>
+    public override Task<CommandResult> CreateFolderShareDirectory(
+        CreateFolderShareDirectoryRequest request,
+        ServerCallContext context)
+    {
+        if (_folderShare is null)
+        {
+            return Task.FromResult(new CommandResult
+            {
+                Ok = false,
+                Err = "SHARE_DISABLED",
+                Msg = "Folder share is not enabled.",
+            });
+        }
+
+        if (!TryAuthorizeShareClient(context, out var ipErr, out var ipMsg))
+        {
+            return Task.FromResult(new CommandResult { Ok = false, Err = ipErr, Msg = ipMsg });
+        }
+
+        var result = _folderShare.CreateDirectory(request.RelativeDirectory ?? string.Empty);
+        return Task.FromResult(new CommandResult
+        {
+            Ok = result.Ok,
+            Err = result.ErrorCode,
+            Msg = result.Message,
+        });
+    }
+
+    /// <summary>FR-MKP-014: delete a file or directory under the device folder share.</summary>
+    public override Task<CommandResult> DeleteFolderShareEntry(
+        DeleteFolderShareEntryRequest request,
+        ServerCallContext context)
+    {
+        if (_folderShare is null)
+        {
+            return Task.FromResult(new CommandResult
+            {
+                Ok = false,
+                Err = "SHARE_DISABLED",
+                Msg = "Folder share is not enabled.",
+            });
+        }
+
+        if (!TryAuthorizeShareClient(context, out var ipErr, out var ipMsg))
+        {
+            return Task.FromResult(new CommandResult { Ok = false, Err = ipErr, Msg = ipMsg });
+        }
+
+        var result = _folderShare.Delete(request.RelativePath ?? string.Empty, request.Recursive);
+        return Task.FromResult(new CommandResult
+        {
+            Ok = result.Ok,
+            Err = result.ErrorCode,
+            Msg = result.Message,
+        });
+    }
+
+    /// <summary>FR-MKP-014: rename or move an entry under the device folder share.</summary>
+    public override Task<CommandResult> RenameFolderShareEntry(
+        RenameFolderShareEntryRequest request,
+        ServerCallContext context)
+    {
+        if (_folderShare is null)
+        {
+            return Task.FromResult(new CommandResult
+            {
+                Ok = false,
+                Err = "SHARE_DISABLED",
+                Msg = "Folder share is not enabled.",
+            });
+        }
+
+        if (!TryAuthorizeShareClient(context, out var ipErr, out var ipMsg))
+        {
+            return Task.FromResult(new CommandResult { Ok = false, Err = ipErr, Msg = ipMsg });
+        }
+
+        var result = _folderShare.Rename(
+            request.RelativePath ?? string.Empty,
+            request.NewRelativePath ?? string.Empty,
+            request.Overwrite);
+        return Task.FromResult(new CommandResult
+        {
+            Ok = result.Ok,
+            Err = result.ErrorCode,
+            Msg = result.Message,
+        });
+    }
+
     private static CommandResult ToCommandResult(RemoteControlResult result)
     {
         return new CommandResult

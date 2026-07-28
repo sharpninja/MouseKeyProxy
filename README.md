@@ -1,8 +1,10 @@
 # MouseKeyProxy
 
-Free hotkey-only alternative to PowerToys Mouse Without Borders. Forward keyboard and mouse from a Windows control host to a paired peer or a USB HID appliance over an authenticated gRPC channel.
+Hotkey-only keyboard and mouse control from a Windows host through a small **USB HID appliance** (Orange Pi / Raspberry Pi). The control host captures input over an authenticated gRPC channel; the Pi injects standard USB keyboard and relative mouse into whatever PC it is plugged into. The target does not run MouseKeyProxy for keyboard and mouse.
 
-MouseKeyProxy provides a Windows service, a user-session tray/dashboard agent, and the `mkp` .NET tool for pairing, toggle, emergency release, and Pi provisioning.
+This is **not** a Windows-to-Windows Mouse Without Borders clone. Mouse and key proxying is **only** supported through the HID device path.
+
+MouseKeyProxy provides a Windows service and tray/dashboard agent on the control host, the `mkp` .NET tool for pairing, toggle, emergency release, and Pi provisioning, and a cross-platform service on the appliance.
 
 ## Documentation
 
@@ -31,29 +33,30 @@ Default configured toggle: **Ctrl+Win+F1**. Default configured emergency release
 
 ## Features
 
+- **HID-only product path:** keyboard and mouse leave the Windows host only toward a paired Linux USB HID appliance (Pi), not as a software agent on the target PC.
 - Explicit hotkey toggle only; no mirror mode and no edge-of-screen switching.
-- Exclusive input forwarding so one machine (or HID target) receives keyboard and mouse at a time.
+- Exclusive input capture on the control host so the HID target receives keyboard and mouse while forwarding is active.
 - A Windows busy pointer marks remote-control ownership on the host and returns to the normal pointer whenever local control is restored.
 - **Host restore first:** toggle, emergency release, and HID link-loss always unhook local capture before any peer RPC; a hung appliance cannot trap the control host.
-- Pairing (mTLS + one-time code or ToFU discovery), status, service lifecycle, emergency release, logs, clipboard, and remote-control commands through the canonical `mkp` CLI/REPL surface.
-- Optional **DeviceAppliance** path: Linux USB HID gadget (keyboard + relative mouse) as a full paired peer; letters, digits, and US punctuation map to boot-protocol HID usages.
-- User-session dashboard for pairing state, active peer, service state, clipboard state, recent errors, and emergency release.
-- Windows Event Log diagnostics.
-- LIFO clipboard sync with bounded history and privacy skips (advanced peer effects; not required for HID inject).
+- Pairing (mTLS + one-time code or ToFU discovery), status, service lifecycle, emergency release, logs, and HID diagnostics through the canonical `mkp` CLI/REPL surface.
+- Linux USB HID gadget: keyboard + relative mouse; letters, digits, and US punctuation map to boot-protocol HID usages (works at login / firmware screens that ignore high-level remotes).
+- User-session dashboard for pairing state, active appliance, service state, recent errors, and emergency release.
+- Windows Event Log diagnostics on the control host.
 
 ## Known Compatible Hardware
 
 Verified configurations:
 
-- **Control host:** Windows 11 x64 with the tray Agent (logon task typically `C:\ProgramData\MouseKeyProxy\Agent\MouseKeyProxy.Agent.exe`).
-- **Windows peer (optional):** second Windows 11 machine for clipboard / advanced effects when not using a pure HID appliance.
-- **Linux HID appliance (recommended lab path):** Orange Pi Zero 2W (aarch64 / `linux-arm64`). See [orange-pi-zero-2-hid.md](docs/hardware/orange-pi-zero-2-hid.md). Control over Wi-Fi gRPC; keyboard/mouse over USB OTG to the target PC.
-- **Raspberry Pi HID appliance:** Raspberry Pi Zero 2 W. Provisioned by `mkp pi provision` / Rufus profiles with Raspberry Pi OS Lite; USB HID gadget via configfs + dwc2. See [pi-zero-2-hid.md](docs/hardware/pi-zero-2-hid.md).
+- **Control host:** Windows 11 x64 with the tray Agent (logon task typically `C:\ProgramData\MouseKeyProxy\Agent\MouseKeyProxy.Agent.exe`) and local Service.
+- **HID appliance (required for mouse/key proxy):** Orange Pi Zero 2W (aarch64 / `linux-arm64`). Control over Wi-Fi or Ethernet gRPC; keyboard/mouse over USB OTG to the target PC. See [orange-pi-zero-2-hid.md](docs/hardware/orange-pi-zero-2-hid.md).
+- **HID appliance (alternate):** Raspberry Pi Zero 2 W. Provisioned by `mkp pi provision` / Rufus profiles with Raspberry Pi OS Lite; USB HID gadget via configfs + dwc2. See [pi-zero-2-hid.md](docs/hardware/pi-zero-2-hid.md).
+- **Target PC:** any machine that accepts a USB keyboard and mouse. It does not run MouseKeyProxy for input inject.
 - **SD media:** microSD card (4 GB or larger) written with the bundled "RUFUS For MouseKeyProxy" writer or board-specific prepare scripts.
 
 Notes:
 
 - The HID appliance is headless by design; local HDMI is optional. Prefer a solid mini-HDMI (or board HDMI) cable if you need a local console.
+- Direct Windows-to-Windows mouse/key proxy is not a supported product mode.
 
 ## Build
 

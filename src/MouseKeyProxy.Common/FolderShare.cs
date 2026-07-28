@@ -92,6 +92,17 @@ public interface IFolderShareStore
 
     /// <summary>Creates/overwrites a file under the share.</summary>
     FolderShareResult OpenWrite(string relativePath, long expectedLength, out Stream? stream);
+
+    /// <summary>Creates a directory (and parents) under the share root.</summary>
+    FolderShareResult CreateDirectory(string relativeDirectory);
+
+    /// <summary>Deletes a file or directory under the share root.</summary>
+    /// <param name="relativePath">Relative path to delete.</param>
+    /// <param name="recursive">When true, delete non-empty directories.</param>
+    FolderShareResult Delete(string relativePath, bool recursive);
+
+    /// <summary>Renames or moves an entry within the share root.</summary>
+    FolderShareResult Rename(string relativePath, string newRelativePath, bool overwrite);
 }
 
 /// <summary>Local directory implementation of <see cref="IFolderShareStore"/>.</summary>
@@ -205,6 +216,164 @@ public sealed class LocalFolderShareStore : IFolderShareStore
 
         stream = new FileStream(abs, FileMode.Create, FileAccess.Write, FileShare.None);
         return new FolderShareResult(true, string.Empty, "ok");
+    }
+
+    /// <inheritdoc />
+    public FolderShareResult CreateDirectory(string relativeDirectory)
+    {
+        if (!_options.Enabled)
+        {
+            return new FolderShareResult(false, "SHARE_DISABLED", "Folder share is not enabled on this device.");
+        }
+
+        if (!TryMap(relativeDirectory, out var abs, out var err, out var msg))
+        {
+            return new FolderShareResult(false, err, msg);
+        }
+
+        if (File.Exists(abs))
+        {
+            return new FolderShareResult(false, "IS_FILE", "Path is an existing file.");
+        }
+
+        try
+        {
+            Directory.CreateDirectory(abs);
+            return new FolderShareResult(true, string.Empty, "ok");
+        }
+        catch (Exception ex)
+        {
+            return new FolderShareResult(false, "IO_ERROR", ex.Message);
+        }
+    }
+
+    /// <inheritdoc />
+    public FolderShareResult Delete(string relativePath, bool recursive)
+    {
+        if (!_options.Enabled)
+        {
+            return new FolderShareResult(false, "SHARE_DISABLED", "Folder share is not enabled on this device.");
+        }
+
+        if (!TryMap(relativePath, out var abs, out var err, out var msg))
+        {
+            return new FolderShareResult(false, err, msg);
+        }
+
+        var root = Path.GetFullPath(_options.RootPath);
+        if (string.Equals(abs, root, StringComparison.OrdinalIgnoreCase))
+        {
+            return new FolderShareResult(false, "PATH_INVALID", "Cannot delete the share root.");
+        }
+
+        try
+        {
+            if (Directory.Exists(abs))
+            {
+                if (!recursive && Directory.EnumerateFileSystemEntries(abs).Any())
+                {
+                    return new FolderShareResult(false, "NOT_EMPTY", "Directory is not empty (use recursive).");
+                }
+
+                Directory.Delete(abs, recursive);
+                return new FolderShareResult(true, string.Empty, "ok");
+            }
+
+            if (File.Exists(abs))
+            {
+                File.Delete(abs);
+                return new FolderShareResult(true, string.Empty, "ok");
+            }
+
+            return new FolderShareResult(false, "NOT_FOUND", "Path not found.");
+        }
+        catch (Exception ex)
+        {
+            return new FolderShareResult(false, "IO_ERROR", ex.Message);
+        }
+    }
+
+    /// <inheritdoc />
+    public FolderShareResult Rename(string relativePath, string newRelativePath, bool overwrite)
+    {
+        if (!_options.Enabled)
+        {
+            return new FolderShareResult(false, "SHARE_DISABLED", "Folder share is not enabled on this device.");
+        }
+
+        if (!TryMap(relativePath, out var sourceAbs, out var err, out var msg))
+        {
+            return new FolderShareResult(false, err, msg);
+        }
+
+        if (!TryMap(newRelativePath, out var destAbs, out err, out msg))
+        {
+            return new FolderShareResult(false, err, msg);
+        }
+
+        var root = Path.GetFullPath(_options.RootPath);
+        if (string.Equals(sourceAbs, root, StringComparison.OrdinalIgnoreCase)
+            || string.Equals(destAbs, root, StringComparison.OrdinalIgnoreCase))
+        {
+            return new FolderShareResult(false, "PATH_INVALID", "Cannot rename the share root.");
+        }
+
+        if (!File.Exists(sourceAbs) && !Directory.Exists(sourceAbs))
+        {
+            return new FolderShareResult(false, "NOT_FOUND", "Source path not found.");
+        }
+
+        try
+        {
+            var destParent = Path.GetDirectoryName(destAbs);
+            if (!string.IsNullOrEmpty(destParent))
+            {
+                Directory.CreateDirectory(destParent);
+            }
+
+            if (File.Exists(sourceAbs))
+            {
+                if (File.Exists(destAbs))
+                {
+                    if (!overwrite)
+                    {
+                        return new FolderShareResult(false, "ALREADY_EXISTS", "Destination file exists.");
+                    }
+
+                    File.Delete(destAbs);
+                }
+                else if (Directory.Exists(destAbs))
+                {
+                    return new FolderShareResult(false, "IS_DIRECTORY", "Destination is a directory.");
+                }
+
+                File.Move(sourceAbs, destAbs);
+                return new FolderShareResult(true, string.Empty, "ok");
+            }
+
+            // Directory move
+            if (Directory.Exists(destAbs))
+            {
+                if (!overwrite)
+                {
+                    return new FolderShareResult(false, "ALREADY_EXISTS", "Destination directory exists.");
+                }
+
+                return new FolderShareResult(false, "ALREADY_EXISTS", "Cannot overwrite an existing directory.");
+            }
+
+            if (File.Exists(destAbs))
+            {
+                return new FolderShareResult(false, "IS_FILE", "Destination is a file.");
+            }
+
+            Directory.Move(sourceAbs, destAbs);
+            return new FolderShareResult(true, string.Empty, "ok");
+        }
+        catch (Exception ex)
+        {
+            return new FolderShareResult(false, "IO_ERROR", ex.Message);
+        }
     }
 
     private bool TryResolveDirectory(string relative, out string absolute, out string errorCode, out string errorMessage)

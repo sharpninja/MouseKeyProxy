@@ -84,4 +84,39 @@ public class FolderShareStoreTests
         Assert.False(info.Enabled);
         Assert.False(store.List("", out _).Ok);
     }
+
+    /// <summary>FR-MKP-014: mkdir, rename, and delete cover full share control.</summary>
+    [Fact]
+    public void CreateRenameDelete_FullControl()
+    {
+        var root = Path.Combine(Path.GetTempPath(), "mkp-share-" + System.Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(root);
+        try
+        {
+            var store = new LocalFolderShareStore(new FolderShareOptions
+            {
+                Enabled = true,
+                RootPath = root,
+            });
+
+            Assert.True(store.CreateDirectory("docs/nested").Ok);
+            Assert.True(Directory.Exists(Path.Combine(root, "docs", "nested")));
+
+            File.WriteAllText(Path.Combine(root, "docs", "a.txt"), "x");
+            Assert.True(store.Rename("docs/a.txt", "docs/nested/b.txt", overwrite: false).Ok);
+            Assert.True(File.Exists(Path.Combine(root, "docs", "nested", "b.txt")));
+            Assert.False(File.Exists(Path.Combine(root, "docs", "a.txt")));
+
+            Assert.False(store.Delete("docs", recursive: false).Ok);
+            Assert.True(store.Delete("docs", recursive: true).Ok);
+            Assert.False(Directory.Exists(Path.Combine(root, "docs")));
+
+            Assert.False(store.Delete("", recursive: true).Ok);
+            Assert.Equal("PATH_INVALID", store.Delete("", recursive: true).ErrorCode);
+        }
+        finally
+        {
+            try { Directory.Delete(root, true); } catch { /* best effort */ }
+        }
+    }
 }
