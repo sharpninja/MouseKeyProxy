@@ -11,6 +11,7 @@ using System.ServiceProcess;
 using System.Text.Json;
 using Grpc.Net.Client;
 using MouseKeyProxy.Commands;
+using MouseKeyProxy.Commands.ShareMount;
 using Cmn = MouseKeyProxy.Common;
 using MouseKeyProxy.Network;
 using Wire = MouseKeyProxy.Network.V1;
@@ -456,9 +457,93 @@ Explicit 'mkp service install' does NOT happen on 'dotnet tool install'.
                     Console.WriteLine($"[share mv] ok={result.Ok} err={result.ErrorCode} {result.Message}");
                     return result.Ok ? 0 : 1;
                 }
+                case "mount":
+                {
+                    // TR-MKP-SHARE-WINFSP: mount the paired appliance share as a WinFsp virtual drive.
+                    if (args.Length < 3)
+                    {
+                        Console.WriteLine("usage: mkp share mount <X:> [--label Name]");
+                        Console.WriteLine("       mkp share mount-local <X:> <localRootDir> [--label Name]");
+                        Console.WriteLine("       mkp share unmount");
+                        Console.WriteLine("       mkp share mount-status");
+                        Console.WriteLine(WinFspRuntime.DescribeAvailability());
+                        return 1;
+                    }
+
+                    if (!OperatingSystem.IsWindows())
+                    {
+                        Console.WriteLine("[share mount] WinFsp mounts are only supported on Windows.");
+                        return 1;
+                    }
+
+                    var label = GetOption(args, "--label", "MouseKeyProxy");
+                    var backend = new FolderShareClientBackend(share);
+                    var mount = ShareMountHost.Mount(backend, args[2], label);
+                    Console.WriteLine($"[share mount] ok={mount.Ok} err={mount.ErrorCode} msg={mount.Message} point={mount.MountPoint}");
+                    if (!mount.Ok)
+                    {
+                        return 1;
+                    }
+
+                    // Keep the process alive while the volume is mounted (driver callbacks need the host).
+                    Console.WriteLine("Volume mounted. Press Enter to unmount and exit...");
+                    Console.ReadLine();
+                    var unmount = ShareMountHost.Unmount();
+                    Console.WriteLine($"[share unmount] ok={unmount.Ok} err={unmount.ErrorCode} msg={unmount.Message}");
+                    return unmount.Ok ? 0 : 1;
+                }
+                case "mount-local":
+                {
+                    if (args.Length < 4)
+                    {
+                        Console.WriteLine("usage: mkp share mount-local <X:> <localRootDir> [--label Name]");
+                        return 1;
+                    }
+
+                    if (!OperatingSystem.IsWindows())
+                    {
+                        Console.WriteLine("[share mount-local] WinFsp mounts are only supported on Windows.");
+                        return 1;
+                    }
+
+                    var label = GetOption(args, "--label", "MouseKeyProxy");
+                    var mount = ShareMountHost.MountLocalDirectory(args[3], args[2], label);
+                    Console.WriteLine($"[share mount-local] ok={mount.Ok} err={mount.ErrorCode} msg={mount.Message} point={mount.MountPoint}");
+                    if (!mount.Ok)
+                    {
+                        return 1;
+                    }
+
+                    Console.WriteLine("Local share mounted. Press Enter to unmount and exit...");
+                    Console.ReadLine();
+                    var unmount = ShareMountHost.Unmount();
+                    Console.WriteLine($"[share unmount] ok={unmount.Ok} err={unmount.ErrorCode} msg={unmount.Message}");
+                    return unmount.Ok ? 0 : 1;
+                }
+                case "unmount":
+                {
+                    if (!OperatingSystem.IsWindows())
+                    {
+                        Console.WriteLine("[share unmount] WinFsp mounts are only supported on Windows.");
+                        return 1;
+                    }
+
+                    var unmount = ShareMountHost.Unmount();
+                    Console.WriteLine($"[share unmount] ok={unmount.Ok} err={unmount.ErrorCode} msg={unmount.Message}");
+                    return unmount.Ok ? 0 : 1;
+                }
+                case "mount-status":
+                {
+                    Console.WriteLine(WinFspRuntime.DescribeAvailability());
+                    Console.WriteLine(
+                        OperatingSystem.IsWindows()
+                            ? $"[share mount-status] mounted={ShareMountHost.IsMounted} point={ShareMountHost.CurrentMountPoint}"
+                            : "[share mount-status] platform=non-windows");
+                    return 0;
+                }
                 default:
                     Console.WriteLine(
-                        "usage: mkp share discover|info|list [dir]|get <remote> <local>|put <local> <remote>|mkdir <dir>|rm <path> [--recursive]|mv <from> <to>");
+                        "usage: mkp share discover|info|list [dir]|get <remote> <local>|put <local> <remote>|mkdir <dir>|rm <path> [--recursive]|mv <from> <to>|mount <X:>|mount-local <X:> <dir>|unmount|mount-status");
                     return 1;
             }
         }

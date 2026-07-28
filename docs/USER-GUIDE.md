@@ -144,9 +144,32 @@ mkp share rm <remoteRelativePath> [--recursive]
 mkp share mv <fromRelative> <toRelative>
 ```
 
-The Agent **Device management** form Share tab provides the same operations (list, download, upload, new folder, rename, delete) plus optional SMB UNC open when allowed by the device IP allowlist.
+The Agent **Device management** form Share tab provides the same operations (list, download, upload, new folder, rename, delete), **Mount drive… / Unmount drive** (WinFsp virtual letter), and optional SMB UNC open when allowed by the device IP allowlist.
 
-A Windows **virtual drive** mount that backs this share (so Explorer uses a drive letter) is a separate host-side feature. The recommended stack is **WinFsp** (Windows File System Proxy, with a .NET API): it presents a user-mode file system as a normal drive. That is not required for gRPC full control; it is the natural next layer for “looks like a USB disk on the control host.”
+### WinFsp virtual drive (control host)
+
+On Windows you can mount the paired appliance share as a normal drive letter so Explorer and ordinary apps use list/read/write/mkdir/delete/rename through the existing gRPC share RPCs.
+
+**Prerequisite:** install the **WinFsp** runtime (kernel driver + user DLLs) from [https://winfsp.dev/rel/](https://winfsp.dev/rel/). Without it, mount fails with a clear `WINFSP_RUNTIME_MISSING` message (no crash). WinFsp is GPLv3 with a FLOSS exception for open-source consumers; commercial redistribution may need a commercial license review.
+
+```powershell
+# Check whether the WinFsp runtime is visible to MouseKeyProxy
+mkp share mount-status
+
+# Mount the paired appliance share at Z: (process stays open until you press Enter)
+mkp share mount Z:
+mkp share mount Z: --label MyAppliance
+
+# Offline / local demo: mount a local directory with the same bridge (no gRPC)
+mkp share mount-local Z: C:\Temp\mkp-share-demo
+
+# Unmount from another terminal if needed (same process owns the mount)
+mkp share unmount
+```
+
+Agent path: Device management → Share → **Mount drive…** (pick a free letter such as `Z:`) / **Unmount drive**.
+
+The mount is host-side only. It is not the same as the appliance USB mass-storage LUN presented to the target PC.
 
 ## Clipboard (control host)
 

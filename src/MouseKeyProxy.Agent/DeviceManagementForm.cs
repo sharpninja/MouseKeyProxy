@@ -6,6 +6,7 @@ using System.Threading.Tasks;
 using System.Windows.Forms;
 using Grpc.Net.Client;
 using MouseKeyProxy.Commands;
+using MouseKeyProxy.Commands.ShareMount;
 using Wire = MouseKeyProxy.Network.V1;
 
 namespace MouseKeyProxy.Agent;
@@ -220,6 +221,8 @@ internal sealed class DeviceManagementForm : Form
         var btnShareMkdir = new Button { Text = "New folder…", AutoSize = true, Margin = new Padding(4) };
         var btnShareRename = new Button { Text = "Rename…", AutoSize = true, Margin = new Padding(4) };
         var btnShareDelete = new Button { Text = "Delete…", AutoSize = true, Margin = new Padding(4) };
+        var btnShareMount = new Button { Text = "Mount drive…", AutoSize = true, Margin = new Padding(4) };
+        var btnShareUnmount = new Button { Text = "Unmount drive", AutoSize = true, Margin = new Padding(4) };
         var btnOpenSmb = new Button { Text = "Open SMB…", AutoSize = true, Margin = new Padding(4) };
         var btnCopyUnc = new Button { Text = "Copy UNC", AutoSize = true, Margin = new Padding(4) };
         btnShareRefresh.Click += async (_, _) => await RefreshShareAsync().ConfigureAwait(true);
@@ -233,6 +236,8 @@ internal sealed class DeviceManagementForm : Form
         btnShareMkdir.Click += async (_, _) => await CreateShareDirectoryAsync().ConfigureAwait(true);
         btnShareRename.Click += async (_, _) => await RenameSelectedShareEntryAsync().ConfigureAwait(true);
         btnShareDelete.Click += async (_, _) => await DeleteSelectedShareEntryAsync().ConfigureAwait(true);
+        btnShareMount.Click += (_, _) => MountShareDrive();
+        btnShareUnmount.Click += (_, _) => UnmountShareDrive();
         btnOpenSmb.Click += (_, _) => OpenSmbShare();
         btnCopyUnc.Click += (_, _) =>
         {
@@ -249,6 +254,8 @@ internal sealed class DeviceManagementForm : Form
         shareButtons.Controls.Add(btnShareMkdir);
         shareButtons.Controls.Add(btnShareRename);
         shareButtons.Controls.Add(btnShareDelete);
+        shareButtons.Controls.Add(btnShareMount);
+        shareButtons.Controls.Add(btnShareUnmount);
         shareButtons.Controls.Add(btnOpenSmb);
         shareButtons.Controls.Add(btnCopyUnc);
         _shareList = new ListBox { Dock = DockStyle.Fill };
@@ -978,6 +985,103 @@ internal sealed class DeviceManagementForm : Form
         catch (Exception ex)
         {
             SetStatus($"Delete failed: {ex.Message}");
+        }
+    }
+
+    /// <summary>
+    /// TR-MKP-SHARE-WINFSP: mounts the paired appliance share as a WinFsp virtual drive letter.
+    /// </summary>
+    private void MountShareDrive()
+    {
+        if (!OperatingSystem.IsWindows())
+        {
+            MessageBox.Show(this, "WinFsp virtual drives are only supported on Windows.", Text,
+                MessageBoxButtons.OK, MessageBoxIcon.Information);
+            return;
+        }
+
+        if (!WinFspRuntime.IsAvailable())
+        {
+            MessageBox.Show(
+                this,
+                WinFspRuntime.DescribeAvailability(),
+                "WinFsp runtime missing",
+                MessageBoxButtons.OK,
+                MessageBoxIcon.Warning);
+            SetStatus("Mount failed: WinFsp runtime missing.");
+            return;
+        }
+
+        if (ShareMountHost.IsMounted)
+        {
+            MessageBox.Show(
+                this,
+                $"A share volume is already mounted at {ShareMountHost.CurrentMountPoint}. Unmount it first.",
+                Text,
+                MessageBoxButtons.OK,
+                MessageBoxIcon.Information);
+            return;
+        }
+
+        var letter = PromptForText("Mount drive", "Drive letter (e.g. Z:):", "Z:");
+        if (string.IsNullOrWhiteSpace(letter))
+        {
+            return;
+        }
+
+        var client = CreateClient(out var error);
+        if (client is null)
+        {
+            SetStatus(error!);
+            MessageBox.Show(this, error!, Text, MessageBoxButtons.OK, MessageBoxIcon.Warning);
+            return;
+        }
+
+        try
+        {
+            var share = new FolderShareClient(client, _peerId);
+            var backend = new FolderShareClientBackend(share);
+            var result = ShareMountHost.Mount(backend, letter.Trim(), "MouseKeyProxy");
+            SetStatus(result.Ok
+                ? $"Mounted at {result.MountPoint}"
+                : $"{result.ErrorCode}: {result.Message}");
+            if (!result.Ok)
+            {
+                MessageBox.Show(this, result.Message, "Mount failed", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+            }
+        }
+        catch (Exception ex)
+        {
+            SetStatus($"Mount failed: {ex.Message}");
+            MessageBox.Show(this, ex.Message, "Mount failed", MessageBoxButtons.OK, MessageBoxIcon.Error);
+        }
+    }
+
+    /// <summary>TR-MKP-SHARE-WINFSP: unmounts the process-owned WinFsp share volume if present.</summary>
+    private void UnmountShareDrive()
+    {
+        if (!OperatingSystem.IsWindows())
+        {
+            MessageBox.Show(this, "WinFsp virtual drives are only supported on Windows.", Text,
+                MessageBoxButtons.OK, MessageBoxIcon.Information);
+            return;
+        }
+
+        try
+        {
+            var result = ShareMountHost.Unmount();
+            SetStatus(result.Ok
+                ? result.Message
+                : $"{result.ErrorCode}: {result.Message}");
+            if (!result.Ok)
+            {
+                MessageBox.Show(this, result.Message, "Unmount", MessageBoxButtons.OK, MessageBoxIcon.Information);
+            }
+        }
+        catch (Exception ex)
+        {
+            SetStatus($"Unmount failed: {ex.Message}");
+            MessageBox.Show(this, ex.Message, "Unmount failed", MessageBoxButtons.OK, MessageBoxIcon.Error);
         }
     }
 

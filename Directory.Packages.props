@@ -30,6 +30,8 @@
     <PackageVersion Include="System.Security.Cryptography.ProtectedData" Version="8.0.0" />
     <!-- FR-MKP-022 / TR-MKP-CFG-001: durable appliance config under /etc/mkp -->
     <PackageVersion Include="LiteDB" Version="5.0.21" />
+    <!-- TR-MKP-SHARE-WINFSP: Windows virtual drive over appliance folder share -->
+    <PackageVersion Include="winfsp.net" Version="2.1.25156" />
 
     <!-- Test stack (versions unified to remove drift) -->
     <PackageVersion Include="Microsoft.NET.Test.Sdk" Version="17.14.1" />
