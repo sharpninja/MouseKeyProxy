@@ -296,21 +296,25 @@ public sealed class ShareWinFspFileSystem : FileSystemBase
             return STATUS_INVALID_PARAMETER;
         }
 
-        var data = node.Data ?? Array.Empty<byte>();
-        if (Offset >= (ulong)data.LongLength)
+        // Synchronized=false mounts use worker threads; coordinate with Write/SetFileSize/Close.
+        lock (_gate)
         {
-            return STATUS_END_OF_FILE;
-        }
+            var data = node.Data ?? Array.Empty<byte>();
+            if (Offset >= (ulong)data.LongLength)
+            {
+                return STATUS_END_OF_FILE;
+            }
 
-        var available = (ulong)data.LongLength - Offset;
-        var toCopy = (uint)Math.Min(available, Length);
-        if (toCopy > 0)
-        {
-            Marshal.Copy(data, (int)Offset, Buffer, (int)toCopy);
-        }
+            var available = (ulong)data.LongLength - Offset;
+            var toCopy = (uint)Math.Min(available, Length);
+            if (toCopy > 0)
+            {
+                Marshal.Copy(data, (int)Offset, Buffer, (int)toCopy);
+            }
 
-        BytesTransferred = toCopy;
-        return STATUS_SUCCESS;
+            BytesTransferred = toCopy;
+            return STATUS_SUCCESS;
+        }
     }
 
     /// <inheritdoc />
@@ -559,9 +563,16 @@ public sealed class ShareWinFspFileSystem : FileSystemBase
                     var childRel = string.IsNullOrEmpty(node.RelativePath)
                         ? e.Name
                         : node.RelativePath + "/" + e.Name;
+                    // Listing placeholders keep Data=null so FillFileInfo reports SizeHint
+                    // (backend SizeBytes) instead of an empty buffer length of 0.
                     var child = e.IsDirectory
                         ? FileNodeState.CreateDirectory(childRel)
-                        : FileNodeState.CreateFile(childRel, Array.Empty<byte>(), dirty: false, sizeHint: e.SizeBytes, modified: e.ModifiedUtc);
+                        : FileNodeState.CreateFile(
+                            childRel,
+                            data: null,
+                            dirty: false,
+                            sizeHint: e.SizeBytes,
+                            modified: e.ModifiedUtc);
                     names.Add((e.Name, child));
                 }
             }
@@ -612,7 +623,22 @@ public sealed class ShareWinFspFileSystem : FileSystemBase
         info.FileAttributes = node.IsDirectory
             ? (uint)IoFileAttributes.Directory
             : (uint)(IoFileAttributes.Archive | IoFileAttributes.Normal);
-        var size = node.IsDirectory ? 0UL : (ulong)(node.Data?.LongLength ?? node.SizeHint);
+        // Loaded content (including real empty files) uses Data.Length.
+        // Directory-enumeration placeholders use Data=null + SizeHint from the backend listing.
+        ulong size;
+        if (node.IsDirectory)
+        {
+            size = 0;
+        }
+        else if (node.Data is not null)
+        {
+            size = (ulong)node.Data.LongLength;
+        }
+        else
+        {
+            size = node.SizeHint > 0 ? (ulong)node.SizeHint : 0UL;
+        }
+
         info.FileSize = size;
         info.AllocationSize = (size + 4095) / 4096 * 4096;
         var ft = ToFileTime(node.ModifiedUtc);
@@ -728,19 +754,26 @@ public sealed class ShareWinFspFileSystem : FileSystemBase
         public static FileNodeState CreateDirectory(string relative)
             => new(relative, true, null, 0, DateTimeOffset.UtcNow);
 
+        /// <summary>
+        /// Creates a file node. Pass <paramref name="data"/> as null for metadata-only listing
+        /// placeholders (size comes from <paramref name="sizeHint"/>); pass a non-null buffer
+        /// (including empty) when content is loaded or created.
+        /// </summary>
         public static FileNodeState CreateFile(
             string relative,
-            byte[] data,
+            byte[]? data,
             bool dirty,
             long sizeHint = -1,
             DateTimeOffset? modified = null)
         {
-            data ??= Array.Empty<byte>();
+            var hint = sizeHint >= 0
+                ? sizeHint
+                : data?.LongLength ?? 0;
             return new FileNodeState(
                 relative,
                 false,
                 data,
-                sizeHint >= 0 ? sizeHint : data.LongLength,
+                hint,
                 modified ?? DateTimeOffset.UtcNow)
             {
                 Dirty = dirty,

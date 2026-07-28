@@ -190,6 +190,81 @@ public class ShareFileBridgeTests
         Assert.Empty(backend.Calls);
     }
 
+    /// <summary>
+    /// TR-MKP-SHARE-WINFSP: directory enumeration through the shipped
+    /// <see cref="ShareWinFspFileSystem.ReadDirectoryEntry"/> reports
+    /// <c>FileInfo.FileSize</c> equal to the backend listing <c>SizeBytes</c> for a non-empty file
+    /// (guards against listing placeholders reporting 0 via empty <c>Data</c> buffers).
+    /// </summary>
+    [Fact]
+    public void ShareWinFspFileSystem_ReadDirectoryEntry_ReportsBackendFileSize()
+    {
+        var root = Path.Combine(Path.GetTempPath(), "mkp-winfsp-enum-size-" + Guid.NewGuid().ToString("n"));
+        Directory.CreateDirectory(root);
+        try
+        {
+            var payload = Encoding.UTF8.GetBytes("enumeration-size-payload-0123456789");
+            File.WriteAllBytes(Path.Combine(root, "payload.bin"), payload);
+
+            var store = new LocalFolderShareStore(new FolderShareOptions
+            {
+                Enabled = true,
+                RootPath = root,
+            });
+            // Prove backend listing carries the real size before the FS layer is involved.
+            var listResult = store.List(string.Empty, out var backendEntries);
+            Assert.True(listResult.Ok, listResult.Message);
+            var backendEntry = Assert.Single(backendEntries, e => e.Name == "payload.bin");
+            Assert.Equal(payload.LongLength, backendEntry.SizeBytes);
+
+            var bridge = new ShareFileBridge(new LocalStoreShareBackend(store));
+            var fs = new ShareWinFspFileSystem(bridge, "EnumSizeTest");
+
+            var openStatus = fs.Open(
+                "\\",
+                CreateOptions: 0,
+                GrantedAccess: 0,
+                out var fileNode,
+                out var fileDesc,
+                out _,
+                out _);
+            Assert.Equal(0, openStatus); // STATUS_SUCCESS
+            Assert.NotNull(fileNode);
+
+            object? context = null;
+            string? seenName = null;
+            ulong seenSize = 0;
+            var found = false;
+            // First call builds the enum state (Marker null includes "." / "..").
+            while (fs.ReadDirectoryEntry(
+                       fileNode,
+                       fileDesc,
+                       Pattern: "*",
+                       Marker: null!,
+                       ref context!,
+                       out var fileName,
+                       out var fileInfo))
+            {
+                if (string.Equals(fileName, "payload.bin", StringComparison.OrdinalIgnoreCase))
+                {
+                    seenName = fileName;
+                    seenSize = fileInfo.FileSize;
+                    found = true;
+                    break;
+                }
+            }
+
+            Assert.True(found, "ReadDirectoryEntry did not yield payload.bin from the shipped FileSystemBase.");
+            Assert.Equal("payload.bin", seenName);
+            Assert.Equal((ulong)payload.LongLength, seenSize);
+            Assert.Equal((ulong)backendEntry.SizeBytes, seenSize);
+        }
+        finally
+        {
+            try { Directory.Delete(root, recursive: true); } catch { /* temp cleanup */ }
+        }
+    }
+
     /// <summary>Recording backend for call-order assertions without a real store.</summary>
     private sealed class RecordingBackend : IShareFileBackend
     {
