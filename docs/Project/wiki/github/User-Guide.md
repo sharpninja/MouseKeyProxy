@@ -16,6 +16,8 @@ MouseKeyProxy provides:
 
 MouseKeyProxy is intentionally exclusive: when forwarding is active, the physical keyboard and mouse drive the remote (or HID target) only. Local Windows applications should not receive normal keyboard or mouse events until forwarding is stopped, the toggle returns local, emergency release runs, or the device HID link is lost.
 
+For Orange Pi Zero 2W appliances, a parametric OpenSCAD case (base + lid, M2.5 SHCS stack, multi-object 3MF for Orca) is documented under [cad/orange-pi-zero-2w/README.md](../cad/orange-pi-zero-2w/README.md) and linked from the Orange Pi HID guide.
+
 ## Main Concepts
 
 Primary system (control host): the machine whose physical keyboard and mouse are currently being used.
