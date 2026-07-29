@@ -62,4 +62,32 @@ public class ShareAccessAllowlistTests
         Assert.False(list.IsIpAllowed("192.168.1.10"));
         Assert.Empty(list.GetAllowedIps());
     }
+
+    /// <summary>
+    /// TR-MKP-XFER-004: IPv4-mapped IPv6 forms from gRPC dual-stack match the learned IPv4 allow entry.
+    /// Operators never enter IPs; ObservePeerIp records last-seen address of a paired peer.
+    /// </summary>
+    [Fact]
+    public void ObservePeerIp_AndMappedIpv6_MatchPairedHost()
+    {
+        var list = new ShareAccessAllowlist();
+        list.ObservePeerIp("control-host", "::ffff:192.168.1.127");
+
+        Assert.True(list.IsIpAllowed("192.168.1.127"));
+        Assert.True(list.IsIpAllowed("::ffff:192.168.1.127"));
+        Assert.False(list.IsIpAllowed("192.168.1.99"));
+        Assert.Contains("192.168.1.127", list.GetAllowedIps());
+    }
+
+    /// <summary>ObservePeerIp preserves role when peer was already registered at Pair time.</summary>
+    [Fact]
+    public void ObservePeerIp_PreservesExistingRole()
+    {
+        var list = new ShareAccessAllowlist();
+        list.SetPeer("usb-pc", PeerShareRole.UsbConnectedPc, "10.0.0.1");
+        list.ObservePeerIp("usb-pc", "10.0.0.2");
+
+        Assert.False(list.IsIpAllowed("10.0.0.1"));
+        Assert.True(list.IsIpAllowed("10.0.0.2"));
+    }
 }

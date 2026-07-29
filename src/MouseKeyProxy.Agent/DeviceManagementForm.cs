@@ -637,9 +637,10 @@ internal sealed class DeviceManagementForm : Form
             if (!info.Ok)
             {
                 _shareInfo.Text = $"Share: unavailable ({info.Err} {info.Msg})";
-                _allowlistInfo.Text = string.Equals(info.Err, "SHARE_IP_DENIED", StringComparison.OrdinalIgnoreCase)
-                    ? "IP allowlist: DENIED for this host (only UsbConnectedPc + PairedHost IPs may access share/SMB)."
-                    : "IP allowlist: unknown (share disabled or error).";
+                _allowlistInfo.Text = string.Equals(info.Err, "SHARE_NOT_PAIRED", StringComparison.OrdinalIgnoreCase)
+                    || string.Equals(info.Err, "SHARE_IP_DENIED", StringComparison.OrdinalIgnoreCase)
+                    ? "Share access: denied (requires paired host certificate; re-pair if needed)."
+                    : "Share access: unknown (share disabled or error).";
                 _shareList.Items.Clear();
                 return;
             }
@@ -653,7 +654,7 @@ internal sealed class DeviceManagementForm : Form
             }
 
             _shareInfo.Text = $"Share: {info.ShareName}  rw={info.ReadWrite}  root={info.RootLabel}  dir={(_shareDir.Length == 0 ? "/" : _shareDir)}";
-            _allowlistInfo.Text = "IP allowlist: allowed for this connection (paired host or USB-connected PC).";
+            _allowlistInfo.Text = "Share access: allowed (paired host via mTLS). SMB uses last-seen peer IP automatically.";
             if (!string.IsNullOrWhiteSpace(info.ShareName) && !string.IsNullOrWhiteSpace(_remoteHostHint))
             {
                 try
@@ -671,9 +672,10 @@ internal sealed class DeviceManagementForm : Form
             if (!list.Ok)
             {
                 _shareList.Items.Add($"list error: {list.Err} {list.Msg}");
-                if (string.Equals(list.Err, "SHARE_IP_DENIED", StringComparison.OrdinalIgnoreCase))
+                if (string.Equals(list.Err, "SHARE_NOT_PAIRED", StringComparison.OrdinalIgnoreCase)
+                    || string.Equals(list.Err, "SHARE_IP_DENIED", StringComparison.OrdinalIgnoreCase))
                 {
-                    _allowlistInfo.Text = "IP allowlist: DENIED for this host.";
+                    _allowlistInfo.Text = "Share access: denied (paired host certificate required).";
                 }
 
                 return;

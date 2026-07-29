@@ -131,7 +131,7 @@ When not paired or not connected, remote-dependent controls should be disabled. 
 
 ## Device share (appliance thumb contents)
 
-When the appliance has folder share enabled (`MKP_FOLDER_SHARE=1`), the control host can fully manage the sandboxed share root over paired gRPC (the same tree that seeds the USB mass-storage LUN):
+When the appliance has folder share enabled (`MKP_FOLDER_SHARE=1`), the control host can fully manage the sandboxed share root over paired gRPC (the same tree that seeds the USB mass-storage LUN). Access is identity-based: only a **paired** host (mTLS client cert) may use the share RPCs. The Pi is not configured with host IPs for gRPC share; SMB (if enabled) learns last-seen peer IPs from those authenticated connections.
 
 ```powershell
 mkp share discover

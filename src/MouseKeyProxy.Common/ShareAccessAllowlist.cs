@@ -33,6 +33,15 @@ public interface IShareAccessAllowlist
     /// <param name="peerId">Peer to remove.</param>
     void RemovePeer(string peerId);
 
+    /// <summary>
+    /// Records the last-seen IP for a paired peer without requiring operator-supplied IPs.
+    /// Preserves an existing role when the peer is already registered; otherwise inserts as
+    /// <see cref="PeerShareRole.PairedHost"/>. Used to drive SMB hosts allow from live connections.
+    /// </summary>
+    /// <param name="peerId">Stable peer identifier from pairing.</param>
+    /// <param name="ip">Observed remote IP (may be IPv4-mapped IPv6).</param>
+    void ObservePeerIp(string peerId, string? ip);
+
     /// <summary>Returns true when <paramref name="ip"/> is currently allowlisted.</summary>
     /// <param name="ip">Client IP (IPv4/IPv6 string as observed by the service).</param>
     bool IsIpAllowed(string? ip);
@@ -77,6 +86,34 @@ public sealed class ShareAccessAllowlist : IShareAccessAllowlist
     }
 
     /// <inheritdoc />
+    public void ObservePeerIp(string peerId, string? ip)
+    {
+        if (string.IsNullOrWhiteSpace(peerId))
+        {
+            return;
+        }
+
+        var normalized = NormalizeIp(ip);
+        if (normalized is null)
+        {
+            return;
+        }
+
+        lock (_gate)
+        {
+            var key = peerId.Trim();
+            if (_peers.TryGetValue(key, out var existing))
+            {
+                _peers[key] = (existing.Role, normalized);
+            }
+            else
+            {
+                _peers[key] = (PeerShareRole.PairedHost, normalized);
+            }
+        }
+    }
+
+    /// <inheritdoc />
     public bool IsIpAllowed(string? ip)
     {
         var normalized = NormalizeIp(ip);
@@ -89,7 +126,7 @@ public sealed class ShareAccessAllowlist : IShareAccessAllowlist
         {
             return _peers.Values.Any(p =>
                 p.Ip is not null &&
-                string.Equals(p.Ip, normalized, StringComparison.OrdinalIgnoreCase));
+                IpsMatch(p.Ip, normalized));
         }
     }
 
@@ -129,6 +166,16 @@ public sealed class ShareAccessAllowlist : IShareAccessAllowlist
             t = t[..zone];
         }
 
+        // gRPC often presents dual-stack clients as IPv4-mapped IPv6 (::ffff:192.168.1.10).
+        if (t.StartsWith("::ffff:", StringComparison.OrdinalIgnoreCase))
+        {
+            t = t["::ffff:".Length..];
+        }
+
         return t.Length == 0 ? null : t;
     }
+
+    /// <summary>True when two normalized IP strings denote the same host.</summary>
+    private static bool IpsMatch(string a, string b)
+        => string.Equals(a, b, StringComparison.OrdinalIgnoreCase);
 }

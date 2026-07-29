@@ -94,31 +94,79 @@ public class MouseKeyProxyImpl : MouseKeyProxy.Network.V1.MouseKeyProxy.MouseKey
     }
 
     /// <summary>
-    /// FR-MKP-014 / TR-MKP-XFER-004: rejects folder-share RPCs when the caller IP is not
-    /// in the UsbConnectedPc + PairedHost allowlist. When no allowlist is configured
-    /// (tests), access is not IP-gated.
+    /// FR-MKP-014: gRPC folder share is authorized by pairing identity (mTLS client cert of a
+    /// non-revoked paired peer). Operators never configure IPs for share access.
+    /// Last-seen IP is recorded for SMB only (Samba cannot use client certs).
     /// </summary>
     private bool TryAuthorizeShareClient(ServerCallContext context, out string err, out string msg)
     {
         err = string.Empty;
         msg = string.Empty;
+
+        X509Certificate2? cert = null;
+        try
+        {
+            cert = context.GetHttpContext().Connection.ClientCertificate;
+        }
+        catch
+        {
+            // Some unit tests substitute ServerCallContext without HTTP context.
+        }
+
+        if (cert is not null)
+        {
+            if (!_pairedPeerStore.IsAuthorized(cert.Thumbprint))
+            {
+                err = "SHARE_NOT_PAIRED";
+                msg = "Folder share is only available to paired hosts.";
+                _logger.LogWarning(
+                    "Folder share denied: cert thumbprint {Thumb} is unpaired or revoked",
+                    cert.Thumbprint);
+                return false;
+            }
+
+            // Best-effort SMB allowlist refresh from this authenticated connection (no manual IPs).
+            ObservePairedPeerIp(context, cert.Thumbprint);
+            return true;
+        }
+
+        // No client cert on the call: production interceptor would have rejected effect RPCs.
+        // Unit tests without mTLS and without an allowlist still exercise the share store.
         if (_shareAllowlist is null)
         {
             return true;
         }
 
-        var ip = context.Peer;
-        // gRPC peer looks like "ipv4:192.168.1.10:54321" or "ipv6:[::1]:54321"
-        var host = ExtractPeerHost(ip);
-        if (_shareAllowlist.IsIpAllowed(host))
+        err = "SHARE_NOT_PAIRED";
+        msg = "Folder share requires a paired client certificate.";
+        _logger.LogWarning("Folder share denied: no client certificate on call peer={Peer}", context.Peer);
+        return false;
+    }
+
+    /// <summary>
+    /// FR-MKP-016: learns the caller's IP for Samba hosts allow from a paired cert connection.
+    /// </summary>
+    private void ObservePairedPeerIp(ServerCallContext context, string certThumbprint)
+    {
+        if (_shareAllowlist is null)
         {
-            return true;
+            return;
         }
 
-        err = "SHARE_IP_DENIED";
-        msg = $"Folder share is only available to the paired host and USB-connected PC (caller={host}).";
-        _logger.LogWarning("Folder share denied for peer {Peer}", ip);
-        return false;
+        var peer = _pairedPeerStore.FindByThumbprint(certThumbprint);
+        if (peer is null || string.IsNullOrWhiteSpace(peer.PeerId))
+        {
+            return;
+        }
+
+        var host = ExtractPeerHost(context.Peer);
+        if (string.IsNullOrWhiteSpace(host))
+        {
+            return;
+        }
+
+        _shareAllowlist.ObservePeerIp(peer.PeerId, host);
+        _ = RefreshSmbAllowlistAsync();
     }
 
     private static string? ExtractPeerHost(string? peer)
@@ -142,8 +190,21 @@ public class MouseKeyProxyImpl : MouseKeyProxy.Network.V1.MouseKeyProxy.MouseKey
             if (p.StartsWith('[') && p.Contains(']', StringComparison.Ordinal))
             {
                 var end = p.IndexOf(']', StringComparison.Ordinal);
-                return p[1..end];
+                p = p[1..end];
             }
+
+            // Dual-stack: map ::ffff:a.b.c.d → a.b.c.d for consistent allowlist storage.
+            if (p.StartsWith("::ffff:", StringComparison.OrdinalIgnoreCase))
+            {
+                p = p["::ffff:".Length..];
+            }
+
+            return p;
+        }
+
+        if (p.StartsWith("::ffff:", StringComparison.OrdinalIgnoreCase))
+        {
+            p = p["::ffff:".Length..];
         }
 
         return p;
@@ -581,6 +642,20 @@ public class MouseKeyProxyImpl : MouseKeyProxy.Network.V1.MouseKeyProxy.MouseKey
         ServerCallContext context)
     {
         _logger.LogInformation("OpenSession started (remote connected)");
+
+        // FR-MKP-016: paired host opened a session — learn IP for SMB without operator config.
+        try
+        {
+            var cert = context.GetHttpContext().Connection.ClientCertificate;
+            if (cert is not null)
+            {
+                ObservePairedPeerIp(context, cert.Thumbprint);
+            }
+        }
+        catch
+        {
+            // best-effort; session continues
+        }
 
         try
         {
