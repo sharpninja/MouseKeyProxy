@@ -167,7 +167,13 @@ mkp share mount-local Z: C:\Temp\mkp-share-demo
 mkp share unmount
 ```
 
-Agent path: Device management → Share → **Mount drive…** (pick a free letter such as `Z:`) / **Unmount drive**.
+**Preferred host path: the tray Agent (user session).** The Windows service does not mount WinFsp (Session 0 would hide the letter from Explorer). Mount ownership lives in the Agent process:
+
+- Tray menu (when paired): **Mount appliance share…** / **Unmount appliance share**
+- Device management → Share → **Mount drive…** / **Unmount drive**
+- Optional auto-mount after Agent start: set `MKP_AGENT_SHARE_MOUNT=1` (uses preferred free letter) or `MKP_AGENT_SHARE_MOUNT=M:` for a specific letter
+- Preferred letter is remembered under `%LocalAppData%\MouseKeyProxy\share-mount-letter.txt`
+- Exit Agent (or Unmount) tears down the volume
 
 The mount is host-side only. It is not the same as the appliance USB mass-storage LUN presented to the target PC.
 

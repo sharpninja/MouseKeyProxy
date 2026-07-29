@@ -7,6 +7,7 @@ using System.Windows.Forms;
 using Grpc.Net.Client;
 using MouseKeyProxy.Common;
 using MouseKeyProxy.Commands;
+using MouseKeyProxy.Commands.ShareMount;
 using MouseKeyProxy.Network;
 using Wire = MouseKeyProxy.Network.V1;
 
@@ -116,6 +117,9 @@ internal static class Program
         menu.Items.Add("Service", null, (_, _) => ShowServiceForm());
         menu.Items.Add("Discover folder shares...", null, (_, _) => DiscoverFolderShares());
         AddPairedRemoteMenuAction(menu, "Device configuration…", (_, _) => ShowDeviceManagementForm());
+        // TR-MKP-SHARE-WINFSP: WinFsp mount lives in this user-session Agent so Explorer sees the letter.
+        AddPairedRemoteMenuAction(menu, "Mount appliance share…", (_, _) => MountApplianceShareInteractive());
+        AddPairedRemoteMenuAction(menu, "Unmount appliance share", (_, _) => UnmountApplianceShareInteractive());
         // FR-MKP-018: share browse is the Share tab of Device configuration (no second incomplete surface).
         AddConnectedRemoteMenuAction(menu, "Clipboard", (_, _) => ShowClipboardForm());
         AddConnectedRemoteMenuAction(menu, "Inject Text to Remote...", (_, _) => ShowInjectForm());
@@ -162,6 +166,8 @@ internal static class Program
 
         Application.ApplicationExit += (_, _) => CleanupApplication();
         ShowDashboardForm();
+        // Optional: MKP_AGENT_SHARE_MOUNT=1 auto-mounts preferred letter after UI is up (paired + WinFsp).
+        TryAutoMountApplianceShare();
         Application.Run();
     }
 
@@ -1471,6 +1477,12 @@ internal static class Program
             _tray.Visible = false;
         }
 
+        // TR-MKP-SHARE-WINFSP: drop the user-session virtual drive before process teardown.
+        if (OperatingSystem.IsWindows())
+        {
+            AgentShareMount.UnmountQuiet();
+        }
+
         _forwarder?.Stop();
         _clip?.Release();
         ClearLocalModifiers();
@@ -1480,6 +1492,201 @@ internal static class Program
         _dashboardForm?.Dispose();
         _forwarder?.Dispose();
         _controlPipe?.Dispose();
+    }
+
+    /// <summary>
+    /// TR-MKP-SHARE-WINFSP: tray entry to mount the paired appliance share as a WinFsp drive letter.
+    /// </summary>
+    private static void MountApplianceShareInteractive()
+    {
+        if (!OperatingSystem.IsWindows())
+        {
+            MessageBox.Show(
+                "WinFsp virtual drives are only supported on Windows.",
+                "MouseKeyProxy",
+                MessageBoxButtons.OK,
+                MessageBoxIcon.Information);
+            return;
+        }
+
+        if (!EnsurePairedRemoteAction("Mount appliance share"))
+        {
+            return;
+        }
+
+        if (!WinFspRuntime.IsAvailable())
+        {
+            MessageBox.Show(
+                WinFspRuntime.DescribeAvailability(),
+                "WinFsp runtime missing",
+                MessageBoxButtons.OK,
+                MessageBoxIcon.Warning);
+            return;
+        }
+
+        if (AgentShareMount.IsMounted)
+        {
+            MessageBox.Show(
+                $"Appliance share is already mounted at {AgentShareMount.CurrentMountPoint}.\n\nUnmount it first if you want a different letter.",
+                "MouseKeyProxy",
+                MessageBoxButtons.OK,
+                MessageBoxIcon.Information);
+            return;
+        }
+
+        var suggested = AgentShareMount.SuggestFreeLetter();
+        var letter = PromptDriveLetter(suggested);
+        if (string.IsNullOrWhiteSpace(letter))
+        {
+            return;
+        }
+
+        var url = ResolveRemoteGrpcUrl();
+        var result = AgentShareMount.MountAppliance(
+            () => CreateRemoteChannel(url),
+            Environment.MachineName.ToLowerInvariant(),
+            letter);
+        if (result.Ok)
+        {
+            ShowTrayNotification(
+                "MouseKeyProxy: Share mounted",
+                $"Appliance share at {result.MountPoint}",
+                ToolTipIcon.Info);
+            MessageBox.Show(
+                $"Mounted appliance share at {result.MountPoint}.\n\nThe drive stays mounted until you Unmount or Exit the Agent.",
+                "MouseKeyProxy",
+                MessageBoxButtons.OK,
+                MessageBoxIcon.Information);
+        }
+        else
+        {
+            _lastRemoteError = $"{result.ErrorCode}: {result.Message}";
+            MessageBox.Show(
+                result.Message,
+                "Mount failed",
+                MessageBoxButtons.OK,
+                MessageBoxIcon.Warning);
+        }
+
+        UpdateDashboardStatusLabels();
+    }
+
+    /// <summary>TR-MKP-SHARE-WINFSP: tray entry to unmount the Agent-owned WinFsp volume.</summary>
+    private static void UnmountApplianceShareInteractive()
+    {
+        if (!OperatingSystem.IsWindows())
+        {
+            MessageBox.Show(
+                "WinFsp virtual drives are only supported on Windows.",
+                "MouseKeyProxy",
+                MessageBoxButtons.OK,
+                MessageBoxIcon.Information);
+            return;
+        }
+
+        if (!AgentShareMount.IsMounted)
+        {
+            MessageBox.Show(
+                "No appliance share volume is mounted in this Agent.",
+                "MouseKeyProxy",
+                MessageBoxButtons.OK,
+                MessageBoxIcon.Information);
+            return;
+        }
+
+        var result = AgentShareMount.Unmount();
+        if (result.Ok)
+        {
+            ShowTrayNotification("MouseKeyProxy: Share unmounted", result.Message, ToolTipIcon.Info);
+        }
+        else
+        {
+            MessageBox.Show(result.Message, "Unmount", MessageBoxButtons.OK, MessageBoxIcon.Information);
+        }
+    }
+
+    /// <summary>
+    /// When <c>MKP_AGENT_SHARE_MOUNT=1</c> (or a letter in <c>MKP_AGENT_SHARE_MOUNT</c>), mount after startup if paired.
+    /// </summary>
+    private static void TryAutoMountApplianceShare()
+    {
+        if (!OperatingSystem.IsWindows())
+        {
+            return;
+        }
+
+        var env = Environment.GetEnvironmentVariable("MKP_AGENT_SHARE_MOUNT");
+        if (string.IsNullOrWhiteSpace(env))
+        {
+            return;
+        }
+
+        if (_remoteState is RemoteConnectionState.NotPaired)
+        {
+            return;
+        }
+
+        if (!WinFspRuntime.IsAvailable() || AgentShareMount.IsMounted)
+        {
+            return;
+        }
+
+        var letter = string.Equals(env.Trim(), "1", StringComparison.Ordinal)
+            ? AgentShareMount.SuggestFreeLetter()
+            : AgentShareMount.SuggestFreeLetter(env.Trim());
+        try
+        {
+            var url = ResolveRemoteGrpcUrl();
+            var result = AgentShareMount.MountAppliance(
+                () => CreateRemoteChannel(url),
+                Environment.MachineName.ToLowerInvariant(),
+                letter);
+            if (result.Ok)
+            {
+                ShowTrayNotification(
+                    "MouseKeyProxy: Share mounted",
+                    $"Auto-mounted appliance share at {result.MountPoint}",
+                    ToolTipIcon.Info);
+            }
+            else
+            {
+                System.Diagnostics.Debug.WriteLine($"Auto-mount failed: {result.ErrorCode} {result.Message}");
+            }
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"Auto-mount failed: {ex.Message}");
+        }
+    }
+
+    private static string? PromptDriveLetter(string defaultLetter)
+    {
+        using var form = new Form
+        {
+            Text = "Mount appliance share",
+            FormBorderStyle = FormBorderStyle.FixedDialog,
+            StartPosition = FormStartPosition.CenterScreen,
+            MinimizeBox = false,
+            MaximizeBox = false,
+            ClientSize = new Size(420, 130),
+        };
+        var label = new Label
+        {
+            Left = 12,
+            Top = 12,
+            Width = 390,
+            Text = "Drive letter for the WinFsp appliance share (user-session mount):",
+        };
+        var box = new TextBox { Left = 12, Top = 40, Width = 390, Text = defaultLetter };
+        var ok = new Button { Text = "Mount", DialogResult = DialogResult.OK, Left = 246, Top = 80, Width = 75 };
+        var cancel = new Button { Text = "Cancel", DialogResult = DialogResult.Cancel, Left = 327, Top = 80, Width = 75 };
+        form.Controls.Add(label);
+        form.Controls.Add(box);
+        form.Controls.Add(ok);
+        form.Controls.Add(cancel);
+        form.AcceptButton = ok;
+        form.CancelButton = cancel;
+        return form.ShowDialog() == DialogResult.OK ? box.Text : null;
     }
 
     private static void ApplyClipForActive(bool active)

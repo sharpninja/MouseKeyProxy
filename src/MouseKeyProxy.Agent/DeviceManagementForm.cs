@@ -989,7 +989,8 @@ internal sealed class DeviceManagementForm : Form
     }
 
     /// <summary>
-    /// TR-MKP-SHARE-WINFSP: mounts the paired appliance share as a WinFsp virtual drive letter.
+    /// TR-MKP-SHARE-WINFSP: mounts the paired appliance share via the Agent-owned WinFsp host
+    /// (user session so Explorer sees the letter).
     /// </summary>
     private void MountShareDrive()
     {
@@ -1012,38 +1013,31 @@ internal sealed class DeviceManagementForm : Form
             return;
         }
 
-        if (ShareMountHost.IsMounted)
+        if (AgentShareMount.IsMounted)
         {
             MessageBox.Show(
                 this,
-                $"A share volume is already mounted at {ShareMountHost.CurrentMountPoint}. Unmount it first.",
+                $"A share volume is already mounted at {AgentShareMount.CurrentMountPoint}. Unmount it first.",
                 Text,
                 MessageBoxButtons.OK,
                 MessageBoxIcon.Information);
             return;
         }
 
-        var letter = PromptForText("Mount drive", "Drive letter (e.g. Z:):", "Z:");
+        var letter = PromptForText(
+            "Mount drive",
+            "Drive letter (e.g. M:). Mount stays in the Agent until Unmount or Exit.",
+            AgentShareMount.SuggestFreeLetter());
         if (string.IsNullOrWhiteSpace(letter))
         {
             return;
         }
 
-        var client = CreateClient(out var error);
-        if (client is null)
-        {
-            SetStatus(error!);
-            MessageBox.Show(this, error!, Text, MessageBoxButtons.OK, MessageBoxIcon.Warning);
-            return;
-        }
-
         try
         {
-            var share = new FolderShareClient(client, _peerId);
-            var backend = new FolderShareClientBackend(share);
-            var result = ShareMountHost.Mount(backend, letter.Trim(), "MouseKeyProxy");
+            var result = AgentShareMount.MountAppliance(_channelFactory, _peerId, letter.Trim());
             SetStatus(result.Ok
-                ? $"Mounted at {result.MountPoint}"
+                ? $"Mounted at {result.MountPoint} (Agent-owned)"
                 : $"{result.ErrorCode}: {result.Message}");
             if (!result.Ok)
             {
@@ -1057,7 +1051,7 @@ internal sealed class DeviceManagementForm : Form
         }
     }
 
-    /// <summary>TR-MKP-SHARE-WINFSP: unmounts the process-owned WinFsp share volume if present.</summary>
+    /// <summary>TR-MKP-SHARE-WINFSP: unmounts the Agent-owned WinFsp share volume if present.</summary>
     private void UnmountShareDrive()
     {
         if (!OperatingSystem.IsWindows())
@@ -1069,7 +1063,7 @@ internal sealed class DeviceManagementForm : Form
 
         try
         {
-            var result = ShareMountHost.Unmount();
+            var result = AgentShareMount.Unmount();
             SetStatus(result.Ok
                 ? result.Message
                 : $"{result.ErrorCode}: {result.Message}");
