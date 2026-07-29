@@ -1650,12 +1650,17 @@ internal static class Program
             }
             else
             {
-                System.Diagnostics.Debug.WriteLine($"Auto-mount failed: {result.ErrorCode} {result.Message}");
+                _lastRemoteError = $"Auto-mount: {result.ErrorCode}: {result.Message}";
+                ShowTrayNotification(
+                    "MouseKeyProxy: Share mount skipped",
+                    result.Message.Length > 120 ? result.Message[..120] + "…" : result.Message,
+                    ToolTipIcon.Warning);
             }
         }
         catch (Exception ex)
         {
-            System.Diagnostics.Debug.WriteLine($"Auto-mount failed: {ex.Message}");
+            _lastRemoteError = $"Auto-mount: {ex.Message}";
+            ShowTrayNotification("MouseKeyProxy: Share mount skipped", ex.Message, ToolTipIcon.Warning);
         }
     }
 
