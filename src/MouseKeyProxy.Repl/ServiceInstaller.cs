@@ -148,7 +148,23 @@ public static class ServiceInstaller
             return true;
         }
 
+        ProcessRunResult RunCapture(string fileName, string arguments)
+        {
+            var result = runner.Run(fileName, arguments);
+            calls.Add((fileName, arguments));
+            stepResults.Add(result);
+            var combined = (result.StandardOutput + result.StandardError).Trim();
+            if (!string.IsNullOrWhiteSpace(combined))
+            {
+                log(combined);
+            }
+
+            return result;
+        }
+
         log("Installing MouseKeyProxy service and agent...");
+        // Redeploy: stop service so binaries under ProgramData can be overwritten.
+        _ = runner.Run("sc.exe", $"stop {ctx.ServiceName}");
         Directory.CreateDirectory(ctx.InstallDirectory);
         ApplyInstallAcl(ctx.InstallDirectory);
 
@@ -188,13 +204,28 @@ public static class ServiceInstaller
             log($"payload copy: agent directory {agentSrcDir} -> {agentDestDir} ({copied.Count} files)");
         }
 
-        if (!TryRun("sc.exe", $"create {ctx.ServiceName} binPath= \"{ServiceExePath(ctx)}\" start= auto"))
+        // sc create returns 1073 when the service already exists (redeploy / upgrade).
+        var create = RunCapture("sc.exe", $"create {ctx.ServiceName} binPath= \"{ServiceExePath(ctx)}\" start= auto");
+        if (create.ExitCode != 0 && !IsServiceAlreadyExists(create))
         {
+            stepResults.Add(create);
             var eval = ServiceInstallSteps.EvaluateStepResults(stepResults);
             return Fail(eval.ExitCode, eval.FailureDetail);
         }
 
-        rollback.Add(("sc.exe", $"delete {ctx.ServiceName}"));
+        if (create.ExitCode == 0)
+        {
+            rollback.Add(("sc.exe", $"delete {ctx.ServiceName}"));
+        }
+        else
+        {
+            log($"Service {ctx.ServiceName} already exists (sc exit {create.ExitCode}); updating binPath for redeploy.");
+            if (!TryRun("sc.exe", $"config {ctx.ServiceName} binPath= \"{ServiceExePath(ctx)}\" start= auto"))
+            {
+                var eval = ServiceInstallSteps.EvaluateStepResults(stepResults);
+                return Fail(eval.ExitCode, eval.FailureDetail);
+            }
+        }
 
         if (!TryRun("sc.exe", $"description {ctx.ServiceName} \"MouseKeyProxy - Free hotkey-only alternative to PowerToys Mouse Without Borders\""))
         {
@@ -202,13 +233,24 @@ public static class ServiceInstaller
             return Fail(eval.ExitCode, eval.FailureDetail);
         }
 
-        if (!TryRun("netsh", $"advfirewall firewall add rule name=\"{ctx.FirewallRuleName}\" dir=in action=allow protocol=TCP localport=50051 profile=any"))
+        // Firewall rule may already exist on redeploy; ignore duplicate-rule failures.
+        var fw = RunCapture(
+            "netsh",
+            $"advfirewall firewall add rule name=\"{ctx.FirewallRuleName}\" dir=in action=allow protocol=TCP localport=50051 profile=any");
+        if (fw.ExitCode == 0)
         {
+            rollback.Add(("netsh", $"advfirewall firewall delete rule name=\"{ctx.FirewallRuleName}\""));
+        }
+        else if (!IsFirewallRuleAlreadyExists(fw))
+        {
+            stepResults.Add(fw);
             var eval = ServiceInstallSteps.EvaluateStepResults(stepResults);
             return Fail(eval.ExitCode, eval.FailureDetail);
         }
-
-        rollback.Add(("netsh", $"advfirewall firewall delete rule name=\"{ctx.FirewallRuleName}\""));
+        else
+        {
+            log($"Firewall rule {ctx.FirewallRuleName} already present; leaving it in place.");
+        }
 
         if (!TryRun("sc.exe", $"start {ctx.ServiceName}"))
         {
@@ -322,5 +364,26 @@ public static class ServiceInstaller
             PropagationFlags.None,
             AccessControlType.Allow));
         dirInfo.SetAccessControl(dirSecurity);
+    }
+
+    /// <summary>sc create exit 1073 (ERROR_SERVICE_EXISTS) or English "already exists" text.</summary>
+    private static bool IsServiceAlreadyExists(ProcessRunResult result)
+    {
+        if (result.ExitCode == 1073)
+        {
+            return true;
+        }
+
+        var text = (result.StandardOutput + " " + result.StandardError);
+        return text.Contains("1073", StringComparison.Ordinal)
+            || text.Contains("already exists", StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>netsh may fail when the named rule already exists; treat as non-fatal on redeploy.</summary>
+    private static bool IsFirewallRuleAlreadyExists(ProcessRunResult result)
+    {
+        var text = (result.StandardOutput + " " + result.StandardError);
+        return text.Contains("already exists", StringComparison.OrdinalIgnoreCase)
+            || text.Contains("same name already exists", StringComparison.OrdinalIgnoreCase);
     }
 }
