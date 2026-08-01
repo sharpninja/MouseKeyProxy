@@ -55,9 +55,21 @@ Thumbs.db
 # Test and harness scratch
 TestResults/
 output/
+gen/
+prompts/
+.tmp/
 
 .mcpServer/
 
 # Local MCP bootstrap/deleted marker debris
 AGENTS-README-FIRST.yaml.deleted-*
 todo-bootstrap.marker
+
+# Agent/editor backups and handoff debris
+*.bak
+HANDOFF.md.*.bak
+HANDOFF.md.pre-*.bak
+
+# Local Rufus / SD write logs (never commit)
+assets/rufus/*.log
+*.autowrite.log

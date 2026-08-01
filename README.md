@@ -6,6 +6,8 @@ This is **not** a Windows-to-Windows Mouse Without Borders clone. Mouse and key 
 
 MouseKeyProxy provides a Windows service and tray/dashboard agent on the control host, the `mkp` .NET tool for pairing, toggle, emergency release, and Pi provisioning, and a cross-platform service on the appliance.
 
+**Project status: feature complete / maintenance mode.** Prefer bug fixes, security updates, and dependency hygiene over new product features. Historical plans and lab handoffs live under [docs/historical/](docs/historical/).
+
 ## Documentation
 
 - [User Guide](docs/USER-GUIDE.md)
