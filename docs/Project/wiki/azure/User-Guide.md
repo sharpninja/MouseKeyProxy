@@ -1,34 +1,36 @@
 # MouseKeyProxy User Guide
 
-MouseKeyProxy lets one Windows keyboard and mouse control a paired remote: either another Windows peer or a Linux **HID appliance** (Orange Pi / Raspberry Pi) that appears to a target PC as a standard USB keyboard and mouse. Pair endpoints, toggle control with the configured hotkey, and use emergency release whenever control must return immediately to the host.
+MouseKeyProxy lets one Windows keyboard and mouse drive a **Linux HID appliance** (Orange Pi or Raspberry Pi) that appears to a target PC as a standard USB keyboard and mouse. Pair the Windows control host to the appliance, toggle control with the configured hotkey, and use emergency release whenever control must return immediately to the host.
+
+**Product scope:** mouse and keyboard proxying is **only** available through the Pi HID device path. Direct Windows-to-Windows mouse/key proxy is not a supported product mode. The target PC does not install MouseKeyProxy for input inject.
 
 ## What MouseKeyProxy Does
 
 MouseKeyProxy provides:
 
-- A Windows service that exposes the local gRPC endpoint and management operations.
-- A user-session agent with tray/dashboard controls for pairing, active peer state, forwarding state, emergency release, and logs.
-- The `mkp` .NET tool for the canonical command-line control surface.
+- A Windows service and user-session agent on the **control host** (pairing, hotkeys, exclusive capture, dashboard, logs).
+- The `mkp` .NET tool for install, pairing, toggle, emergency release, HID checks, and Pi provisioning.
 - Hotkey-based control transfer. Edge-of-screen or mirror-mode behavior is not part of the product.
-- Optional clipboard synchronization with local privacy controls (Windows peers / advanced effects).
-- Windows Event Log diagnostics under the MouseKeyProxy application log.
-- Optional Linux USB HID gadget peer for keyboard and mouse inject into a physical PC (no software on the target).
+- A Linux **DeviceAppliance** service on the Pi that injects HID keyboard and relative mouse over USB OTG.
+- Windows Event Log diagnostics on the control host.
 
-MouseKeyProxy is intentionally exclusive: when forwarding is active, the physical keyboard and mouse drive the remote (or HID target) only. Local Windows applications should not receive normal keyboard or mouse events until forwarding is stopped, the toggle returns local, emergency release runs, or the device HID link is lost.
+MouseKeyProxy is intentionally exclusive on the control host: when forwarding is active, physical keyboard and mouse drive the HID target only. Local Windows applications should not receive normal keyboard or mouse events until forwarding is stopped, the toggle returns local, emergency release runs, or the device HID link is lost.
 
 For Orange Pi Zero 2W appliances, a parametric OpenSCAD case (base + lid, M2.5 SHCS stack, multi-object 3MF for Orca) is documented under [cad/orange-pi-zero-2w/README.md](../cad/orange-pi-zero-2w/README.md) and linked from the Orange Pi HID guide.
 
 ## Main Concepts
 
-Primary system (control host): the machine whose physical keyboard and mouse are currently being used.
+**Control host:** the Windows machine whose physical keyboard and mouse are used. Runs Service + Agent + `mkp`.
 
-Remote peer / device appliance: the paired endpoint that receives forwarded input when remote control is active. For HID, this is typically the Pi over gRPC; the **USB host PC** is the machine that receives HID reports from the Pi OTG port (it need not run MouseKeyProxy for keyboard/mouse).
+**HID appliance (Pi):** the paired Linux device that receives gRPC input from the control host and emits USB HID reports. Orange Pi Zero 2W or Raspberry Pi Zero 2 W in the lab.
 
-Pairing: the trust setup (mTLS client cert after one-time code or ToFU discovery) that allows endpoints to recognize one another.
+**Target PC (USB host):** the machine that has the Pi OTG/data USB cable plugged in. It only sees a keyboard and mouse. It does not need MouseKeyProxy installed for input.
 
-Forwarding active: keyboard and mouse input is being captured locally and sent to the device appliance / peer.
+**Pairing:** mTLS client cert after one-time code or ToFU discovery between control host and appliance.
 
-Emergency release: a forced stop that tears down capture **on the host first**, then best-effort peer cleanup, restoring full local keyboard and mouse.
+**Forwarding active:** keyboard and mouse are captured on the control host and sent to the appliance for HID inject.
+
+**Emergency release:** forced stop that tears down capture **on the host first**, then best-effort appliance cleanup, restoring full local keyboard and mouse.
 
 ## Installation
 
@@ -60,18 +62,20 @@ The service payload is installed under the product-managed service location. Do 
 
 ## First-Time Setup
 
-1. Install or update `MouseKeyProxy.Repl` on both machines.
-2. Run `mkp service install` from an elevated shell on both machines.
-3. Start the agent on each user desktop session.
-4. Pair the two machines using the pairing code flow shown by the agent dashboard or command line.
-5. Confirm pair state with:
+1. Install or update `MouseKeyProxy.Repl` on the **Windows control host**.
+2. Run `mkp service install` from an elevated shell on the control host; start the tray agent.
+3. Provision and boot the **Pi HID appliance** (see Orange Pi / Raspberry Pi HID docs); confirm HID gadget and service are up.
+4. Pair the control host to the appliance (`mkp pair discover` / code flow from the dashboard or CLI).
+5. Plug the appliance USB data/OTG port into the **target PC**.
+6. Confirm pair and HID state:
 
 ```powershell
 mkp pair status
 mkp agent status --json
+mkp hid status
 ```
 
-A machine that is not paired has no remote endpoint. Remote-dependent actions should remain disabled in the UI until a paired and reachable peer is available.
+Until the control host is paired to a reachable appliance, remote-dependent actions should stay disabled in the UI.
 
 ## Daily Operation
 
@@ -125,9 +129,57 @@ The agent dashboard should show:
 
 When not paired or not connected, remote-dependent controls should be disabled. The dashboard should still allow pairing, log access, and local status operations.
 
-## Clipboard
+## Device share (appliance thumb contents)
 
-Clipboard synchronization is intended for small, recent text payloads. The product keeps a bounded local clipboard history and skips private or unsupported content. Treat clipboard sync as convenience data movement, not as a secure file-transfer channel.
+When the appliance has folder share enabled (`MKP_FOLDER_SHARE=1`), the control host can fully manage the sandboxed share root over paired gRPC (the same tree that seeds the USB mass-storage LUN). Access is identity-based: only a **paired** host (mTLS client cert) may use the share RPCs. The Pi is not configured with host IPs for gRPC share; SMB (if enabled) learns last-seen peer IPs from those authenticated connections.
+
+```powershell
+mkp share discover
+mkp share info
+mkp share list [dir]
+mkp share get <remoteRelativePath> <localPath>
+mkp share put <localPath> <remoteRelativePath>
+mkp share mkdir <remoteRelativeDir>
+mkp share rm <remoteRelativePath> [--recursive]
+mkp share mv <fromRelative> <toRelative>
+```
+
+The Agent **Device management** form Share tab provides the same operations (list, download, upload, new folder, rename, delete), **Mount drive… / Unmount drive** (WinFsp virtual letter), and optional SMB UNC open when SMB is enabled (Samba hosts allow is filled from last-seen IPs of paired peers, not a hand-edited list).
+
+### WinFsp virtual drive (control host)
+
+On Windows you can mount the paired appliance share as a normal drive letter so Explorer and ordinary apps use list/read/write/mkdir/delete/rename through the existing gRPC share RPCs.
+
+**Prerequisite:** install the **WinFsp** runtime (kernel driver + user DLLs) from [https://winfsp.dev/rel/](https://winfsp.dev/rel/). Without it, mount fails with a clear `WINFSP_RUNTIME_MISSING` message (no crash). WinFsp is GPLv3 with a FLOSS exception for open-source consumers; commercial redistribution may need a commercial license review.
+
+```powershell
+# Check whether the WinFsp runtime is visible to MouseKeyProxy
+mkp share mount-status
+
+# Mount the paired appliance share at Z: (process stays open until you press Enter)
+mkp share mount Z:
+mkp share mount Z: --label MyAppliance
+
+# Offline / local demo: mount a local directory with the same bridge (no gRPC)
+mkp share mount-local Z: C:\Temp\mkp-share-demo
+
+# Unmount from another terminal if needed (same process owns the mount)
+mkp share unmount
+```
+
+**Preferred host path: the tray Agent (user session).** The Windows service does not mount WinFsp (Session 0 would hide the letter from Explorer). Mount ownership lives in the Agent process:
+
+- Tray menu (when paired): **Mount appliance share…** / **Unmount appliance share**
+- Device management → Share → **Mount drive…** / **Unmount drive**
+- Optional auto-mount after Agent start: set `MKP_AGENT_SHARE_MOUNT=1` (uses preferred free letter) or `MKP_AGENT_SHARE_MOUNT=M:` for a specific letter
+- Preferred letter is remembered under `%LocalAppData%\MouseKeyProxy\share-mount-letter.txt`
+- Exit Agent (or Unmount) tears down the volume
+
+The mount is host-side only. It is not the same as the appliance USB mass-storage LUN presented to the target PC.
+
+## Clipboard (control host)
+
+Clipboard tools on the control host remain available for local convenience. They are not the HID keyboard/mouse product path.
 
 Use:
 

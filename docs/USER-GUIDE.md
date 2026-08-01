@@ -144,7 +144,7 @@ mkp share rm <remoteRelativePath> [--recursive]
 mkp share mv <fromRelative> <toRelative>
 ```
 
-The Agent **Device management** form Share tab provides the same operations (list, download, upload, new folder, rename, delete), **Mount drive… / Unmount drive** (WinFsp virtual letter), and optional SMB UNC open when allowed by the device IP allowlist.
+The Agent **Device management** form Share tab provides the same operations (list, download, upload, new folder, rename, delete), **Mount drive… / Unmount drive** (WinFsp virtual letter), and optional SMB UNC open when SMB is enabled (Samba hosts allow is filled from last-seen IPs of paired peers, not a hand-edited list).
 
 ### WinFsp virtual drive (control host)
 

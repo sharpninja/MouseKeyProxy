@@ -41,6 +41,9 @@ Default configured toggle: **Ctrl+Win+F1**. Default configured emergency release
 - Pairing (mTLS + one-time code or ToFU discovery), status, service lifecycle, emergency release, logs, and HID diagnostics through the canonical `mkp` CLI/REPL surface.
 - Linux USB HID gadget: keyboard + relative mouse; letters, digits, and US punctuation map to boot-protocol HID usages (works at login / firmware screens that ignore high-level remotes).
 - User-session dashboard for pairing state, active appliance, service state, recent errors, and emergency release.
+- **Appliance folder share (gRPC):** when `MKP_FOLDER_SHARE=1` on the Pi, the paired control host can list, download, upload, mkdir, rename, and delete under a sandboxed share root (same tree that seeds the USB mass-storage LUN). Access is **paired mTLS identity only** (no operator IP list for gRPC).
+- **WinFsp virtual drive (Windows control host):** optional drive letter mount of that share in the tray Agent user session (`mkp share mount` / Agent **Mount appliance share…**). Requires the WinFsp runtime; the Windows service does not mount (Session 0).
+- **Client MSI / install kit:** Nuke `PackClientMsi` stages `output/payloads/client-install/` (Service + Agent + bootstrap + `MouseKeyProxy-Client.msi`) for MKP-DEPLOY and USB LUN install media.
 - Windows Event Log diagnostics on the control host.
 
 ## Known Compatible Hardware
@@ -71,6 +74,7 @@ Nuke lives in `build/MouseKeyProxy.Build.csproj`. From the **repo root**, use th
 
 ```powershell
 .\build.ps1 PackRepl --configuration Release
+.\build.ps1 PackClientMsi --configuration Release
 .\build.ps1 PublishToolToNuGet --configuration Release
 
 # Rufus (requires local rufus-mkp; default sibling ../rufus-mkp or RUFUS_MKP_ROOT)
