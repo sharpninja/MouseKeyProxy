@@ -350,8 +350,11 @@ MouseKeyProxy client install (FR-MKP-024/025/026)
             var wixProj = RootDirectory / "packaging" / "MouseKeyProxy.Client.Installer" / "MouseKeyProxy.Client.Installer.wixproj";
             var msiOutDir = PayloadsDirectory / "msi";
             EnsureCleanDirectory(msiOutDir);
-            var clientInstallAbs = clientInstall.ToString().TrimEnd('\\', '/').Replace('\\', '/');
-            var msiOutAbs = msiOutDir.ToString().TrimEnd('\\', '/').Replace('\\', '/') + "/";
+            // Full path WITHOUT trailing backslash: -p:"C:\foo\" escapes the closing quote on Windows.
+            // wixproj normalizes ClientInstallDir and appends '\' for $(var.ClientInstallDir).
+            var clientInstallAbs = Path.GetFullPath(clientInstall.ToString()).TrimEnd('\\', '/');
+            var msiOutAbs = Path.GetFullPath(msiOutDir.ToString()).TrimEnd('\\', '/') + Path.DirectorySeparatorChar;
+
             RunDotNetCommand(
                 $"build {Quote(wixProj)} -c Release -p:ClientInstallDir={Quote(clientInstallAbs)} -p:OutputPath={Quote(msiOutAbs)}");
 

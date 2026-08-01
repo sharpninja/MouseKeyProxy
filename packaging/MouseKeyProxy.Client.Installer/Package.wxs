@@ -2,6 +2,10 @@
 <!--
   FR-MKP-024 / FR-MKP-025 / FR-MKP-026: Client MSI for USB/MKP-DEPLOY install media.
   Installs Service + Agent payloads and runs elevated bootstrap (pair to device + clipboard intro).
+
+  Source files use $(var.ClientInstallDir) from the wixproj DefineConstants (full path + trailing
+  slash). Do not use !(bindpath.*): WiX SDK 7 was leaving that token literal in the package,
+  which produced broken install paths and Error 1721 on CustomAction.
 -->
 <Wix xmlns="http://wixtoolset.org/schemas/v4/wxs"
      xmlns:ui="http://wixtoolset.org/schemas/v4/wxs/ui">
@@ -34,7 +38,7 @@
       <ComponentGroupRef Id="PayloadAgentComponents" />
     </Feature>
 
-    <!-- Elevated bootstrap after files are on disk -->
+    <!-- Elevated bootstrap after files are on disk. -->
     <CustomAction
         Id="RunBootstrap"
         Directory="INSTALLFOLDER"
@@ -59,53 +63,52 @@
     </StandardDirectory>
   </Fragment>
 
-  <!-- Bootstrap + metadata at install root -->
+  <!-- Bootstrap + metadata at install root ($(var.ClientInstallDir) set by wixproj) -->
   <Fragment>
     <ComponentGroup Id="ProductComponents" Directory="INSTALLFOLDER">
       <Component Id="BootstrapExe" Guid="*">
         <File Id="BootstrapExeFile"
-              Source="!(bindpath.ClientInstall)MouseKeyProxy.Bootstrap.exe"
+              Source="$(var.ClientInstallDir)MouseKeyProxy.Bootstrap.exe"
               KeyPath="yes"
               Checksum="yes" />
       </Component>
       <Component Id="BootstrapJson" Guid="*">
         <File Id="BootstrapJsonFile"
-              Source="!(bindpath.ClientInstall)device-bootstrap.json"
+              Source="$(var.ClientInstallDir)device-bootstrap.json"
               KeyPath="yes" />
       </Component>
       <Component Id="InstallTicket" Guid="*">
         <File Id="InstallTicketFile"
-              Source="!(bindpath.ClientInstall)install-ticket.txt"
+              Source="$(var.ClientInstallDir)install-ticket.txt"
               KeyPath="yes" />
       </Component>
       <Component Id="InstallPs1" Guid="*">
         <File Id="InstallPs1File"
-              Source="!(bindpath.ClientInstall)Install-MouseKeyProxy.ps1"
+              Source="$(var.ClientInstallDir)Install-MouseKeyProxy.ps1"
               KeyPath="yes" />
       </Component>
       <Component Id="ReadmeTxt" Guid="*">
         <File Id="ReadmeTxtFile"
-              Source="!(bindpath.ClientInstall)README.txt"
+              Source="$(var.ClientInstallDir)README.txt"
               KeyPath="yes" />
       </Component>
       <Component Id="AutorunInf" Guid="*">
         <File Id="AutorunInfFile"
-              Source="!(bindpath.ClientInstall)autorun.inf"
+              Source="$(var.ClientInstallDir)autorun.inf"
               KeyPath="yes" />
       </Component>
     </ComponentGroup>
   </Fragment>
 
-  <!-- Harvest payloads via Files wildcards (WiX 5+) -->
   <Fragment>
     <ComponentGroup Id="PayloadServiceComponents" Directory="PayloadServiceFolder">
-      <Files Include="!(bindpath.ClientInstall)payloads\service\**" />
+      <Files Include="$(var.ClientInstallDir)payloads\service\**" />
     </ComponentGroup>
   </Fragment>
 
   <Fragment>
     <ComponentGroup Id="PayloadAgentComponents" Directory="PayloadAgentFolder">
-      <Files Include="!(bindpath.ClientInstall)payloads\agent\**" />
+      <Files Include="$(var.ClientInstallDir)payloads\agent\**" />
     </ComponentGroup>
   </Fragment>
 
