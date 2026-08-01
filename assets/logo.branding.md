@@ -16,3 +16,9 @@ Required asset properties:
 - `assets/logo.png` must be an inspectable raster render at 512x512 pixels or larger.
 - The asset must remain readable at tray icon scale and documentation scale.
 - Generic mouse-only, keyboard-only, monitor-only, abstract dot, or network-node logos do not satisfy the requirement.
+
+Banner (wide / Medium / docs header):
+
+- `assets/banner-medium.png` (and `.jpg`) is a 16:9 landscape render of the same brand scene.
+- Required elements match the logo contract: hacker mouse, keyboard under paws, desk, multiple monitors, typing posture, technical workstation mood.
+- Prefer this asset as Medium story header / social banner; keep `logo.png` for square icon and tray use.
