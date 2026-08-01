@@ -16,7 +16,7 @@ MouseKeyProxy provides a Windows service and tray/dashboard agent on the control
 - [Raspberry Pi Zero 2 W HID](docs/hardware/pi-zero-2-hid.md)
 - [Logo Branding Contract](assets/logo.branding.md)
 - [Requirements matrix](docs/Project/Requirements-Matrix.md)
-- [Historical plans, audits, handoffs, and receipts](docs/historical/README.md)
+- [Historical plans, audits, and receipts](docs/historical/README.md)
 
 ## Quick Start
 
