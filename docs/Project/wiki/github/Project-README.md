@@ -6,6 +6,8 @@ This is **not** a Windows-to-Windows Mouse Without Borders clone. Mouse and key 
 
 MouseKeyProxy provides a Windows service and tray/dashboard agent on the control host, the `mkp` .NET tool for pairing, toggle, emergency release, and Pi provisioning, and a cross-platform service on the appliance.
 
+**Project status: feature complete / maintenance mode.** Prefer bug fixes, security updates, and dependency hygiene over new product features. Historical plans, audits, and receipts live under [docs/historical/](docs/historical/).
+
 ## Documentation
 
 - [User Guide](docs/USER-GUIDE.md)
@@ -38,7 +40,7 @@ Default configured toggle: **Ctrl+Win+F1**. Default configured emergency release
 - Exclusive input capture on the control host so the HID target receives keyboard and mouse while forwarding is active.
 - A Windows busy pointer marks remote-control ownership on the host and returns to the normal pointer whenever local control is restored.
 - **Host restore first:** toggle, emergency release, and HID link-loss always unhook local capture before any peer RPC; a hung appliance cannot trap the control host.
-- Pairing (mTLS + one-time code or ToFU discovery), status, service lifecycle, emergency release, logs, and HID diagnostics through the canonical `mkp` CLI/REPL surface.
+- Pairing (mTLS + one-time code or ToFU discovery), status, service lifecycle, emergency release, logs, and HID diagnostics through the canonical `mkp` CLI/REPL surface. `mkp pair discover` lists live gRPC hosts and a mint/pair hint when ToFU has no unpaired advertisers. `mkp toggle` drives the local Agent capture (same as Ctrl+Win+F1).
 - Linux USB HID gadget: keyboard + relative mouse; letters, digits, and US punctuation map to boot-protocol HID usages (works at login / firmware screens that ignore high-level remotes).
 - User-session dashboard for pairing state, active appliance, service state, recent errors, and emergency release.
 - **Appliance folder share (gRPC):** when `MKP_FOLDER_SHARE=1` on the Pi, the paired control host can list, download, upload, mkdir, rename, and delete under a sandboxed share root (same tree that seeds the USB mass-storage LUN). Access is **paired mTLS identity only** (no operator IP list for gRPC).
@@ -96,7 +98,10 @@ Versions are produced by GitVersion. NuGet publishing requires the current commi
 
 ## License
 
-MouseKeyProxy's own code is Apache-2.0. See [LICENSE](LICENSE).
+MouseKeyProxy is **source-available** under the project [LICENSE](LICENSE):
+
+- **Non-commercial** personal, educational, evaluation, and research use is permitted under that license.
+- **Commercial use** is available **only under a separate royalty agreement**. Contact **ninja@thesharp.ninja** for commercial and royalty terms.
 
 The `mkp` tool bundles a modified build of **Rufus** ("RUFUS For MouseKeyProxy"),
 used by `mkp pi provision` to write the Pi HID image to SD media. Rufus is

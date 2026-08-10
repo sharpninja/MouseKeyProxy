@@ -94,7 +94,7 @@ Docs worth reading first:
 - [Raspberry Pi Zero 2 W HID](https://github.com/sharpninja/MouseKeyProxy/blob/master/docs/hardware/pi-zero-2-hid.md)
 - [Orange Pi Zero 2W printable case](https://github.com/sharpninja/MouseKeyProxy/blob/master/cad/orange-pi-zero-2w/README.md)
 
-License: **Apache-2.0** for MouseKeyProxy code. The bundled Rufus fork used for SD writing is GPLv3 (mere aggregation; see third-party notices in the repo). WinFsp, if you use the virtual drive, has its own license (GPLv3 with a FLOSS exception for open-source consumers).
+License: MouseKeyProxy is **source-available** (non-commercial use under the project LICENSE; commercial use only under a royalty agreement - contact **ninja@thesharp.ninja**). The bundled Rufus fork used for SD writing is GPLv3 (mere aggregation; see third-party notices in the repo). WinFsp, if you use the virtual drive, has its own license (GPLv3 with a FLOSS exception for open-source consumers).
 
 ---
 

@@ -65,7 +65,10 @@ The service payload is installed under the product-managed service location. Do 
 1. Install or update `MouseKeyProxy.Repl` on the **Windows control host**.
 2. Run `mkp service install` from an elevated shell on the control host; start the tray agent.
 3. Provision and boot the **Pi HID appliance** (see Orange Pi / Raspberry Pi HID docs); confirm HID gadget and service are up.
-4. Pair the control host to the appliance (`mkp pair discover` / code flow from the dashboard or CLI).
+4. Pair the control host to the appliance:
+   - **ToFU (first peer only):** `mkp pair discover` listens for unpaired appliances (`MKP_TOFU=1` on the device).
+   - **Code-based (re-pair or multi-peer):** on a host that can reach the appliance gRPC port, `mkp pair mint 300`, then on the control host `mkp pair <code>` (set `MKP_GRPC=https://HOST:50051` if needed).
+   - When discover finds no unpaired advertisers, it probes the LAN for open gRPC ports and prints a mint/pair hint (ToFU closes after the first peer).
 5. Plug the appliance USB data/OTG port into the **target PC**.
 6. Confirm pair and HID state:
 
@@ -93,6 +96,8 @@ mkp toggle
 mkp emergency-release
 mkp open-logs
 ```
+
+`mkp toggle` drives the **local tray Agent** (same as **Ctrl+Win+F1** / dashboard Toggle): it starts or stops remote input capture. Confirm with `mkp pair status` that `Forwarding: active=True` before expecting keyboard/mouse on the target. CLI inject probes (`mkp inject-text`, `mkp set-mouse`) exercise the paired gRPC path without turning capture on.
 
 The CLI/REPL is the canonical implementation of the control surface. UI actions should call shared command implementations and should not expose controls that cannot also be operated through `mkp`.
 

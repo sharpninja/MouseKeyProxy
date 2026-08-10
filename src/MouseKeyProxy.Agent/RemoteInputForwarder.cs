@@ -614,7 +614,11 @@ public sealed class RemoteInputForwarder : IDisposable
         var isDown = message is WM_KEYDOWN or WM_SYSKEYDOWN;
         UpdateTrackedModifiers(data.vkCode, isDown);
 
-        if (!IsActive || DateTimeOffset.UtcNow < _passThroughUntilUtc)
+        // Never swallow SendInput / service→agent inject events (Windows peer path on this machine).
+        if (!LowLevelInputFlags.ShouldConsumeForRemoteForward(
+                IsActive && DateTimeOffset.UtcNow >= _passThroughUntilUtc,
+                data.flags,
+                isMouse: false))
         {
             return CallNextHookEx(_keyboardHook, nCode, wParam, lParam);
         }
@@ -697,10 +701,19 @@ public sealed class RemoteInputForwarder : IDisposable
 
     private IntPtr MouseHookCallback(int nCode, IntPtr wParam, IntPtr lParam)
     {
-        if (nCode >= 0 && IsActive && DateTimeOffset.UtcNow >= _passThroughUntilUtc)
+        if (nCode >= 0)
         {
-            var message = wParam.ToInt32();
             var data = Marshal.PtrToStructure<MSLLHOOKSTRUCT>(lParam);
+            // Pass through SendInput / agent-pipe inject; do not re-center or eat synthetic mouse.
+            if (!LowLevelInputFlags.ShouldConsumeForRemoteForward(
+                    IsActive && DateTimeOffset.UtcNow >= _passThroughUntilUtc,
+                    data.flags,
+                    isMouse: true))
+            {
+                return CallNextHookEx(_mouseHook, nCode, wParam, lParam);
+            }
+
+            var message = wParam.ToInt32();
 
             // Relative deltas from LL hook, then re-center host cursor (1px ClipCursor yields dx=0).
             if (message == WM_MOUSEMOVE)

@@ -21,6 +21,7 @@ internal sealed class AgentControlPipeServer : IDisposable
     private readonly Func<AgentControlRequest, AgentControlResponse>? _pairingStateNotifier;
     private readonly Func<AgentControlResponse>? _statusProvider;
     private readonly Func<AgentControlRequest, AgentControlResponse>? _emergencyReleaseHandler;
+    private readonly Func<AgentControlResponse>? _toggleForwardingHandler;
     private readonly CancellationTokenSource _stop = new();
     private readonly Task _loop;
 
@@ -30,7 +31,8 @@ internal sealed class AgentControlPipeServer : IDisposable
         IScreenshotCapture? screenshotCapture,
         Func<AgentControlRequest, AgentControlResponse>? pairingStateNotifier,
         Func<AgentControlResponse>? statusProvider,
-        Func<AgentControlRequest, AgentControlResponse>? emergencyReleaseHandler)
+        Func<AgentControlRequest, AgentControlResponse>? emergencyReleaseHandler,
+        Func<AgentControlResponse>? toggleForwardingHandler)
     {
         _desktopController = desktopController;
         _inputInjector = inputInjector;
@@ -38,6 +40,7 @@ internal sealed class AgentControlPipeServer : IDisposable
         _pairingStateNotifier = pairingStateNotifier;
         _statusProvider = statusProvider;
         _emergencyReleaseHandler = emergencyReleaseHandler;
+        _toggleForwardingHandler = toggleForwardingHandler;
         _authToken = ResolveAuthToken();
         _loop = Task.Run(RunAsync);
     }
@@ -63,9 +66,17 @@ internal sealed class AgentControlPipeServer : IDisposable
         Func<AgentControlRequest, AgentControlResponse>? pairingStateNotifier = null,
         Func<AgentControlResponse>? statusProvider = null,
         Func<AgentControlRequest, AgentControlResponse>? emergencyReleaseHandler = null,
-        IScreenshotCapture? screenshotCapture = null)
+        IScreenshotCapture? screenshotCapture = null,
+        Func<AgentControlResponse>? toggleForwardingHandler = null)
     {
-        return new AgentControlPipeServer(desktopController, inputInjector, screenshotCapture, pairingStateNotifier, statusProvider, emergencyReleaseHandler);
+        return new AgentControlPipeServer(
+            desktopController,
+            inputInjector,
+            screenshotCapture,
+            pairingStateNotifier,
+            statusProvider,
+            emergencyReleaseHandler,
+            toggleForwardingHandler);
     }
 
     public void Dispose()
@@ -181,6 +192,7 @@ internal sealed class AgentControlPipeServer : IDisposable
                 AgentControlPipe.NotifyPairingState => NotifyPairingState(request),
                 AgentControlPipe.GetAgentStatus => GetAgentStatus(),
                 AgentControlPipe.EmergencyRelease => EmergencyRelease(request),
+                AgentControlPipe.ToggleForwarding => ToggleForwarding(),
                 _ => AgentControlResponse.Failure("UNKNOWN_OPERATION", $"Unknown agent control operation: {request.Operation}")
             };
         }
@@ -264,6 +276,12 @@ internal sealed class AgentControlPipeServer : IDisposable
     {
         return _emergencyReleaseHandler?.Invoke(request)
             ?? AgentControlResponse.Failure("EMERGENCY_RELEASE_UNAVAILABLE", "Agent emergency release handler is not configured.");
+    }
+
+    private AgentControlResponse ToggleForwarding()
+    {
+        return _toggleForwardingHandler?.Invoke()
+            ?? AgentControlResponse.Failure("TOGGLE_FORWARDING_UNAVAILABLE", "Agent toggle-forwarding handler is not configured.");
     }
 
     private static ScreenshotTarget ParseScreenshotTarget(string value)

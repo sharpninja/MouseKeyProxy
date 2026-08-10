@@ -62,8 +62,10 @@ Device paths are overridable via `MKP_HID_KEYBOARD_DEVICE` / `MKP_HID_MOUSE_DEVI
 
 ## Pair
 
-- **Plug-n-play (default, `MKP_TOFU=1`):** unpaired appliance advertises UDP `50052`; `mkp pair discover` pairs without a code.
-- **Code-based:** `mkp pair mint` then `mkp pair <code>` on the peer.
+- **Plug-n-play (default, `MKP_TOFU=1`):** unpaired appliance advertises UDP `50052`; `mkp pair discover` pairs without a code. ToFU is only for an empty peer store (first USB host bootstrap).
+- **Code-based (re-pair / later peers):** `mkp pair mint [ttlSeconds]` against the appliance, then `mkp pair <code>` on the control host (`MKP_GRPC=https://HOST:50051` if not using settings).
+- **Empty discover:** if no unpaired beacons appear, `mkp pair discover` probes live gRPC endpoints on the LAN and prints a one-line mint/pair hint. Use `mkp pair reset-device` only when you still hold a valid client cert and need to re-open ToFU.
+- **Control toggle:** on the control host, `mkp toggle` (or Ctrl+Win+F1) starts Agent capture; `mkp pair status` must show `Forwarding: active=True` for live keyboard/mouse.
 
 ## Input encoding and reliability
 

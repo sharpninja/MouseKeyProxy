@@ -65,7 +65,14 @@ internal static class Program
         _state = new ToggleStateMachine();
         var hotkeyConfig = HotkeyConfigStore.Load(HotkeyConfigStore.DefaultPath());
         _hotkey = new Win32HotkeyMonitor(hotkeyConfig);
-        _controlPipe = AgentControlPipeServer.Start(new Win32DesktopController(), _injector, NotifyPairingState, GetAgentStatus, ExecuteEmergencyReleaseCommand, new Win32ScreenshotCapture());
+        _controlPipe = AgentControlPipeServer.Start(
+            new Win32DesktopController(),
+            _injector,
+            NotifyPairingState,
+            GetAgentStatus,
+            ExecuteEmergencyReleaseCommand,
+            new Win32ScreenshotCapture(),
+            ToggleForwardingFromControlPipe);
         // Same hotkey config as the tray monitor so Ctrl-Win-F1 / emergency work while capture hooks are first in the chain.
         _forwarder = new RemoteInputForwarder(
             CreateRemoteChannel,
@@ -871,6 +878,103 @@ internal static class Program
             RemoteState = _remoteState.ToString(),
             ForwardingActive = _forwarder?.IsActive ?? false
         };
+    }
+
+    /// <summary>
+    /// Control-pipe entry for <see cref="AgentControlPipe.ToggleForwarding"/> (used by <c>mkp toggle</c>).
+    /// Marshals onto the UI thread so LL hooks install correctly.
+    /// </summary>
+    private static AgentControlResponse ToggleForwardingFromControlPipe()
+    {
+        if (_hotkeyWindow is { IsHandleCreated: true } window && window.InvokeRequired)
+        {
+            return (AgentControlResponse)window.Invoke(new Func<AgentControlResponse>(ToggleForwardingFromControlPipe));
+        }
+
+        try
+        {
+            // Synchronous path for pipe clients: run the same work as DoRealToggle without async void races.
+            if (_remoteState != RemoteConnectionState.Connected)
+            {
+                return AgentControlResponse.Failure("REMOTE_NOT_CONNECTED", RemoteActionBlockReason());
+            }
+
+            if (_forwarder?.IsActive == true)
+            {
+                try
+                {
+                    _forwarder.Stop(releaseRemoteModifiers: false);
+                }
+                catch (Exception ex)
+                {
+                    System.Diagnostics.Debug.WriteLine($"ToggleForwardingFromControlPipe Stop failed: {ex.Message}");
+                }
+
+                OnForwarderReturnedToLocal("Toggle: local keyboard and mouse restored.", emergency: false);
+                _ = Task.Run(() => TryRequestDeviceClearModifiers(TimeSpan.FromSeconds(1)));
+                return new AgentControlResponse
+                {
+                    Ok = true,
+                    ErrorCode = "0",
+                    Message = "forwarding stopped (local control)",
+                    RemotePeer = CurrentRemotePeer(),
+                    RemoteGrpcUrl = RemoteEndpointStatusText(),
+                    RemoteState = _remoteState.ToString(),
+                    ForwardingActive = false
+                };
+            }
+
+            var deviceUrl = ResolveDeviceGrpcUrl();
+            var devicePeer = CurrentRemotePeer();
+            ClearLocalModifiers();
+            TryRequestDeviceClearModifiers(TimeSpan.FromSeconds(2));
+
+            var nowActive = InputCommandHandler.ToggleAsync(_state!, null, deviceUrl).GetAwaiter().GetResult();
+            if (nowActive)
+            {
+                PeerTrafficPolicy.EnsureAllowed(
+                    PeerEffectRole.DeviceAppliance,
+                    PeerTrafficPolicy.EffectKind.Input,
+                    deviceUrl);
+                _forwarder!.Start(deviceUrl);
+                ApplyClipForActive(true);
+            }
+            else
+            {
+                _forwarder?.Stop();
+                ApplyClipForActive(false);
+                ClearLocalModifiers();
+                _ = Task.Run(() => TryRequestDeviceClearModifiers(TimeSpan.FromSeconds(2)));
+            }
+
+            NotifyToggleMode(remoteActive: nowActive, remotePeer: devicePeer, remoteUrl: deviceUrl);
+            return new AgentControlResponse
+            {
+                Ok = true,
+                ErrorCode = "0",
+                Message = nowActive ? "forwarding started (remote control)" : "toggle inactive",
+                RemotePeer = devicePeer,
+                RemoteGrpcUrl = deviceUrl,
+                RemoteState = _remoteState.ToString(),
+                ForwardingActive = nowActive
+            };
+        }
+        catch (Exception ex)
+        {
+            try
+            {
+                _forwarder?.Stop();
+                _clip?.Release();
+                ClearLocalModifiers();
+            }
+            catch
+            {
+                // best effort
+            }
+
+            MarkRemoteDisconnected(ex);
+            return AgentControlResponse.Failure("TOGGLE_FORWARDING_FAILED", ex.Message);
+        }
     }
 
     private static void ApplyPairingState(string remotePeer, string remoteGrpcUrl, string pairingCode, bool connected)

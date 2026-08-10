@@ -77,13 +77,13 @@ Commands:
   mkp service status | install | uninstall | update | start | stop   (uses sc.exe, netsh, schtasks; elevation via runas)
   mkp settings show [--json] | set <key> <value> | clear    (remotePeer, remoteGrpcUrl, clipboardRetentionDays, logLevel)
   mkp agent status [--json] | emergency-release [--json]
-  mkp pair discover | pair <code> | pair status [--json]
+  mkp pair discover | pair <code> | pair status [--json]     (discover ToFU; if none, lists live gRPC hosts + mint/pair hint)
   mkp pair mint [ttlSeconds]                                 (service host mints a one-time pairing code)
   mkp pair unpair | clear                                    (clear local credential; Unpair RPC on device when connected)
   mkp pair reset-device                                      (paired client: revoke ALL peers on the device / re-open ToFU)
   mkp share discover | info | list [dir] | get <remote> <local> | put <local> <remote>
   mkp share mkdir <remoteDir> | rm <remotePath> [--recursive] | mv <from> <to>
-  mkp toggle
+  mkp toggle                                                 (local Agent: start/stop remote input capture; same as Ctrl-Win-F1)
   mkp emergency-release [--json]
   mkp clear-modifiers
   mkp capture-screenshot --remote <peer> --target desktop|foreground|hwnd --hwnd <hex> --clipboard --out <path>
@@ -202,24 +202,8 @@ Explicit 'mkp service install' does NOT happen on 'dotnet tool install'.
                 catch (MouseKeyProxy.Commands.PairingException ex) { Console.WriteLine($"[REAL Pair rejected] {ex.Error}"); return 1; }
                 catch (Exception ex) { Console.WriteLine($"[REAL Pair attempted] {ex.Message}"); return 1; }
             case "toggle":
-                // real toggle via SHIPPED handler + transport for mod resync emission (AC3)
-                try
-                {
-                    using var channel = CreateReplChannel(baseUrl);
-                    var client = new Wire.MouseKeyProxy.MouseKeyProxyClient(channel);
-                    using var transport = new MouseKeyProxy.Commands.BidiSessionTransport(client);
-                    bool active = MouseKeyProxy.Commands.InputCommandHandler.ToggleAsync(_toggle, transport, "peer-via-repl").GetAwaiter().GetResult();
-                    Console.WriteLine($"[REAL via ToggleAsync] toggle active={active} (emission sent on change via shipped handler)");
-                    return 0;
-                }
-                catch (Exception ex)
-                {
-                    // drive full shipped ToggleAsync (incl Emit if-branch and builds to SentFrames) using null-client
-                    using var nullTransport = new MouseKeyProxy.Commands.BidiSessionTransport((Wire.MouseKeyProxy.MouseKeyProxyClient)null!);
-                    bool active = MouseKeyProxy.Commands.InputCommandHandler.ToggleAsync(_toggle, nullTransport, "peer-via-repl").GetAwaiter().GetResult();
-                    Console.WriteLine($"[REAL bidi via transport] toggle FAILED: {ex.Message}");  // re-touched via agent tool (C: plain dir, no nested .git)
-                    return 1;
-                }
+                // Drive the local Agent forwarder (same as tray Ctrl-Win-F1), not only the REPL state machine.
+                return DoToggleForwarding();
             case "emergency-release":
             case "release":
                 return DoEmergencyRelease(args);
@@ -556,6 +540,7 @@ Explicit 'mkp service install' does NOT happen on 'dotnet tool install'.
 
     // TR-MKP-SEC-001: plug-n-play discovery - listen for unpaired devices advertising on the LAN and
     // ToFU-pair with each (no manual code). Persists the issued credential per device.
+    // When none advertise, probe live gRPC endpoints and print mint+pair guidance (ToFU closes after first peer).
     private static int DoPairDiscover()
     {
         Console.WriteLine("Discovering unpaired MouseKeyProxy devices on the LAN (5s)...");
@@ -563,7 +548,7 @@ Explicit 'mkp service install' does NOT happen on 'dotnet tool install'.
             .ListenAsync(TimeSpan.FromSeconds(5)).GetAwaiter().GetResult();
         if (beacons.Count == 0)
         {
-            Console.WriteLine("No unpaired devices found.");
+            PrintEmptyPairDiscoverGuidance();
             return 1;
         }
 
@@ -588,7 +573,63 @@ Explicit 'mkp service install' does NOT happen on 'dotnet tool install'.
             }
         }
 
+        if (paired == 0)
+        {
+            PrintEmptyPairDiscoverGuidance();
+        }
+
         return paired > 0 ? 0 : 1;
+    }
+
+    /// <summary>
+    /// Probes the LAN for open gRPC ports and prints mint/pair + reset-device guidance when ToFU discovery is empty.
+    /// </summary>
+    private static void PrintEmptyPairDiscoverGuidance()
+    {
+        IReadOnlyList<string> live = Array.Empty<string>();
+        try
+        {
+            var extras = CollectConfiguredPairHosts();
+            var candidates = LiveGrpcEndpointFinder.BuildCandidates(
+                LiveGrpcEndpointFinder.GetLocalUnicastAddresses(),
+                extraHosts: extras);
+            Console.WriteLine($"Probing {candidates.Count} candidate host(s) for open gRPC port {Cmn.LabTopology.GrpcPort}...");
+            live = LiveGrpcEndpointFinder.FindOpenEndpointsAsync(candidates).GetAwaiter().GetResult();
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Live gRPC probe skipped: {ex.Message}");
+        }
+
+        foreach (var line in LiveGrpcEndpointFinder.FormatEmptyDiscoverGuidance(live))
+        {
+            Console.WriteLine(line);
+        }
+    }
+
+    /// <summary>Hosts from env/settings/topology to prioritize when probing after empty ToFU discovery.</summary>
+    private static IReadOnlyList<string> CollectConfiguredPairHosts()
+    {
+        var hosts = new List<string>
+        {
+            Environment.GetEnvironmentVariable("MKP_GRPC") ?? string.Empty,
+            Environment.GetEnvironmentVariable(Cmn.LabTopology.RemotePeerEnv) ?? string.Empty,
+        };
+
+        try
+        {
+            var settings = Cmn.SettingsStore.Load(Cmn.SettingsStore.DefaultPath());
+            hosts.Add(settings.RemoteGrpcUrl ?? string.Empty);
+            hosts.Add(settings.RemotePeer ?? string.Empty);
+        }
+        catch
+        {
+            // Settings optional for discover guidance.
+        }
+
+        var (_, remote) = Cmn.LabTopology.ResolvePeers();
+        hosts.Add(remote);
+        return hosts;
     }
 
     private static int DoClearModifiers(string baseUrl)
@@ -1015,6 +1056,35 @@ Explicit 'mkp service install' does NOT happen on 'dotnet tool install'.
     {
         var index = Array.FindIndex(args, a => string.Equals(a, name, StringComparison.OrdinalIgnoreCase));
         return index >= 0 && index + 1 < args.Length ? args[index + 1] : defaultValue;
+    }
+
+    /// <summary>
+    /// Toggles Agent remote-input capture via the local agent-control pipe (tray-equivalent).
+    /// </summary>
+    private static int DoToggleForwarding()
+    {
+        try
+        {
+            var response = SendLocalAgentControlRequest(new Cmn.AgentControlRequest
+            {
+                Operation = Cmn.AgentControlPipe.ToggleForwarding,
+            });
+            Console.WriteLine(
+                $"[AGENT toggle] ok={response.Ok} err={response.ErrorCode} msg={response.Message} " +
+                $"forwarding={response.ForwardingActive} peer={response.RemotePeer} endpoint={response.RemoteGrpcUrl}");
+            if (!response.Ok)
+            {
+                Console.WriteLine("Hint: Agent must be running and paired (mkp pair status). Hotkey: Ctrl-Win-F1.");
+            }
+
+            return response.Ok ? 0 : 1;
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"[AGENT toggle] failed: {ex.Message}");
+            Console.WriteLine("Hint: start MouseKeyProxy.Agent, then mkp pair status / tray Toggle.");
+            return 1;
+        }
     }
 
     /// <summary>

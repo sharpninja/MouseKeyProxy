@@ -48,6 +48,10 @@ public class HardwareHidComplianceTests
         Assert.Contains("TEST-MKP-027", matrix);
     }
 
+    /// <summary>
+    /// HID appliance path is C#/.NET only: PiHid project, solution membership, docs, and
+    /// publish script use self-contained linux-arm/linux-arm64 publishes with no Python.
+    /// </summary>
     [Fact]
     [Trait("Category", "HardwareHID")]
     public void Hid_Appliance_Is_Dotnet_Only_With_No_Python_Dependency()
@@ -61,7 +65,12 @@ public class HardwareHidComplianceTests
         Assert.Contains("linux-arm", piProject);
         Assert.Contains("MouseKeyProxy.PiHid.csproj", solution);
         Assert.Contains("dotnet publish src/MouseKeyProxy.PiHid/MouseKeyProxy.PiHid.csproj -c Release -r linux-arm --self-contained true", doc);
-        Assert.Contains("dotnet publish src/MouseKeyProxy.PiHid/MouseKeyProxy.PiHid.csproj -c $Configuration -r linux-arm --self-contained true", publish);
+
+        // publish-pi-hid.ps1 parameterizes RID (linux-arm for Pi Zero; linux-arm64 default for Orange Pi / aarch64).
+        Assert.Contains("ValidateSet('linux-arm', 'linux-arm64')", publish);
+        Assert.Contains("[string]$Rid = 'linux-arm64'", publish);
+        Assert.Contains("dotnet publish src/MouseKeyProxy.PiHid/MouseKeyProxy.PiHid.csproj -c $Configuration -r $Rid --self-contained true", publish);
+        Assert.DoesNotContain("python", publish, StringComparison.OrdinalIgnoreCase);
 
         var appliancePaths = Directory.EnumerateFiles(Path.Combine(RepoRoot, "src", "MouseKeyProxy.PiHid"), "*", SearchOption.AllDirectories)
             .Concat(Directory.EnumerateFiles(Path.Combine(RepoRoot, "scripts", "pi"), "*", SearchOption.AllDirectories))

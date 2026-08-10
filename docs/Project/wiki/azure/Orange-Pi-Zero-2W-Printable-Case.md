@@ -146,4 +146,4 @@ Caliper-check X centers on your PCB and adjust the `conn_*` parameters if silksc
 
 ## License
 
-Same as the MouseKeyProxy repository (Apache-2.0 project context). CAD is hardware support material for the HID appliance path.
+Same as the MouseKeyProxy repository (source-available project LICENSE; commercial use only under a royalty agreement via ninja@thesharp.ninja). CAD is hardware support material for the HID appliance path.

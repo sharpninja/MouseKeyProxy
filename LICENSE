@@ -1,67 +1,131 @@
-Apache License
-Version 2.0, January 2004
-http://www.apache.org/licenses/
+MouseKeyProxy License
+Copyright (c) 2026 SharpNinja / Payton Byrd
+Contact for commercial licensing: ninja@thesharp.ninja
 
-TERMS AND CONDITIONS FOR USE, REPRODUCTION, AND DISTRIBUTION
+===============================================================================
+SUMMARY (not a substitute for the terms below)
+===============================================================================
 
-1. Definitions.
+- Non-commercial, personal, educational, evaluation, and internal research use
+  of this software is permitted under the terms of this License.
+- Commercial use is NOT permitted under this License alone.
+- Commercial use is available only under a separate royalty agreement with the
+  copyright holder. Contact ninja@thesharp.ninja for commercial and royalty terms.
+- Third-party components bundled with this repository (for example Rufus under
+  GPLv3) remain under their own licenses. See THIRD-PARTY-NOTICES.md.
 
-"License" shall mean the terms and conditions for use, reproduction, and distribution as defined by Sections 1 through 9 of this document.
+===============================================================================
+1. DEFINITIONS
+===============================================================================
 
-"Licensor" shall mean the copyright owner or entity authorized by the copyright owner that is granting the License.
+"Software" means the MouseKeyProxy source code, documentation, build scripts,
+assets created by the copyright holder for this project, and binaries built
+from that source, as distributed in this repository (excluding Third-Party
+Components).
 
-"Legal Entity" shall mean the union of the acting entity and all other entities that control, are controlled by, or are under common control with that entity. For the purposes of this definition, "control" means (i) the power, direct or indirect, to cause the direction or management of such entity, whether by contract or otherwise, or (ii) ownership of fifty percent (50%) or more of the outstanding shares, or (iii) beneficial ownership of such entity.
+"Third-Party Components" means software or materials included with the
+distribution that are owned by third parties and licensed under separate
+terms (including but not limited to GPLv3 Rufus materials under assets/rufus/).
 
-"You" (or "Your") shall mean an individual or Legal Entity exercising permissions granted by this License.
+"You" means an individual or legal entity exercising rights under this License.
 
-"Source" form shall mean the preferred form for making modifications, including but not limited to software source code, documentation source, and configuration files.
+"Commercial Use" means any use of the Software, or of a product or service that
+incorporates or is derived from the Software, where the primary purpose is
+direct or indirect commercial advantage or monetary compensation. Examples
+include (without limitation): selling the Software or derivatives; offering
+paid hosted, managed, or support services that depend on the Software;
+embedding the Software in a product sold or licensed for a fee; or using the
+Software in production to operate a revenue-generating business process.
 
-"Object" form shall mean any form resulting from mechanical transformation or translation of a Source form, including but not limited to compiled object code, generated documentation, and conversions to other media types.
+"Non-Commercial Use" means use that is not Commercial Use, including personal
+hobby use, classroom education, and unpaid evaluation or research, provided no
+Commercial Use is made of the Software.
 
-"Work" shall mean the work of authorship, whether in Source or Object form, made available under the License, as indicated by a copyright notice that is included in or attached to the work.
+===============================================================================
+2. GRANT FOR NON-COMMERCIAL USE
+===============================================================================
 
-"Derivative Works" shall mean any work, whether in Source or Object form, that is based on or derived from the Work and for which the editorial revisions, annotations, elaborations, or other modifications represent, as a whole, an original work of authorship. For the purposes of this License, Derivative Works shall not include works that remain separable from, or merely link or bind by name to the interfaces of, the Work and Derivative Works thereof.
+Subject to the terms of this License, the copyright holder grants You a
+worldwide, royalty-free, non-exclusive, non-transferable license to use, copy,
+modify, and distribute the Software for Non-Commercial Use only, provided that:
 
-"Contribution" shall mean any work of authorship, including the original version of the Work and any modifications or additions to that Work or Derivative Works thereof, that is intentionally submitted to Licensor for inclusion in the Work by the copyright owner or by an individual or Legal Entity authorized to submit on behalf of the copyright owner. For the purposes of this definition, "submitted" means any form of electronic, verbal, or written communication sent to the Licensor or its representatives, including but not limited to communication on electronic mailing lists, source code control systems, and issue tracking systems that are managed by, or on behalf of, the Licensor for the purpose of discussing and improving the Work, but excluding communication that is conspicuously marked or otherwise designated in writing by the copyright owner as "Not a Contribution."
+(a) You retain all copyright, license, and attribution notices in the Software
+    and in any substantial portion of it that You distribute;
 
-"Contributor" shall mean Licensor and any individual or Legal Entity on behalf of whom a Contribution has been received by Licensor and subsequently incorporated within the Work.
+(b) You include a copy of this License with any distribution of the Software or
+    of a derivative work based on the Software;
 
-2. Grant of Copyright License. Subject to the terms and conditions of this License, each Contributor hereby grants to You a perpetual, worldwide, non-exclusive, no-charge, royalty-free, irrevocable copyright license to reproduce, prepare Derivative Works of, publicly display, publicly perform, sublicense, and distribute the Work and such Derivative Works in Source or Object form.
+(c) You do not remove or obscure notices referring commercial users to
+    ninja@thesharp.ninja;
 
-3. Grant of Patent License. Subject to the terms and conditions of this License, each Contributor hereby grants to You a perpetual, worldwide, non-exclusive, no-charge, royalty-free, irrevocable patent license to make, have made, use, offer to sell, sell, import, and otherwise transfer the Work, where such license applies only to those patent claims licensable by such Contributor that are necessarily infringed by their Contribution alone or by combination of their Contribution with the Work to which such Contribution was submitted. If You institute patent litigation against any entity, including a cross-claim or counterclaim in a lawsuit, alleging that the Work or a Contribution incorporated within the Work constitutes direct or contributory patent infringement, then any patent licenses granted to You under this License for that Work shall terminate as of the date such litigation is filed.
+(d) You do not use the name "MouseKeyProxy", "SharpNinja", or related marks to
+    endorse or promote products derived from the Software without prior written
+    permission, except for reasonable attribution describing the origin of the
+    Software.
 
-4. Redistribution. You may reproduce and distribute copies of the Work or Derivative Works thereof in any medium, with or without modifications, and in Source or Object form, provided that You meet the following conditions:
+===============================================================================
+3. COMMERCIAL USE (ROYALTY AGREEMENT REQUIRED)
+===============================================================================
 
-(a) You must give any other recipients of the Work or Derivative Works a copy of this License; and
+Commercial Use of the Software is not authorized under this License.
 
-(b) You must cause any modified files to carry prominent notices stating that You changed the files; and
+Commercial Use is available only under a separate written royalty agreement
+with the copyright holder. To discuss commercial licensing, pricing, royalty
+terms, OEM embedding, or redistribution for commercial purposes, contact:
 
-(c) You must retain, in the Source form of any Derivative Works that You distribute, all copyright, patent, trademark, and attribution notices from the Source form of the Work, excluding those notices that do not pertain to any part of the Derivative Works; and
+    ninja@thesharp.ninja
 
-(d) If the Work includes a "NOTICE" text file as part of its distribution, then any Derivative Works that You distribute must include a readable copy of the attribution notices contained within that NOTICE file, excluding those notices that do not pertain to any part of the Derivative Works, in at least one of the following places: within a NOTICE text file distributed as part of the Derivative Works; within the Source form or documentation, if provided along with the Derivative Works; or within a display generated by the Derivative Works, if and wherever such third-party notices normally appear. The contents of the NOTICE file are for informational purposes only and do not modify the License. You may add Your own attribution notices within Derivative Works that You distribute, alongside or as an addendum to the NOTICE text from the Work, provided that such additional attribution notices cannot be construed as modifying the License.
+No implied license for Commercial Use is granted by publication of the source
+code, by this License, or by any non-commercial grant above.
 
-You may add Your own copyright statement to Your modifications and may provide additional or different license terms and conditions for use, reproduction, or distribution of Your modifications, or for any such Derivative Works as a whole, provided Your use, reproduction, and distribution of the Work otherwise complies with the conditions stated in this License.
+===============================================================================
+4. THIRD-PARTY COMPONENTS
+===============================================================================
 
-5. Submission of Contributions. Unless You explicitly state otherwise, any Contribution intentionally submitted for inclusion in the Work by You to the Licensor shall be under the terms and conditions of this License, without any additional terms or conditions. Notwithstanding the above, nothing herein shall supersede or modify the terms of any separate license agreement You may have executed with Licensor regarding such Contributions.
+Third-Party Components are not licensed under this License. They are provided
+under their respective licenses. In particular, the bundled "RUFUS For
+MouseKeyProxy" materials are GPLv3 (see assets/rufus/COPYING and
+THIRD-PARTY-NOTICES.md). Compliance with those licenses is Your responsibility
+when You use or redistribute those components.
 
-6. Trademarks. This License does not grant permission to use the trade names, trademarks, service marks, or product names of the Licensor, except as required for reasonable and customary use in describing the origin of the Work and reproducing the content of the NOTICE file.
+===============================================================================
+5. CONTRIBUTIONS
+===============================================================================
 
-7. Disclaimer of Warranty. Unless required by applicable law or agreed to in writing, Licensor provides the Work (and each Contributor provides its Contributions) on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied, including, without limitation, any warranties or conditions of TITLE, NON-INFRINGEMENT, MERCHANTABILITY, or FITNESS FOR A PARTICULAR PURPOSE. You are solely responsible for determining the appropriateness of using or redistributing the Work and assume any risks associated with Your exercise of permissions under this License.
+Unless You explicitly state otherwise in writing, any contribution You submit
+for inclusion in the Software is licensed to the copyright holder under the
+same terms as this License (including the commercial royalty reservation),
+and You represent that You have the right to grant that license.
 
-8. Limitation of Liability. In no event and under no legal theory, whether in tort (including negligence), contract, or otherwise, unless required by applicable law or agreed to in writing, shall any Contributor be liable to You for damages, including any direct, indirect, special, incidental, or consequential damages arising as a result of this License or out of the use or inability to use the Work, even if such Contributor has been advised of the possibility of such damages.
+===============================================================================
+6. DISCLAIMER OF WARRANTY
+===============================================================================
 
-9. Accepting Warranty or Additional Liability. While redistributing the Work or Derivative Works thereof, You may choose to offer and charge a fee for acceptance of support, warranty, indemnity, or other liability obligations. However, in accepting such obligations, You may act only on Your own behalf and on Your sole responsibility, not on behalf of any other Contributor, and only if You agree to indemnify, defend, and hold each Contributor harmless for any liability incurred by, or claims asserted against, such Contributor by reason of Your accepting any such warranty or additional liability.
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE, AND NON-INFRINGEMENT. YOU USE THE SOFTWARE
+AT YOUR OWN RISK.
 
-END OF TERMS AND CONDITIONS
+===============================================================================
+7. LIMITATION OF LIABILITY
+===============================================================================
 
-APPENDIX: How to apply the Apache License to your work.
+TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL THE COPYRIGHT HOLDER
+OR CONTRIBUTORS BE LIABLE FOR ANY CLAIM, DAMAGES, OR OTHER LIABILITY, WHETHER
+IN AN ACTION OF CONTRACT, TORT, OR OTHERWISE, ARISING FROM, OUT OF, OR IN
+CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
-To apply the Apache License to your work, attach the following boilerplate notice, with the fields enclosed by brackets "[]" replaced with your own identifying information. Do not include the brackets. The text should be enclosed in the appropriate comment syntax for the file format. We also recommend that a file or class name and description of purpose be included on the same printed page as the copyright notice for easier identification within third-party archives.
+===============================================================================
+8. TERMINATION
+===============================================================================
 
-Copyright 2026 SharpNinja
+If You breach this License (including by making Commercial Use without a
+royalty agreement), Your rights under this License terminate automatically.
+Upon termination You must cease Non-Commercial Use and distribution of the
+Software under this License, except that licenses already validly granted to
+downstream Non-Commercial recipients under Section 2 remain in effect only for
+so long as those recipients remain in compliance.
 
-Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except in compliance with the License. You may obtain a copy of the License at
-
-http://www.apache.org/licenses/LICENSE-2.0
-
-Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the specific language governing permissions and limitations under the License.
+===============================================================================
+END OF TERMS
+===============================================================================

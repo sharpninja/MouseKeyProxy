@@ -90,6 +90,7 @@ public class ReplBidiConstructionTests
         Assert.Contains("mkp status [--json]", source, StringComparison.Ordinal);
         Assert.Contains("mkp agent status [--json] | emergency-release [--json]", source, StringComparison.Ordinal);
         Assert.Contains("mkp pair discover | pair <code> | pair status [--json]", source, StringComparison.Ordinal);
+        Assert.Contains("lists live gRPC hosts + mint/pair hint", source, StringComparison.Ordinal);
         Assert.Contains("mkp emergency-release [--json]", source, StringComparison.Ordinal);
         Assert.Contains("mkp logs", source, StringComparison.Ordinal);
         Assert.Contains("case \"status\":", source, StringComparison.Ordinal);

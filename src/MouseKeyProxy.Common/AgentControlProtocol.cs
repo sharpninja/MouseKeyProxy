@@ -16,6 +16,8 @@ public static class AgentControlPipe
     public const string NotifyPairingState = "notifyPairingState";
     public const string GetAgentStatus = "getAgentStatus";
     public const string EmergencyRelease = "emergencyRelease";
+    /// <summary>Toggle local Agent remote-input capture (same as tray Ctrl-Win-F1 / face button).</summary>
+    public const string ToggleForwarding = "toggleForwarding";
 }
 
 public sealed class AgentControlRequest

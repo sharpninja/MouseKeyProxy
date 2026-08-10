@@ -31,21 +31,32 @@ public class DocumentationAndReleaseComplianceTests
         Assert.Contains("Security-Administration-Guide.md", wiki);
     }
 
+    /// <summary>
+    /// Release contract: project LICENSE is source-available with commercial royalty
+    /// reservation; NuGet metadata uses PackageLicenseFile; GitVersion tooling is wired.
+    /// </summary>
     [Fact]
     [Trait("Category", "ReleaseContract")]
-    public void Apache_2_License_And_GitVersion_Metadata_Are_Configured()
+    public void Project_License_Royalty_And_GitVersion_Metadata_Are_Configured()
     {
         var license = File.ReadAllText(Path.Combine(RepoRoot, "LICENSE"));
-        Assert.Contains("Apache License", license);
-        Assert.Contains("Version 2.0", license);
-        Assert.Contains("Copyright 2026 SharpNinja", license);
+        Assert.Contains("MouseKeyProxy License", license);
+        Assert.Contains("Commercial Use", license);
+        Assert.Contains("royalty agreement", license, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("ninja@thesharp.ninja", license);
+        Assert.Contains("Copyright (c) 2026 SharpNinja", license);
 
         var readme = File.ReadAllText(Path.Combine(RepoRoot, "README.md"));
-        Assert.Contains("Apache-2.0", readme);
+        Assert.Contains("royalty agreement", readme, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("ninja@thesharp.ninja", readme);
 
         var props = File.ReadAllText(Path.Combine(RepoRoot, "Directory.Build.props"));
-        Assert.Contains("<PackageLicenseExpression>Apache-2.0</PackageLicenseExpression>", props);
+        Assert.Contains("<PackageLicenseFile>LICENSE</PackageLicenseFile>", props);
+        Assert.Contains("<PackageRequireLicenseAcceptance>true</PackageRequireLicenseAcceptance>", props);
         Assert.Contains("GitVersion.MsBuild", props);
+
+        var replProject = File.ReadAllText(Path.Combine(RepoRoot, "src", "MouseKeyProxy.Repl", "MouseKeyProxy.Repl.csproj"));
+        Assert.Contains(@"LICENSE"" Pack=""true""", replProject);
 
         Assert.True(File.Exists(Path.Combine(RepoRoot, "GitVersion.yml")), "GitVersion.yml missing");
         var tools = File.ReadAllText(Path.Combine(RepoRoot, ".config", "dotnet-tools.json"));

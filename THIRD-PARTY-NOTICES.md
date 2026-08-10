@@ -1,6 +1,6 @@
 # Third-Party Notices
 
-MouseKeyProxy (Apache-2.0) redistributes the following third-party components.
+MouseKeyProxy (source-available project license; commercial use requires a royalty agreement - see LICENSE) redistributes the following third-party components.
 
 ## Rufus - "RUFUS For MouseKeyProxy" (`rufus.exe`)
 
@@ -20,4 +20,4 @@ Raspberry Pi HID image to SD media.
 - Corresponding source (GPLv3): https://github.com/sharpninja/rufus-mkp
 
 The bundled Rufus binary remains licensed under GPLv3 (mere aggregation).
-MouseKeyProxy's own code stays under Apache-2.0.
+MouseKeyProxy's own code stays under the project LICENSE (non-commercial grant; commercial royalty agreement via ninja@thesharp.ninja).

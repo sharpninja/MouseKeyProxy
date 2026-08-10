@@ -28,7 +28,9 @@ The complete corresponding source for this modified binary is publicly available
 
 ## Relationship to MouseKeyProxy's own license
 
-MouseKeyProxy's own source is licensed under Apache-2.0. This bundled Rufus
-component is a separate program that remains under GPLv3 (mere aggregation on a
-storage/distribution medium); the Apache-2.0 license does not apply to it and
-the GPLv3 does not apply to MouseKeyProxy's own code.
+MouseKeyProxy's own source is under the project LICENSE (source-available;
+non-commercial grant; commercial use only under a royalty agreement via
+ninja@thesharp.ninja). This bundled Rufus component is a separate program that
+remains under GPLv3 (mere aggregation on a storage/distribution medium); the
+project LICENSE does not apply to it and the GPLv3 does not apply to
+MouseKeyProxy's own code.

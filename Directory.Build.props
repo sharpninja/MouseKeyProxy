@@ -19,7 +19,9 @@
     <PackageProjectUrl>https://github.com/sharpninja/MouseKeyProxy</PackageProjectUrl>
     <RepositoryUrl>https://github.com/sharpninja/MouseKeyProxy.git</RepositoryUrl>
     <RepositoryType>git</RepositoryType>
-    <PackageLicenseExpression>Apache-2.0</PackageLicenseExpression>
+    <!-- Source-available; commercial use requires royalty agreement (see LICENSE). -->
+    <PackageLicenseFile>LICENSE</PackageLicenseFile>
+    <PackageRequireLicenseAcceptance>true</PackageRequireLicenseAcceptance>
     <IncludeSourceRevisionInInformationalVersion>false</IncludeSourceRevisionInInformationalVersion>
   </PropertyGroup>
 

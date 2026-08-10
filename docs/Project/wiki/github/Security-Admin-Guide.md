@@ -140,7 +140,7 @@ Minimum audit evidence for incidents:
 
 The .NET tool package is versioned from GitVersion. Release packages should be built from a tagged commit and published with the repository Nuke target using `NUGET_API_KEY` from the environment.
 
-Administrators should reject packages whose version does not match the expected Git tag or whose package metadata does not declare the Apache-2.0 license.
+Administrators should reject packages whose version does not match the expected Git tag or whose package metadata does not include the project LICENSE (source-available; commercial use requires a royalty agreement - contact ninja@thesharp.ninja).
 
 ## Incident Response
 
