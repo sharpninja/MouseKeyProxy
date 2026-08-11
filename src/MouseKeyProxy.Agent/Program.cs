@@ -87,6 +87,8 @@ internal static class Program
                 : "Toggle: local keyboard and mouse restored.",
             emergency: e.Emergency);
         LoadPersistedPairingState();
+        // Drop any in-memory credential assumption; heal reloads from disk before probing.
+        ReloadPeerCredentialFromDisk();
         try
         {
             _clipboardCredential = PeerCredentialStore.Load(ClipboardPeerCredentialPath());
@@ -175,7 +177,231 @@ internal static class Program
         ShowDashboardForm();
         // Optional: MKP_AGENT_SHARE_MOUNT=1 auto-mounts preferred letter after UI is up (paired + WinFsp).
         TryAutoMountApplianceShare();
+        // Background: reload credential, prefer settings endpoint, mTLS probe, optional LAN alternate.
+        ScheduleStartupSelfHeal();
         Application.Run();
+    }
+
+    /// <summary>
+    /// Startup self-heal: reloads peer credential, prefers settings.json remote URL, probes mTLS,
+    /// and may switch to an alternate live gRPC host that accepts the current cert. Does not
+    /// auto-enable remote capture (toggle stays local until the operator chooses).
+    /// </summary>
+    private static void ScheduleStartupSelfHeal()
+    {
+        _ = System.Threading.Tasks.Task.Run(() =>
+        {
+            try
+            {
+                RunStartupSelfHeal();
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Startup self-heal failed: {ex.Message}");
+                TryAppendAgentSelfHealLog($"fatal: {ex.Message}");
+            }
+        });
+    }
+
+    private static void RunStartupSelfHeal()
+    {
+        ReloadPeerCredentialFromDisk();
+
+        string? settingsUrl = null;
+        string? settingsPeer = null;
+        try
+        {
+            var settings = SettingsStore.Load(SettingsStore.DefaultPath());
+            settingsUrl = settings.RemoteGrpcUrl;
+            settingsPeer = settings.RemotePeer;
+        }
+        catch
+        {
+            // settings optional
+        }
+
+        IReadOnlyList<string>? live = null;
+        try
+        {
+            var extras = new[]
+                {
+                    settingsUrl,
+                    settingsPeer,
+                    _activeRemoteGrpcUrl,
+                    _activeRemotePeer,
+                }
+                .Where(static s => !string.IsNullOrWhiteSpace(s))
+                .Select(static s => s!)
+                .ToArray();
+            var candidates = MouseKeyProxy.Commands.LiveGrpcEndpointFinder.BuildCandidates(
+                MouseKeyProxy.Commands.LiveGrpcEndpointFinder.GetLocalUnicastAddresses(),
+                extraHosts: extras);
+            // Cap time: short connect timeout is already used inside the finder.
+            live = MouseKeyProxy.Commands.LiveGrpcEndpointFinder
+                .FindOpenEndpointsAsync(candidates, connectTimeout: TimeSpan.FromMilliseconds(200))
+                .GetAwaiter()
+                .GetResult();
+        }
+        catch (Exception ex)
+        {
+            TryAppendAgentSelfHealLog($"LAN probe skipped: {ex.Message}");
+        }
+
+        var plan = AgentStartupSelfHeal.BuildPlan(
+            pairingUrl: _activeRemoteGrpcUrl,
+            pairingPeer: _activeRemotePeer,
+            settingsUrl: settingsUrl,
+            settingsPeer: settingsPeer,
+            credentialPresent: _peerCredential is not null,
+            probe: ProbeDeviceChannel,
+            alternateLiveUrls: live);
+
+        ApplyStartupSelfHealPlan(plan);
+    }
+
+    /// <summary>
+    /// TCP + authenticated lightweight RPC probe against a device gRPC URL.
+    /// </summary>
+    private static (bool TcpOk, bool MtlsOk) ProbeDeviceChannel(string url)
+    {
+        if (string.IsNullOrWhiteSpace(url) ||
+            !Uri.TryCreate(url.Trim(), UriKind.Absolute, out var uri) ||
+            string.IsNullOrWhiteSpace(uri.Host))
+        {
+            return (false, false);
+        }
+
+        var port = uri.IsDefaultPort ? MouseKeyProxy.Common.LabTopology.GrpcPort : uri.Port;
+        try
+        {
+            using var tcp = new System.Net.Sockets.TcpClient();
+            var connect = tcp.ConnectAsync(uri.Host, port);
+            if (!connect.Wait(TimeSpan.FromMilliseconds(500)) || !tcp.Connected)
+            {
+                return (false, false);
+            }
+        }
+        catch
+        {
+            return (false, false);
+        }
+
+        try
+        {
+            ReloadPeerCredentialFromDisk();
+            if (_peerCredential is null)
+            {
+                return (true, false);
+            }
+
+            using var channel = PairingClient.CreateAuthenticatedChannel(url.Trim(), _peerCredential);
+            var client = new Wire.MouseKeyProxy.MouseKeyProxyClient(channel);
+            // Empty InjectInput is a cheap authenticated effect RPC on both Windows and Linux peers.
+            var response = client.InjectInput(
+                new Wire.InjectInputRequest
+                {
+                    ProtocolVersion = "v1",
+                    PeerId = Environment.MachineName,
+                    CorrelationId = Guid.NewGuid().ToString("n"),
+                },
+                deadline: DateTime.UtcNow.AddSeconds(3));
+            return (true, response is not null);
+        }
+        catch (Exception ex)
+        {
+            TryAppendAgentSelfHealLog($"mTLS probe failed for {url}: {ex.Message}");
+            return (true, false);
+        }
+    }
+
+    private static void ApplyStartupSelfHealPlan(AgentStartupSelfHeal.Plan plan)
+    {
+        void Apply()
+        {
+            foreach (var step in plan.Steps)
+            {
+                TryAppendAgentSelfHealLog(step);
+            }
+
+            TryAppendAgentSelfHealLog(plan.Summary);
+
+            if (!string.IsNullOrWhiteSpace(plan.RemoteGrpcUrl))
+            {
+                _activeRemoteGrpcUrl = plan.RemoteGrpcUrl;
+                _activeRemotePeer = string.IsNullOrWhiteSpace(plan.RemotePeer)
+                    ? ResolveRemotePeerName(plan.RemoteGrpcUrl)
+                    : plan.RemotePeer;
+            }
+
+            if (plan.MarkConnected)
+            {
+                ApplyPairingState(
+                    CurrentRemotePeer(),
+                    ResolveRemoteGrpcUrl(),
+                    _lastPairingCode ?? string.Empty,
+                    connected: true);
+                ShowTrayNotification("MouseKeyProxy", plan.Summary, ToolTipIcon.Info);
+                TryAutoMountApplianceShare();
+                return;
+            }
+
+            if (!string.IsNullOrWhiteSpace(plan.RemoteGrpcUrl))
+            {
+                _remoteState = plan.RequiresRePair
+                    ? RemoteConnectionState.NotPaired
+                    : RemoteConnectionState.NotConnected;
+                _lastRemoteError = plan.Summary;
+                PersistPairingState(connected: false);
+                UpdateRemoteActionAvailability();
+                UpdateDashboardStatusLabels();
+            }
+
+            if (plan.RequiresRePair)
+            {
+                ShowTrayNotification("MouseKeyProxy", plan.Summary, ToolTipIcon.Warning);
+            }
+        }
+
+        if (_hotkeyWindow is { IsHandleCreated: true } window && window.InvokeRequired)
+        {
+            window.BeginInvoke(Apply);
+            return;
+        }
+
+        if (_tray is not null)
+        {
+            // Ensure UI thread affinity for tray balloon when hotkey window not ready yet.
+            try
+            {
+                Apply();
+                return;
+            }
+            catch
+            {
+                // fall through
+            }
+        }
+
+        Apply();
+    }
+
+    private static void TryAppendAgentSelfHealLog(string line)
+    {
+        try
+        {
+            var dir = Path.Combine(
+                Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+                "MouseKeyProxy",
+                "logs");
+            Directory.CreateDirectory(dir);
+            File.AppendAllText(
+                Path.Combine(dir, "self-heal.log"),
+                $"{DateTimeOffset.Now:o} {line}{Environment.NewLine}");
+        }
+        catch
+        {
+            // diagnostics only
+        }
     }
 
     private static Icon LoadTrayIcon()
@@ -698,12 +924,30 @@ internal static class Program
 
     /// <summary>
     /// TR-MKP-SEC-001: builds a mutually-authenticated channel to the remote service using the
-    /// persisted peer credential, loading it from disk on first use. Returns null when unpaired.
+    /// persisted peer credential. Always reloads from disk so <c>mkp pair</c> / re-pair updates
+    /// take effect without restarting the Agent (stale in-memory certs after re-pair caused
+    /// silent InjectInput SSL failures: toggle looked active but no HID reached the device).
     /// </summary>
     private static GrpcChannel? CreateRemoteChannel(string remoteUrl)
     {
-        _peerCredential ??= PeerCredentialStore.Load(PeerCredentialStore.DefaultPath());
+        ReloadPeerCredentialFromDisk();
         return _peerCredential is null ? null : PairingClient.CreateAuthenticatedChannel(remoteUrl, _peerCredential);
+    }
+
+    /// <summary>Re-reads <c>peer-credential.bin</c> into <see cref="_peerCredential"/>.</summary>
+    private static void ReloadPeerCredentialFromDisk()
+    {
+        try
+        {
+            _peerCredential?.ClientCertificate.Dispose();
+            _peerCredential?.CaCertificate.Dispose();
+        }
+        catch
+        {
+            // best effort dispose of prior certs
+        }
+
+        _peerCredential = PeerCredentialStore.Load(PeerCredentialStore.DefaultPath());
     }
 
     /// <summary>
@@ -857,6 +1101,8 @@ internal static class Program
         var peer = string.IsNullOrWhiteSpace(request.RemotePeer)
             ? ResolveRemotePeerName(request.RemoteGrpcUrl)
             : request.RemotePeer.Trim();
+        // mkp pair writes peer-credential.bin then notifies us; drop any stale in-memory cert.
+        ReloadPeerCredentialFromDisk();
         ApplyPairingState(peer, request.RemoteGrpcUrl.Trim(), request.PairingCode, connected: true);
         return AgentControlResponse.Success($"paired and connected to {CurrentRemotePeer()}");
     }

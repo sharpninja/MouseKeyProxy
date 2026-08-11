@@ -41,6 +41,7 @@ Default configured toggle: **Ctrl+Win+F1**. Default configured emergency release
 - A Windows busy pointer marks remote-control ownership on the host and returns to the normal pointer whenever local control is restored.
 - **Host restore first:** toggle, emergency release, and HID link-loss always unhook local capture before any peer RPC; a hung appliance cannot trap the control host.
 - Pairing (mTLS + one-time code or ToFU discovery), status, service lifecycle, emergency release, logs, and HID diagnostics through the canonical `mkp` CLI/REPL surface. `mkp pair discover` lists live gRPC hosts and a mint/pair hint when ToFU has no unpaired advertisers. `mkp toggle` drives the local Agent capture (same as Ctrl+Win+F1).
+- **Agent startup self-heal:** reloads peer credentials, prefers settings remote URL, probes mTLS, may recover via an alternate live gRPC host; logs under `%LOCALAPPDATA%\MouseKeyProxy\logs\self-heal.log`.
 - Linux USB HID gadget: keyboard + relative mouse; letters, digits, and US punctuation map to boot-protocol HID usages (works at login / firmware screens that ignore high-level remotes).
 - User-session dashboard for pairing state, active appliance, service state, recent errors, and emergency release.
 - **Appliance folder share (gRPC):** when `MKP_FOLDER_SHARE=1` on the Pi, the paired control host can list, download, upload, mkdir, rename, and delete under a sandboxed share root (same tree that seeds the USB mass-storage LUN). Access is **paired mTLS identity only** (no operator IP list for gRPC).

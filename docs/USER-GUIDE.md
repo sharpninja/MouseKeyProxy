@@ -99,6 +99,19 @@ mkp open-logs
 
 `mkp toggle` drives the **local tray Agent** (same as **Ctrl+Win+F1** / dashboard Toggle): it starts or stops remote input capture. Confirm with `mkp pair status` that `Forwarding: active=True` before expecting keyboard/mouse on the target. CLI inject probes (`mkp inject-text`, `mkp set-mouse`) exercise the paired gRPC path without turning capture on.
 
+### Agent startup self-heal
+
+On every tray Agent start, a background **self-heal** runs (does not auto-enable remote capture):
+
+1. Reloads `peer-credential.bin` from disk (so re-pair without Agent restart stays valid).
+2. Prefers `settings.json` `remoteGrpcUrl` when it differs from a stale `agent-pairing.json`.
+3. Probes the preferred endpoint (TCP + authenticated lightweight RPC).
+4. If preferred fails, tries other live gRPC hosts on the LAN that accept the current cert.
+5. Updates pairing state: **Connected** when the channel is healthy; **NotConnected** / re-pair warning when the cert is rejected; offline stays NotConnected without forcing re-pair.
+6. Writes steps to `%LOCALAPPDATA%\MouseKeyProxy\logs\self-heal.log` (and inject TLS failures to `forwarder.log`).
+
+Tray balloons report success (`Self-heal: device channel OK (...)`) or credential rejection (`run mkp pair`).
+
 The CLI/REPL is the canonical implementation of the control surface. UI actions should call shared command implementations and should not expose controls that cannot also be operated through `mkp`.
 
 ## Hotkeys
@@ -237,6 +250,8 @@ If pairing fails:
 - Verify both services are installed and running.
 - Verify the displayed pairing code has not expired.
 - Check the MouseKeyProxy Event Log on both machines.
+
+If remote capture is on but the target shows no input: confirm `mkp pair status` peer is the **Pi appliance IP** (not another Windows host), that `Forwarding: active=True`, and that `self-heal.log` / `forwarder.log` do not show TLS or credential errors. Re-pair with `mkp pair mint` / `mkp pair <code>` if needed; the Agent reloads credentials on pair notify and channel open.
 
 If the toggle hotkey fails:
 

@@ -2,6 +2,7 @@ using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.IO;
 using System.Net.Http;
 using System.Runtime.InteropServices;
 using System.Threading;
@@ -349,15 +350,22 @@ public sealed class RemoteInputForwarder : IDisposable
                 .ResponseAsync
                 .ConfigureAwait(false);
         }
-        catch (Exception ex) when (IsDeviceHidLost(ex.Message, err: null) || IsTransportTimeout(ex))
+        catch (Exception ex) when (IsDeviceHidLost(ex.Message, err: null) || IsTransportTimeout(ex) || IsAuthOrTlsFailure(ex))
         {
             if (IsDeviceHidLost(ex.Message, err: null))
             {
                 RequestHidLostFallback(ex.Message);
             }
+            else if (IsAuthOrTlsFailure(ex))
+            {
+                // Stale peer-credential after re-pair: surface clearly and drop to local.
+                TryAppendForwardLog($"inject TLS/auth failed: {ex.Message}");
+                RequestHidLostFallback($"TLS/credential failure (re-pair may be required): {ex.Message}");
+            }
             else
             {
                 Debug.WriteLine($"MouseKeyProxy remote input timed out: {ex.Message}");
+                TryAppendForwardLog($"inject timeout: {ex.Message}");
                 _failsafe.OnDisconnected();
             }
 
@@ -372,6 +380,7 @@ public sealed class RemoteInputForwarder : IDisposable
         }
 
         Debug.WriteLine($"MouseKeyProxy remote input rejected: {response.Err} {response.Msg}");
+        TryAppendForwardLog($"inject rejected err={response.Err} msg={response.Msg} events={events.Count}");
         if (IsDeviceHidLost(response.Msg, response.Err))
         {
             RequestHidLostFallback($"{response.Err}: {response.Msg}");
@@ -381,6 +390,25 @@ public sealed class RemoteInputForwarder : IDisposable
         _failsafe.OnDisconnected();
     }
 
+    private static void TryAppendForwardLog(string line)
+    {
+        try
+        {
+            var dir = Path.Combine(
+                Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+                "MouseKeyProxy",
+                "logs");
+            Directory.CreateDirectory(dir);
+            File.AppendAllText(
+                Path.Combine(dir, "forwarder.log"),
+                $"{DateTimeOffset.Now:o} {line}{Environment.NewLine}");
+        }
+        catch
+        {
+            // diagnostics only
+        }
+    }
+
     private static bool IsTransportTimeout(Exception ex)
     {
         return ex is OperationCanceledException
@@ -388,6 +416,41 @@ public sealed class RemoteInputForwarder : IDisposable
             || (ex is RpcException rpc && (rpc.StatusCode == StatusCode.DeadlineExceeded || rpc.StatusCode == StatusCode.Cancelled))
             || ex.Message.Contains("DeadlineExceeded", StringComparison.OrdinalIgnoreCase)
             || ex.Message.Contains("canceled", StringComparison.OrdinalIgnoreCase);
+    }
+
+    private static bool IsAuthOrTlsFailure(Exception ex)
+    {
+        if (ex is RpcException rpc &&
+            (rpc.StatusCode == StatusCode.Unauthenticated ||
+             rpc.StatusCode == StatusCode.PermissionDenied ||
+             rpc.StatusCode == StatusCode.Internal))
+        {
+            // Internal often wraps AuthenticationException for mTLS failures.
+            var detail = rpc.Status.Detail ?? string.Empty;
+            if (detail.Contains("SSL", StringComparison.OrdinalIgnoreCase) ||
+                detail.Contains("certificate", StringComparison.OrdinalIgnoreCase) ||
+                detail.Contains("Authentication", StringComparison.OrdinalIgnoreCase))
+            {
+                return true;
+            }
+        }
+
+        for (var cur = ex; cur is not null; cur = cur.InnerException)
+        {
+            if (cur is System.Security.Authentication.AuthenticationException)
+            {
+                return true;
+            }
+
+            if (cur.Message.Contains("certificate", StringComparison.OrdinalIgnoreCase) ||
+                cur.Message.Contains("SSL", StringComparison.OrdinalIgnoreCase) ||
+                cur.Message.Contains("RemoteCertificate", StringComparison.OrdinalIgnoreCase))
+            {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     /// <summary>
@@ -942,9 +1005,17 @@ public sealed class RemoteInputForwarder : IDisposable
                     return false;
                 }
 
+                // Absolute devices (some touchpads/pens) report 0..65535 coordinates, not deltas.
+                // Forwarding absolute values as relative HID would appear as no useful mouse motion.
+                const ushort mouseMoveAbsolute = 0x01;
+                if ((input.mouse.usFlags & mouseMoveAbsolute) != 0)
+                {
+                    return false;
+                }
+
                 dx = input.mouse.lLastX;
                 dy = input.mouse.lLastY;
-                return true;
+                return dx != 0 || dy != 0;
             }
             finally
             {

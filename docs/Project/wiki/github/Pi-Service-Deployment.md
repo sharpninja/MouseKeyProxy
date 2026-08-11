@@ -66,6 +66,7 @@ Device paths are overridable via `MKP_HID_KEYBOARD_DEVICE` / `MKP_HID_MOUSE_DEVI
 - **Code-based (re-pair / later peers):** `mkp pair mint [ttlSeconds]` against the appliance, then `mkp pair <code>` on the control host (`MKP_GRPC=https://HOST:50051` if not using settings).
 - **Empty discover:** if no unpaired beacons appear, `mkp pair discover` probes live gRPC endpoints on the LAN and prints a one-line mint/pair hint. Use `mkp pair reset-device` only when you still hold a valid client cert and need to re-open ToFU.
 - **Control toggle:** on the control host, `mkp toggle` (or Ctrl+Win+F1) starts Agent capture; `mkp pair status` must show `Forwarding: active=True` for live keyboard/mouse.
+- **Agent startup self-heal:** the tray Agent reloads credentials and probes the device channel on start (settings URL preferred). Check `%LOCALAPPDATA%\MouseKeyProxy\logs\self-heal.log` if Connected state looks wrong after reboot or re-pair.
 
 ## Input encoding and reliability
 
