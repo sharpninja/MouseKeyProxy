@@ -163,17 +163,17 @@ public static class ServiceInstaller
         }
 
         log("Installing MouseKeyProxy service and agent...");
-        // Redeploy: stop service so binaries under ProgramData can be overwritten.
-        _ = runner.Run("sc.exe", $"stop {ctx.ServiceName}");
-        Directory.CreateDirectory(ctx.InstallDirectory);
-        ApplyInstallAcl(ctx.InstallDirectory);
-
         var serviceSrc = Path.Combine(ctx.PayloadsDirectory, "service", "MouseKeyProxy.Service.exe");
         if (!File.Exists(serviceSrc))
         {
             log($"payload copy skipped: missing {serviceSrc}");
             return Fail(3, "Service payload missing.");
         }
+
+        // Redeploy only after preflight: preserve a running installation when payloads are missing.
+        _ = runner.Run("sc.exe", $"stop {ctx.ServiceName}");
+        Directory.CreateDirectory(ctx.InstallDirectory);
+        ApplyInstallAcl(ctx.InstallDirectory);
 
         var dest = ServiceExePath(ctx);
         File.Copy(serviceSrc, dest, overwrite: true);

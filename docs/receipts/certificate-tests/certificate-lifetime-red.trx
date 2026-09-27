@@ -1,0 +1,252 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TestRun id="39ae11a9-7afe-4a39-8b5c-c531b24a45a9" name="SYSTEM@PAYTON-LEGION2 2026-09-27 15:23:41" runUser="PAYTON-LEGION2\kingd" xmlns="http://microsoft.com/schemas/VisualStudio/TeamTest/2010">
+  <Times creation="2026-09-27T15:23:41.3665830-05:00" queuing="2026-09-27T15:23:41.3665834-05:00" start="2026-09-27T15:23:39.2732681-05:00" finish="2026-09-27T15:23:41.3767051-05:00" />
+  <TestSettings name="default" id="44a56248-176d-4fac-bbf4-9e07c63d74a3">
+    <Deployment runDeploymentRoot="SYSTEM_PAYTON-LEGION2_2026-09-27_15_23_41" />
+  </TestSettings>
+  <Results>
+    <UnitTestResult executionId="5630ca0a-294c-408c-8ffe-a95eb3a64881" testId="c68a4101-0eb3-ba54-a9ba-b6e78b641a03" testName="MouseKeyProxy.Integration.PairingMtlsE2ETests.PairedPeer_ChannelDisposal_PreservesSourceCredential" computerName="PAYTON-LEGION2" duration="00:00:00.0527016" startTime="2026-09-27T15:23:41.0924498-05:00" endTime="2026-09-27T15:23:41.1455288-05:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Failed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="5630ca0a-294c-408c-8ffe-a95eb3a64881">
+      <Output>
+        <ErrorInfo>
+          <Message>System.IO.IOException : The process cannot access the file 'C:\ProgramData\MouseKeyProxy\mkp\config.db' because it is being used by another process.</Message>
+          <StackTrace>   at Microsoft.Win32.SafeHandles.SafeFileHandle.CreateFile(String fullPath, FileMode mode, FileAccess access, FileShare share, FileOptions options)&#xD;
+   at Microsoft.Win32.SafeHandles.SafeFileHandle.Open(String fullPath, FileMode mode, FileAccess access, FileShare share, FileOptions options, Int64 preallocationSize, Nullable`1 unixCreateMode)&#xD;
+   at System.IO.Strategies.OSFileStreamStrategy..ctor(String path, FileMode mode, FileAccess access, FileShare share, FileOptions options, Int64 preallocationSize, Nullable`1 unixCreateMode)&#xD;
+   at System.IO.Strategies.FileStreamHelpers.ChooseStrategyCore(String path, FileMode mode, FileAccess access, FileShare share, FileOptions options, Int64 preallocationSize, Nullable`1 unixCreateMode)&#xD;
+   at System.IO.FileStream..ctor(String path, FileMode mode, FileAccess access, FileShare share, Int32 bufferSize, FileOptions options, Int64 preallocationSize)&#xD;
+   at System.IO.FileStream..ctor(String path, FileMode mode, FileAccess access, FileShare share, Int32 bufferSize, FileOptions options)&#xD;
+   at LiteDB.Engine.FileStreamFactory.GetStream(Boolean canWrite, Boolean sequencial)&#xD;
+   at LiteDB.Engine.StreamPool.&lt;&gt;c__DisplayClass3_0.&lt;.ctor&gt;b__0()&#xD;
+   at System.Lazy`1.ViaFactory(LazyThreadSafetyMode mode)&#xD;
+   at System.Lazy`1.ExecutionAndPublication(LazyHelper executionAndPublication, Boolean useDefaultConstructor)&#xD;
+   at System.Lazy`1.CreateValue()&#xD;
+   at LiteDB.Engine.DiskService..ctor(EngineSettings settings, EngineState state, Int32[] memorySegmentSizes)&#xD;
+   at LiteDB.Engine.LiteEngine.Open()&#xD;
+   at LiteDB.Engine.LiteEngine..ctor(EngineSettings settings)&#xD;
+   at LiteDB.ConnectionString.CreateEngine(Action`1 engineSettingsAction)&#xD;
+   at LiteDB.LiteDatabase..ctor(ConnectionString connectionString, BsonMapper mapper)&#xD;
+   at LiteDB.LiteDatabase..ctor(String connectionString, BsonMapper mapper)&#xD;
+   at MouseKeyProxy.Common.LiteDbApplianceConfigStore..ctor(String databasePath) in F:\GitHub\MouseKeyProxy\src\MouseKeyProxy.Common\ApplianceConfigStore.cs:line 118&#xD;
+   at MouseKeyProxy.Service.ServiceHost.&lt;&gt;c.&lt;Build&gt;b__0_2(IServiceProvider _) in F:\GitHub\MouseKeyProxy\src\MouseKeyProxy.Service\ServiceHost.cs:line 142&#xD;
+   at Microsoft.Extensions.DependencyInjection.ServiceLookup.CallSiteRuntimeResolver.VisitRootCache(ServiceCallSite callSite, RuntimeResolverContext context)&#xD;
+   at Microsoft.Extensions.DependencyInjection.ServiceLookup.CallSiteVisitor`2.VisitCallSite(ServiceCallSite callSite, TArgument argument)&#xD;
+   at Microsoft.Extensions.DependencyInjection.ServiceLookup.CallSiteRuntimeResolver.Resolve(ServiceCallSite callSite, ServiceProviderEngineScope scope)&#xD;
+   at Microsoft.Extensions.DependencyInjection.ServiceProvider.CreateServiceAccessor(ServiceIdentifier serviceIdentifier)&#xD;
+   at System.Collections.Concurrent.ConcurrentDictionary`2.GetOrAdd(TKey key, Func`2 valueFactory)&#xD;
+   at Microsoft.Extensions.DependencyInjection.ServiceProvider.GetService(ServiceIdentifier serviceIdentifier, ServiceProviderEngineScope serviceProviderEngineScope)&#xD;
+   at Microsoft.Extensions.DependencyInjection.ServiceLookup.ServiceProviderEngineScope.GetService(Type serviceType)&#xD;
+   at Microsoft.Extensions.DependencyInjection.ServiceProviderServiceExtensions.GetRequiredService(IServiceProvider provider, Type serviceType)&#xD;
+   at Microsoft.Extensions.DependencyInjection.ServiceProviderServiceExtensions.GetRequiredService[T](IServiceProvider provider)&#xD;
+   at MouseKeyProxy.Service.ServiceHost.&lt;&gt;c.&lt;Build&gt;b__0_3(IServiceProvider sp) in F:\GitHub\MouseKeyProxy\src\MouseKeyProxy.Service\ServiceHost.cs:line 152&#xD;
+   at Microsoft.Extensions.DependencyInjection.ServiceLookup.CallSiteRuntimeResolver.VisitRootCache(ServiceCallSite callSite, RuntimeResolverContext context)&#xD;
+   at Microsoft.Extensions.DependencyInjection.ServiceLookup.CallSiteVisitor`2.VisitCallSite(ServiceCallSite callSite, TArgument argument)&#xD;
+   at Microsoft.Extensions.DependencyInjection.ServiceLookup.CallSiteRuntimeResolver.VisitConstructor(ConstructorCallSite constructorCallSite, RuntimeResolverContext context)&#xD;
+   at Microsoft.Extensions.DependencyInjection.ServiceLookup.CallSiteRuntimeResolver.VisitRootCache(ServiceCallSite callSite, RuntimeResolverContext context)&#xD;
+   at Microsoft.Extensions.DependencyInjection.ServiceLookup.CallSiteVisitor`2.VisitCallSite(ServiceCallSite callSite, TArgument argument)&#xD;
+   at Microsoft.Extensions.DependencyInjection.ServiceLookup.CallSiteRuntimeResolver.VisitIEnumerable(IEnumerableCallSite enumerableCallSite, RuntimeResolverContext context)&#xD;
+   at Microsoft.Extensions.DependencyInjection.ServiceLookup.CallSiteRuntimeResolver.VisitRootCache(ServiceCallSite callSite, RuntimeResolverContext context)&#xD;
+   at Microsoft.Extensions.DependencyInjection.ServiceLookup.CallSiteVisitor`2.VisitCallSite(ServiceCallSite callSite, TArgument argument)&#xD;
+   at Microsoft.Extensions.DependencyInjection.ServiceLookup.CallSiteRuntimeResolver.Resolve(ServiceCallSite callSite, ServiceProviderEngineScope scope)&#xD;
+   at Microsoft.Extensions.DependencyInjection.ServiceProvider.CreateServiceAccessor(ServiceIdentifier serviceIdentifier)&#xD;
+   at System.Collections.Concurrent.ConcurrentDictionary`2.GetOrAdd(TKey key, Func`2 valueFactory)&#xD;
+   at Microsoft.Extensions.DependencyInjection.ServiceProvider.GetService(ServiceIdentifier serviceIdentifier, ServiceProviderEngineScope serviceProviderEngineScope)&#xD;
+   at Microsoft.Extensions.DependencyInjection.ServiceProvider.GetService(Type serviceType)&#xD;
+   at Microsoft.Extensions.DependencyInjection.ServiceProviderServiceExtensions.GetRequiredService(IServiceProvider provider, Type serviceType)&#xD;
+   at Microsoft.Extensions.DependencyInjection.ServiceProviderServiceExtensions.GetRequiredService[T](IServiceProvider provider)&#xD;
+   at Microsoft.Extensions.Hosting.Internal.Host.StartAsync(CancellationToken cancellationToken)&#xD;
+   at Microsoft.Extensions.Hosting.Internal.Host.StartAsync(CancellationToken cancellationToken)&#xD;
+   at MouseKeyProxy.Integration.PairingMtlsE2ETests.InitializeAsync() in F:\GitHub\MouseKeyProxy\tests\MouseKeyProxy.Integration\PairingMtlsE2ETests.cs:line 52</StackTrace>
+        </ErrorInfo>
+      </Output>
+    </UnitTestResult>
+    <UnitTestResult executionId="5729fe9e-94a5-4405-8788-6e3fed724f6f" testId="4b01aa3c-4e80-a3da-1a77-e6fe0730df5c" testName="MouseKeyProxy.Integration.PairingMtlsE2ETests.PairedPeer_ChannelOwnsCertificates_AfterSourceCredentialDisposed" computerName="PAYTON-LEGION2" duration="00:00:00.3667949" startTime="2026-09-27T15:23:40.7032985-05:00" endTime="2026-09-27T15:23:41.0872734-05:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Failed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="5729fe9e-94a5-4405-8788-6e3fed724f6f">
+      <Output>
+        <ErrorInfo>
+          <Message>System.IO.IOException : The process cannot access the file 'C:\ProgramData\MouseKeyProxy\mkp\config.db' because it is being used by another process.</Message>
+          <StackTrace>   at Microsoft.Win32.SafeHandles.SafeFileHandle.CreateFile(String fullPath, FileMode mode, FileAccess access, FileShare share, FileOptions options)&#xD;
+   at Microsoft.Win32.SafeHandles.SafeFileHandle.Open(String fullPath, FileMode mode, FileAccess access, FileShare share, FileOptions options, Int64 preallocationSize, Nullable`1 unixCreateMode)&#xD;
+   at System.IO.Strategies.OSFileStreamStrategy..ctor(String path, FileMode mode, FileAccess access, FileShare share, FileOptions options, Int64 preallocationSize, Nullable`1 unixCreateMode)&#xD;
+   at System.IO.Strategies.FileStreamHelpers.ChooseStrategyCore(String path, FileMode mode, FileAccess access, FileShare share, FileOptions options, Int64 preallocationSize, Nullable`1 unixCreateMode)&#xD;
+   at System.IO.FileStream..ctor(String path, FileMode mode, FileAccess access, FileShare share, Int32 bufferSize, FileOptions options, Int64 preallocationSize)&#xD;
+   at System.IO.FileStream..ctor(String path, FileMode mode, FileAccess access, FileShare share, Int32 bufferSize, FileOptions options)&#xD;
+   at LiteDB.Engine.FileStreamFactory.GetStream(Boolean canWrite, Boolean sequencial)&#xD;
+   at LiteDB.Engine.StreamPool.&lt;&gt;c__DisplayClass3_0.&lt;.ctor&gt;b__0()&#xD;
+   at System.Lazy`1.ViaFactory(LazyThreadSafetyMode mode)&#xD;
+   at System.Lazy`1.ExecutionAndPublication(LazyHelper executionAndPublication, Boolean useDefaultConstructor)&#xD;
+   at System.Lazy`1.CreateValue()&#xD;
+   at LiteDB.Engine.DiskService..ctor(EngineSettings settings, EngineState state, Int32[] memorySegmentSizes)&#xD;
+   at LiteDB.Engine.LiteEngine.Open()&#xD;
+   at LiteDB.Engine.LiteEngine..ctor(EngineSettings settings)&#xD;
+   at LiteDB.ConnectionString.CreateEngine(Action`1 engineSettingsAction)&#xD;
+   at LiteDB.LiteDatabase..ctor(ConnectionString connectionString, BsonMapper mapper)&#xD;
+   at LiteDB.LiteDatabase..ctor(String connectionString, BsonMapper mapper)&#xD;
+   at MouseKeyProxy.Common.LiteDbApplianceConfigStore..ctor(String databasePath) in F:\GitHub\MouseKeyProxy\src\MouseKeyProxy.Common\ApplianceConfigStore.cs:line 118&#xD;
+   at MouseKeyProxy.Service.ServiceHost.&lt;&gt;c.&lt;Build&gt;b__0_2(IServiceProvider _) in F:\GitHub\MouseKeyProxy\src\MouseKeyProxy.Service\ServiceHost.cs:line 142&#xD;
+   at Microsoft.Extensions.DependencyInjection.ServiceLookup.CallSiteRuntimeResolver.VisitRootCache(ServiceCallSite callSite, RuntimeResolverContext context)&#xD;
+   at Microsoft.Extensions.DependencyInjection.ServiceLookup.CallSiteVisitor`2.VisitCallSite(ServiceCallSite callSite, TArgument argument)&#xD;
+   at Microsoft.Extensions.DependencyInjection.ServiceLookup.CallSiteRuntimeResolver.Resolve(ServiceCallSite callSite, ServiceProviderEngineScope scope)&#xD;
+   at Microsoft.Extensions.DependencyInjection.ServiceProvider.CreateServiceAccessor(ServiceIdentifier serviceIdentifier)&#xD;
+   at System.Collections.Concurrent.ConcurrentDictionary`2.GetOrAdd(TKey key, Func`2 valueFactory)&#xD;
+   at Microsoft.Extensions.DependencyInjection.ServiceProvider.GetService(ServiceIdentifier serviceIdentifier, ServiceProviderEngineScope serviceProviderEngineScope)&#xD;
+   at Microsoft.Extensions.DependencyInjection.ServiceLookup.ServiceProviderEngineScope.GetService(Type serviceType)&#xD;
+   at Microsoft.Extensions.DependencyInjection.ServiceProviderServiceExtensions.GetRequiredService(IServiceProvider provider, Type serviceType)&#xD;
+   at Microsoft.Extensions.DependencyInjection.ServiceProviderServiceExtensions.GetRequiredService[T](IServiceProvider provider)&#xD;
+   at MouseKeyProxy.Service.ServiceHost.&lt;&gt;c.&lt;Build&gt;b__0_3(IServiceProvider sp) in F:\GitHub\MouseKeyProxy\src\MouseKeyProxy.Service\ServiceHost.cs:line 152&#xD;
+   at Microsoft.Extensions.DependencyInjection.ServiceLookup.CallSiteRuntimeResolver.VisitRootCache(ServiceCallSite callSite, RuntimeResolverContext context)&#xD;
+   at Microsoft.Extensions.DependencyInjection.ServiceLookup.CallSiteVisitor`2.VisitCallSite(ServiceCallSite callSite, TArgument argument)&#xD;
+   at Microsoft.Extensions.DependencyInjection.ServiceLookup.CallSiteRuntimeResolver.VisitConstructor(ConstructorCallSite constructorCallSite, RuntimeResolverContext context)&#xD;
+   at Microsoft.Extensions.DependencyInjection.ServiceLookup.CallSiteRuntimeResolver.VisitRootCache(ServiceCallSite callSite, RuntimeResolverContext context)&#xD;
+   at Microsoft.Extensions.DependencyInjection.ServiceLookup.CallSiteVisitor`2.VisitCallSite(ServiceCallSite callSite, TArgument argument)&#xD;
+   at Microsoft.Extensions.DependencyInjection.ServiceLookup.CallSiteRuntimeResolver.VisitIEnumerable(IEnumerableCallSite enumerableCallSite, RuntimeResolverContext context)&#xD;
+   at Microsoft.Extensions.DependencyInjection.ServiceLookup.CallSiteRuntimeResolver.VisitRootCache(ServiceCallSite callSite, RuntimeResolverContext context)&#xD;
+   at Microsoft.Extensions.DependencyInjection.ServiceLookup.CallSiteVisitor`2.VisitCallSite(ServiceCallSite callSite, TArgument argument)&#xD;
+   at Microsoft.Extensions.DependencyInjection.ServiceLookup.CallSiteRuntimeResolver.Resolve(ServiceCallSite callSite, ServiceProviderEngineScope scope)&#xD;
+   at Microsoft.Extensions.DependencyInjection.ServiceProvider.CreateServiceAccessor(ServiceIdentifier serviceIdentifier)&#xD;
+   at System.Collections.Concurrent.ConcurrentDictionary`2.GetOrAdd(TKey key, Func`2 valueFactory)&#xD;
+   at Microsoft.Extensions.DependencyInjection.ServiceProvider.GetService(ServiceIdentifier serviceIdentifier, ServiceProviderEngineScope serviceProviderEngineScope)&#xD;
+   at Microsoft.Extensions.DependencyInjection.ServiceProvider.GetService(Type serviceType)&#xD;
+   at Microsoft.Extensions.DependencyInjection.ServiceProviderServiceExtensions.GetRequiredService(IServiceProvider provider, Type serviceType)&#xD;
+   at Microsoft.Extensions.DependencyInjection.ServiceProviderServiceExtensions.GetRequiredService[T](IServiceProvider provider)&#xD;
+   at Microsoft.Extensions.Hosting.Internal.Host.StartAsync(CancellationToken cancellationToken)&#xD;
+   at Microsoft.Extensions.Hosting.Internal.Host.StartAsync(CancellationToken cancellationToken)&#xD;
+   at MouseKeyProxy.Integration.PairingMtlsE2ETests.InitializeAsync() in F:\GitHub\MouseKeyProxy\tests\MouseKeyProxy.Integration\PairingMtlsE2ETests.cs:line 52</StackTrace>
+        </ErrorInfo>
+      </Output>
+    </UnitTestResult>
+  </Results>
+  <TestDefinitions>
+    <UnitTest name="MouseKeyProxy.Integration.PairingMtlsE2ETests.PairedPeer_ChannelOwnsCertificates_AfterSourceCredentialDisposed" storage="f:\github\mousekeyproxy\tests\mousekeyproxy.integration\bin\release\net10.0\mousekeyproxy.integration.dll" id="4b01aa3c-4e80-a3da-1a77-e6fe0730df5c">
+      <Execution id="5729fe9e-94a5-4405-8788-6e3fed724f6f" />
+      <TestMethod codeBase="F:\GitHub\MouseKeyProxy\tests\MouseKeyProxy.Integration\bin\Release\net10.0\MouseKeyProxy.Integration.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="MouseKeyProxy.Integration.PairingMtlsE2ETests" name="PairedPeer_ChannelOwnsCertificates_AfterSourceCredentialDisposed" />
+    </UnitTest>
+    <UnitTest name="MouseKeyProxy.Integration.PairingMtlsE2ETests.PairedPeer_ChannelDisposal_PreservesSourceCredential" storage="f:\github\mousekeyproxy\tests\mousekeyproxy.integration\bin\release\net10.0\mousekeyproxy.integration.dll" id="c68a4101-0eb3-ba54-a9ba-b6e78b641a03">
+      <Execution id="5630ca0a-294c-408c-8ffe-a95eb3a64881" />
+      <TestMethod codeBase="F:\GitHub\MouseKeyProxy\tests\MouseKeyProxy.Integration\bin\Release\net10.0\MouseKeyProxy.Integration.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="MouseKeyProxy.Integration.PairingMtlsE2ETests" name="PairedPeer_ChannelDisposal_PreservesSourceCredential" />
+    </UnitTest>
+  </TestDefinitions>
+  <TestEntries>
+    <TestEntry testId="c68a4101-0eb3-ba54-a9ba-b6e78b641a03" executionId="5630ca0a-294c-408c-8ffe-a95eb3a64881" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="4b01aa3c-4e80-a3da-1a77-e6fe0730df5c" executionId="5729fe9e-94a5-4405-8788-6e3fed724f6f" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+  </TestEntries>
+  <TestLists>
+    <TestList name="Results Not in a List" id="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestList name="All Loaded Results" id="19431567-8539-422a-85d7-44ee4e166bda" />
+  </TestLists>
+  <ResultSummary outcome="Failed">
+    <Counters total="2" executed="2" passed="0" failed="2" error="0" timeout="0" aborted="0" inconclusive="0" passedButRunAborted="0" notRunnable="0" notExecuted="0" disconnected="0" warning="0" completed="0" inProgress="0" pending="0" />
+    <Output>
+      <StdOut>[xUnit.net 00:00:00.00] xUnit.net VSTest Adapter v3.1.4+50e68bbb8b (64-bit .NET 10.0.12)&#xD;
+[xUnit.net 00:00:00.26]   Discovering: MouseKeyProxy.Integration&#xD;
+[xUnit.net 00:00:00.55]   Discovered:  MouseKeyProxy.Integration&#xD;
+[xUnit.net 00:00:00.78]   Starting:    MouseKeyProxy.Integration&#xD;
+[xUnit.net 00:00:01.22]       System.IO.IOException : The process cannot access the file 'C:\ProgramData\MouseKeyProxy\mkp\config.db' because it is being used by another process.&#xD;
+[xUnit.net 00:00:01.22]       Stack Trace:&#xD;
+[xUnit.net 00:00:01.22]            at Microsoft.Win32.SafeHandles.SafeFileHandle.CreateFile(String fullPath, FileMode mode, FileAccess access, FileShare share, FileOptions options)&#xD;
+[xUnit.net 00:00:01.22]            at Microsoft.Win32.SafeHandles.SafeFileHandle.Open(String fullPath, FileMode mode, FileAccess access, FileShare share, FileOptions options, Int64 preallocationSize, Nullable`1 unixCreateMode)&#xD;
+[xUnit.net 00:00:01.22]            at System.IO.Strategies.OSFileStreamStrategy..ctor(String path, FileMode mode, FileAccess access, FileShare share, FileOptions options, Int64 preallocationSize, Nullable`1 unixCreateMode)&#xD;
+[xUnit.net 00:00:01.22]            at System.IO.Strategies.FileStreamHelpers.ChooseStrategyCore(String path, FileMode mode, FileAccess access, FileShare share, FileOptions options, Int64 preallocationSize, Nullable`1 unixCreateMode)&#xD;
+[xUnit.net 00:00:01.22]            at System.IO.FileStream..ctor(String path, FileMode mode, FileAccess access, FileShare share, Int32 bufferSize, FileOptions options, Int64 preallocationSize)&#xD;
+[xUnit.net 00:00:01.22]            at System.IO.FileStream..ctor(String path, FileMode mode, FileAccess access, FileShare share, Int32 bufferSize, FileOptions options)&#xD;
+[xUnit.net 00:00:01.22]            at LiteDB.Engine.FileStreamFactory.GetStream(Boolean canWrite, Boolean sequencial)&#xD;
+[xUnit.net 00:00:01.22]            at LiteDB.Engine.StreamPool.&lt;&gt;c__DisplayClass3_0.&lt;.ctor&gt;b__0()&#xD;
+[xUnit.net 00:00:01.22]            at System.Lazy`1.ViaFactory(LazyThreadSafetyMode mode)&#xD;
+[xUnit.net 00:00:01.22]            at System.Lazy`1.ExecutionAndPublication(LazyHelper executionAndPublication, Boolean useDefaultConstructor)&#xD;
+[xUnit.net 00:00:01.22]            at System.Lazy`1.CreateValue()&#xD;
+[xUnit.net 00:00:01.22]            at LiteDB.Engine.DiskService..ctor(EngineSettings settings, EngineState state, Int32[] memorySegmentSizes)&#xD;
+[xUnit.net 00:00:01.22]            at LiteDB.Engine.LiteEngine.Open()&#xD;
+[xUnit.net 00:00:01.22]            at LiteDB.Engine.LiteEngine..ctor(EngineSettings settings)&#xD;
+[xUnit.net 00:00:01.22]            at LiteDB.ConnectionString.CreateEngine(Action`1 engineSettingsAction)&#xD;
+[xUnit.net 00:00:01.22]            at LiteDB.LiteDatabase..ctor(ConnectionString connectionString, BsonMapper mapper)&#xD;
+[xUnit.net 00:00:01.22]            at LiteDB.LiteDatabase..ctor(String connectionString, BsonMapper mapper)&#xD;
+[xUnit.net 00:00:01.22]         F:\GitHub\MouseKeyProxy\src\MouseKeyProxy.Common\ApplianceConfigStore.cs(118,0): at MouseKeyProxy.Common.LiteDbApplianceConfigStore..ctor(String databasePath)&#xD;
+[xUnit.net 00:00:01.22]         F:\GitHub\MouseKeyProxy\src\MouseKeyProxy.Service\ServiceHost.cs(142,0): at MouseKeyProxy.Service.ServiceHost.&lt;&gt;c.&lt;Build&gt;b__0_2(IServiceProvider _)&#xD;
+[xUnit.net 00:00:01.22]            at Microsoft.Extensions.DependencyInjection.ServiceLookup.CallSiteRuntimeResolver.VisitRootCache(ServiceCallSite callSite, RuntimeResolverContext context)&#xD;
+[xUnit.net 00:00:01.22]            at Microsoft.Extensions.DependencyInjection.ServiceLookup.CallSiteVisitor`2.VisitCallSite(ServiceCallSite callSite, TArgument argument)&#xD;
+[xUnit.net 00:00:01.22]            at Microsoft.Extensions.DependencyInjection.ServiceLookup.CallSiteRuntimeResolver.Resolve(ServiceCallSite callSite, ServiceProviderEngineScope scope)&#xD;
+[xUnit.net 00:00:01.22]            at Microsoft.Extensions.DependencyInjection.ServiceProvider.CreateServiceAccessor(ServiceIdentifier serviceIdentifier)&#xD;
+[xUnit.net 00:00:01.22]            at System.Collections.Concurrent.ConcurrentDictionary`2.GetOrAdd(TKey key, Func`2 valueFactory)&#xD;
+[xUnit.net 00:00:01.22]            at Microsoft.Extensions.DependencyInjection.ServiceProvider.GetService(ServiceIdentifier serviceIdentifier, ServiceProviderEngineScope serviceProviderEngineScope)&#xD;
+[xUnit.net 00:00:01.22]            at Microsoft.Extensions.DependencyInjection.ServiceLookup.ServiceProviderEngineScope.GetService(Type serviceType)&#xD;
+[xUnit.net 00:00:01.22]            at Microsoft.Extensions.DependencyInjection.ServiceProviderServiceExtensions.GetRequiredService(IServiceProvider provider, Type serviceType)&#xD;
+[xUnit.net 00:00:01.22]            at Microsoft.Extensions.DependencyInjection.ServiceProviderServiceExtensions.GetRequiredService[T](IServiceProvider provider)&#xD;
+[xUnit.net 00:00:01.22]         F:\GitHub\MouseKeyProxy\src\MouseKeyProxy.Service\ServiceHost.cs(152,0): at MouseKeyProxy.Service.ServiceHost.&lt;&gt;c.&lt;Build&gt;b__0_3(IServiceProvider sp)&#xD;
+[xUnit.net 00:00:01.22]            at Microsoft.Extensions.DependencyInjection.ServiceLookup.CallSiteRuntimeResolver.VisitRootCache(ServiceCallSite callSite, RuntimeResolverContext context)&#xD;
+[xUnit.net 00:00:01.22]            at Microsoft.Extensions.DependencyInjection.ServiceLookup.CallSiteVisitor`2.VisitCallSite(ServiceCallSite callSite, TArgument argument)&#xD;
+[xUnit.net 00:00:01.22]            at Microsoft.Extensions.DependencyInjection.ServiceLookup.CallSiteRuntimeResolver.VisitConstructor(ConstructorCallSite constructorCallSite, RuntimeResolverContext context)&#xD;
+[xUnit.net 00:00:01.22]            at Microsoft.Extensions.DependencyInjection.ServiceLookup.CallSiteRuntimeResolver.VisitRootCache(ServiceCallSite callSite, RuntimeResolverContext context)&#xD;
+[xUnit.net 00:00:01.22]            at Microsoft.Extensions.DependencyInjection.ServiceLookup.CallSiteVisitor`2.VisitCallSite(ServiceCallSite callSite, TArgument argument)&#xD;
+[xUnit.net 00:00:01.22]            at Microsoft.Extensions.DependencyInjection.ServiceLookup.CallSiteRuntimeResolver.VisitIEnumerable(IEnumerableCallSite enumerableCallSite, RuntimeResolverContext context)&#xD;
+[xUnit.net 00:00:01.22]            at Microsoft.Extensions.DependencyInjection.ServiceLookup.CallSiteRuntimeResolver.VisitRootCache(ServiceCallSite callSite, RuntimeResolverContext context)&#xD;
+[xUnit.net 00:00:01.22]            at Microsoft.Extensions.DependencyInjection.ServiceLookup.CallSiteVisitor`2.VisitCallSite(ServiceCallSite callSite, TArgument argument)&#xD;
+[xUnit.net 00:00:01.22]            at Microsoft.Extensions.DependencyInjection.ServiceLookup.CallSiteRuntimeResolver.Resolve(ServiceCallSite callSite, ServiceProviderEngineScope scope)&#xD;
+[xUnit.net 00:00:01.22]            at Microsoft.Extensions.DependencyInjection.ServiceProvider.CreateServiceAccessor(ServiceIdentifier serviceIdentifier)&#xD;
+[xUnit.net 00:00:01.22]            at System.Collections.Concurrent.ConcurrentDictionary`2.GetOrAdd(TKey key, Func`2 valueFactory)&#xD;
+[xUnit.net 00:00:01.22]            at Microsoft.Extensions.DependencyInjection.ServiceProvider.GetService(ServiceIdentifier serviceIdentifier, ServiceProviderEngineScope serviceProviderEngineScope)&#xD;
+[xUnit.net 00:00:01.23]            at Microsoft.Extensions.DependencyInjection.ServiceProvider.GetService(Type serviceType)&#xD;
+[xUnit.net 00:00:01.23]            at Microsoft.Extensions.DependencyInjection.ServiceProviderServiceExtensions.GetRequiredService(IServiceProvider provider, Type serviceType)&#xD;
+[xUnit.net 00:00:01.23]            at Microsoft.Extensions.DependencyInjection.ServiceProviderServiceExtensions.GetRequiredService[T](IServiceProvider provider)&#xD;
+[xUnit.net 00:00:01.23]            at Microsoft.Extensions.Hosting.Internal.Host.StartAsync(CancellationToken cancellationToken)&#xD;
+[xUnit.net 00:00:01.23]            at Microsoft.Extensions.Hosting.Internal.Host.StartAsync(CancellationToken cancellationToken)&#xD;
+[xUnit.net 00:00:01.23]         F:\GitHub\MouseKeyProxy\tests\MouseKeyProxy.Integration\PairingMtlsE2ETests.cs(52,0): at MouseKeyProxy.Integration.PairingMtlsE2ETests.InitializeAsync()&#xD;
+[xUnit.net 00:00:01.27]       System.IO.IOException : The process cannot access the file 'C:\ProgramData\MouseKeyProxy\mkp\config.db' because it is being used by another process.&#xD;
+[xUnit.net 00:00:01.27]       Stack Trace:&#xD;
+[xUnit.net 00:00:01.27]            at Microsoft.Win32.SafeHandles.SafeFileHandle.CreateFile(String fullPath, FileMode mode, FileAccess access, FileShare share, FileOptions options)&#xD;
+[xUnit.net 00:00:01.27]            at Microsoft.Win32.SafeHandles.SafeFileHandle.Open(String fullPath, FileMode mode, FileAccess access, FileShare share, FileOptions options, Int64 preallocationSize, Nullable`1 unixCreateMode)&#xD;
+[xUnit.net 00:00:01.27]            at System.IO.Strategies.OSFileStreamStrategy..ctor(String path, FileMode mode, FileAccess access, FileShare share, FileOptions options, Int64 preallocationSize, Nullable`1 unixCreateMode)&#xD;
+[xUnit.net 00:00:01.27]            at System.IO.Strategies.FileStreamHelpers.ChooseStrategyCore(String path, FileMode mode, FileAccess access, FileShare share, FileOptions options, Int64 preallocationSize, Nullable`1 unixCreateMode)&#xD;
+[xUnit.net 00:00:01.27]            at System.IO.FileStream..ctor(String path, FileMode mode, FileAccess access, FileShare share, Int32 bufferSize, FileOptions options, Int64 preallocationSize)&#xD;
+[xUnit.net 00:00:01.27]            at System.IO.FileStream..ctor(String path, FileMode mode, FileAccess access, FileShare share, Int32 bufferSize, FileOptions options)&#xD;
+[xUnit.net 00:00:01.27]            at LiteDB.Engine.FileStreamFactory.GetStream(Boolean canWrite, Boolean sequencial)&#xD;
+[xUnit.net 00:00:01.27]            at LiteDB.Engine.StreamPool.&lt;&gt;c__DisplayClass3_0.&lt;.ctor&gt;b__0()&#xD;
+[xUnit.net 00:00:01.27]            at System.Lazy`1.ViaFactory(LazyThreadSafetyMode mode)&#xD;
+[xUnit.net 00:00:01.27]            at System.Lazy`1.ExecutionAndPublication(LazyHelper executionAndPublication, Boolean useDefaultConstructor)&#xD;
+[xUnit.net 00:00:01.27]            at System.Lazy`1.CreateValue()&#xD;
+[xUnit.net 00:00:01.27]            at LiteDB.Engine.DiskService..ctor(EngineSettings settings, EngineState state, Int32[] memorySegmentSizes)&#xD;
+[xUnit.net 00:00:01.27]            at LiteDB.Engine.LiteEngine.Open()&#xD;
+[xUnit.net 00:00:01.27]            at LiteDB.Engine.LiteEngine..ctor(EngineSettings settings)&#xD;
+[xUnit.net 00:00:01.27]            at LiteDB.ConnectionString.CreateEngine(Action`1 engineSettingsAction)&#xD;
+[xUnit.net 00:00:01.27]            at LiteDB.LiteDatabase..ctor(ConnectionString connectionString, BsonMapper mapper)&#xD;
+[xUnit.net 00:00:01.27]            at LiteDB.LiteDatabase..ctor(String connectionString, BsonMapper mapper)&#xD;
+[xUnit.net 00:00:01.27]         F:\GitHub\MouseKeyProxy\src\MouseKeyProxy.Common\ApplianceConfigStore.cs(118,0): at MouseKeyProxy.Common.LiteDbApplianceConfigStore..ctor(String databasePath)&#xD;
+[xUnit.net 00:00:01.27]         F:\GitHub\MouseKeyProxy\src\MouseKeyProxy.Service\ServiceHost.cs(142,0): at MouseKeyProxy.Service.ServiceHost.&lt;&gt;c.&lt;Build&gt;b__0_2(IServiceProvider _)&#xD;
+[xUnit.net 00:00:01.27]            at Microsoft.Extensions.DependencyInjection.ServiceLookup.CallSiteRuntimeResolver.VisitRootCache(ServiceCallSite callSite, RuntimeResolverContext context)&#xD;
+[xUnit.net 00:00:01.27]            at Microsoft.Extensions.DependencyInjection.ServiceLookup.CallSiteVisitor`2.VisitCallSite(ServiceCallSite callSite, TArgument argument)&#xD;
+[xUnit.net 00:00:01.27]            at Microsoft.Extensions.DependencyInjection.ServiceLookup.CallSiteRuntimeResolver.Resolve(ServiceCallSite callSite, ServiceProviderEngineScope scope)&#xD;
+[xUnit.net 00:00:01.27]            at Microsoft.Extensions.DependencyInjection.ServiceProvider.CreateServiceAccessor(ServiceIdentifier serviceIdentifier)&#xD;
+[xUnit.net 00:00:01.27]            at System.Collections.Concurrent.ConcurrentDictionary`2.GetOrAdd(TKey key, Func`2 valueFactory)&#xD;
+[xUnit.net 00:00:01.27]            at Microsoft.Extensions.DependencyInjection.ServiceProvider.GetService(ServiceIdentifier serviceIdentifier, ServiceProviderEngineScope serviceProviderEngineScope)&#xD;
+[xUnit.net 00:00:01.27]            at Microsoft.Extensions.DependencyInjection.ServiceLookup.ServiceProviderEngineScope.GetService(Type serviceType)&#xD;
+[xUnit.net 00:00:01.27]            at Microsoft.Extensions.DependencyInjection.ServiceProviderServiceExtensions.GetRequiredService(IServiceProvider provider, Type serviceType)&#xD;
+[xUnit.net 00:00:01.27]            at Microsoft.Extensions.DependencyInjection.ServiceProviderServiceExtensions.GetRequiredService[T](IServiceProvider provider)&#xD;
+[xUnit.net 00:00:01.27]         F:\GitHub\MouseKeyProxy\src\MouseKeyProxy.Service\ServiceHost.cs(152,0): at MouseKeyProxy.Service.ServiceHost.&lt;&gt;c.&lt;Build&gt;b__0_3(IServiceProvider sp)&#xD;
+[xUnit.net 00:00:01.27]            at Microsoft.Extensions.DependencyInjection.ServiceLookup.CallSiteRuntimeResolver.VisitRootCache(ServiceCallSite callSite, RuntimeResolverContext context)&#xD;
+[xUnit.net 00:00:01.27]            at Microsoft.Extensions.DependencyInjection.ServiceLookup.CallSiteVisitor`2.VisitCallSite(ServiceCallSite callSite, TArgument argument)&#xD;
+[xUnit.net 00:00:01.27]            at Microsoft.Extensions.DependencyInjection.ServiceLookup.CallSiteRuntimeResolver.VisitConstructor(ConstructorCallSite constructorCallSite, RuntimeResolverContext context)&#xD;
+[xUnit.net 00:00:01.27]            at Microsoft.Extensions.DependencyInjection.ServiceLookup.CallSiteRuntimeResolver.VisitRootCache(ServiceCallSite callSite, RuntimeResolverContext context)&#xD;
+[xUnit.net 00:00:01.27]            at Microsoft.Extensions.DependencyInjection.ServiceLookup.CallSiteVisitor`2.VisitCallSite(ServiceCallSite callSite, TArgument argument)&#xD;
+[xUnit.net 00:00:01.27]            at Microsoft.Extensions.DependencyInjection.ServiceLookup.CallSiteRuntimeResolver.VisitIEnumerable(IEnumerableCallSite enumerableCallSite, RuntimeResolverContext context)&#xD;
+[xUnit.net 00:00:01.27]            at Microsoft.Extensions.DependencyInjection.ServiceLookup.CallSiteRuntimeResolver.VisitRootCache(ServiceCallSite callSite, RuntimeResolverContext context)&#xD;
+[xUnit.net 00:00:01.27]            at Microsoft.Extensions.DependencyInjection.ServiceLookup.CallSiteVisitor`2.VisitCallSite(ServiceCallSite callSite, TArgument argument)&#xD;
+[xUnit.net 00:00:01.27]            at Microsoft.Extensions.DependencyInjection.ServiceLookup.CallSiteRuntimeResolver.Resolve(ServiceCallSite callSite, ServiceProviderEngineScope scope)&#xD;
+[xUnit.net 00:00:01.27]            at Microsoft.Extensions.DependencyInjection.ServiceProvider.CreateServiceAccessor(ServiceIdentifier serviceIdentifier)&#xD;
+[xUnit.net 00:00:01.27]            at System.Collections.Concurrent.ConcurrentDictionary`2.GetOrAdd(TKey key, Func`2 valueFactory)&#xD;
+[xUnit.net 00:00:01.27]            at Microsoft.Extensions.DependencyInjection.ServiceProvider.GetService(ServiceIdentifier serviceIdentifier, ServiceProviderEngineScope serviceProviderEngineScope)&#xD;
+[xUnit.net 00:00:01.27]            at Microsoft.Extensions.DependencyInjection.ServiceProvider.GetService(Type serviceType)&#xD;
+[xUnit.net 00:00:01.27]            at Microsoft.Extensions.DependencyInjection.ServiceProviderServiceExtensions.GetRequiredService(IServiceProvider provider, Type serviceType)&#xD;
+[xUnit.net 00:00:01.27]            at Microsoft.Extensions.DependencyInjection.ServiceProviderServiceExtensions.GetRequiredService[T](IServiceProvider provider)&#xD;
+[xUnit.net 00:00:01.27]            at Microsoft.Extensions.Hosting.Internal.Host.StartAsync(CancellationToken cancellationToken)&#xD;
+[xUnit.net 00:00:01.27]            at Microsoft.Extensions.Hosting.Internal.Host.StartAsync(CancellationToken cancellationToken)&#xD;
+[xUnit.net 00:00:01.27]         F:\GitHub\MouseKeyProxy\tests\MouseKeyProxy.Integration\PairingMtlsE2ETests.cs(52,0): at MouseKeyProxy.Integration.PairingMtlsE2ETests.InitializeAsync()&#xD;
+[xUnit.net 00:00:01.29]   Finished:    MouseKeyProxy.Integration&#xD;
+</StdOut>
+    </Output>
+    <RunInfos>
+      <RunInfo computerName="PAYTON-LEGION2" outcome="Error" timestamp="2026-09-27T15:23:41.0951658-05:00">
+        <Text>[xUnit.net 00:00:01.22]     MouseKeyProxy.Integration.PairingMtlsE2ETests.PairedPeer_ChannelOwnsCertificates_AfterSourceCredentialDisposed [FAIL]</Text>
+      </RunInfo>
+      <RunInfo computerName="PAYTON-LEGION2" outcome="Error" timestamp="2026-09-27T15:23:41.1475468-05:00">
+        <Text>[xUnit.net 00:00:01.27]     MouseKeyProxy.Integration.PairingMtlsE2ETests.PairedPeer_ChannelDisposal_PreservesSourceCredential [FAIL]</Text>
+      </RunInfo>
+    </RunInfos>
+  </ResultSummary>
+</TestRun>

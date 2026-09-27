@@ -1,0 +1,55 @@
+PowerShell Core version 7.6.6
+Microsoft (R) .NET SDK version 10.0.401
+F:\GitHub\MouseKeyProxy\build\MouseKeyProxy.Build.csproj : warning NU1903: Package 'System.Security.Cryptography.Xml' 10.0.9 has a known high severity vulnerability, https://github.com/advisories/GHSA-23rf-6693-g89p
+F:\GitHub\MouseKeyProxy\build\MouseKeyProxy.Build.csproj : warning NU1903: Package 'System.Security.Cryptography.Xml' 10.0.9 has a known high severity vulnerability, https://github.com/advisories/GHSA-8q5v-6pqq-x66h
+F:\GitHub\MouseKeyProxy\build\MouseKeyProxy.Build.csproj : warning NU1903: Package 'System.Security.Cryptography.Xml' 10.0.9 has a known high severity vulnerability, https://github.com/advisories/GHSA-cvvh-rhrc-wg4q
+F:\GitHub\MouseKeyProxy\build\MouseKeyProxy.Build.csproj : warning NU1903: Package 'System.Security.Cryptography.Xml' 10.0.9 has a known high severity vulnerability, https://github.com/advisories/GHSA-g8r8-53c2-pm3f
+F:\GitHub\MouseKeyProxy\build\MouseKeyProxy.Build.csproj : warning NU1903: Package 'System.Security.Cryptography.Xml' 10.0.9 has a known high severity vulnerability, https://github.com/advisories/GHSA-mmjf-rqrv-855v
+F:\GitHub\MouseKeyProxy\build\MouseKeyProxy.Build.csproj : warning NU1903: Package 'System.Security.Cryptography.Xml' 10.0.9 has a known high severity vulnerability, https://github.com/advisories/GHSA-23rf-6693-g89p
+F:\GitHub\MouseKeyProxy\build\MouseKeyProxy.Build.csproj : warning NU1903: Package 'System.Security.Cryptography.Xml' 10.0.9 has a known high severity vulnerability, https://github.com/advisories/GHSA-8q5v-6pqq-x66h
+F:\GitHub\MouseKeyProxy\build\MouseKeyProxy.Build.csproj : warning NU1903: Package 'System.Security.Cryptography.Xml' 10.0.9 has a known high severity vulnerability, https://github.com/advisories/GHSA-cvvh-rhrc-wg4q
+F:\GitHub\MouseKeyProxy\build\MouseKeyProxy.Build.csproj : warning NU1903: Package 'System.Security.Cryptography.Xml' 10.0.9 has a known high severity vulnerability, https://github.com/advisories/GHSA-g8r8-53c2-pm3f
+F:\GitHub\MouseKeyProxy\build\MouseKeyProxy.Build.csproj : warning NU1903: Package 'System.Security.Cryptography.Xml' 10.0.9 has a known high severity vulnerability, https://github.com/advisories/GHSA-mmjf-rqrv-855v
+
+Build succeeded.
+
+F:\GitHub\MouseKeyProxy\build\MouseKeyProxy.Build.csproj : warning NU1903: Package 'System.Security.Cryptography.Xml' 10.0.9 has a known high severity vulnerability, https://github.com/advisories/GHSA-23rf-6693-g89p
+F:\GitHub\MouseKeyProxy\build\MouseKeyProxy.Build.csproj : warning NU1903: Package 'System.Security.Cryptography.Xml' 10.0.9 has a known high severity vulnerability, https://github.com/advisories/GHSA-8q5v-6pqq-x66h
+F:\GitHub\MouseKeyProxy\build\MouseKeyProxy.Build.csproj : warning NU1903: Package 'System.Security.Cryptography.Xml' 10.0.9 has a known high severity vulnerability, https://github.com/advisories/GHSA-cvvh-rhrc-wg4q
+F:\GitHub\MouseKeyProxy\build\MouseKeyProxy.Build.csproj : warning NU1903: Package 'System.Security.Cryptography.Xml' 10.0.9 has a known high severity vulnerability, https://github.com/advisories/GHSA-g8r8-53c2-pm3f
+F:\GitHub\MouseKeyProxy\build\MouseKeyProxy.Build.csproj : warning NU1903: Package 'System.Security.Cryptography.Xml' 10.0.9 has a known high severity vulnerability, https://github.com/advisories/GHSA-mmjf-rqrv-855v
+F:\GitHub\MouseKeyProxy\build\MouseKeyProxy.Build.csproj : warning NU1903: Package 'System.Security.Cryptography.Xml' 10.0.9 has a known high severity vulnerability, https://github.com/advisories/GHSA-23rf-6693-g89p
+F:\GitHub\MouseKeyProxy\build\MouseKeyProxy.Build.csproj : warning NU1903: Package 'System.Security.Cryptography.Xml' 10.0.9 has a known high severity vulnerability, https://github.com/advisories/GHSA-8q5v-6pqq-x66h
+F:\GitHub\MouseKeyProxy\build\MouseKeyProxy.Build.csproj : warning NU1903: Package 'System.Security.Cryptography.Xml' 10.0.9 has a known high severity vulnerability, https://github.com/advisories/GHSA-cvvh-rhrc-wg4q
+F:\GitHub\MouseKeyProxy\build\MouseKeyProxy.Build.csproj : warning NU1903: Package 'System.Security.Cryptography.Xml' 10.0.9 has a known high severity vulnerability, https://github.com/advisories/GHSA-g8r8-53c2-pm3f
+F:\GitHub\MouseKeyProxy\build\MouseKeyProxy.Build.csproj : warning NU1903: Package 'System.Security.Cryptography.Xml' 10.0.9 has a known high severity vulnerability, https://github.com/advisories/GHSA-mmjf-rqrv-855v
+    10 Warning(s)
+    0 Error(s)
+
+Time Elapsed 00:00:01.66
+​
+███╗   ██╗██╗   ██╗██╗  ██╗███████╗
+████╗  ██║██║   ██║██║ ██╔╝██╔════╝
+██╔██╗ ██║██║   ██║█████╔╝ █████╗  
+██║╚██╗██║██║   ██║██╔═██╗ ██╔══╝  
+██║ ╚████║╚██████╔╝██║  ██╗███████╗
+╚═╝  ╚═══╝ ╚═════╝ ╚═╝  ╚═╝╚══════╝
+​
+NUKE Execution Engine version 9.0.4 (Windows,.NETCoreApp,Version=v10.0)
+​
+​
+╬═════════════════════════
+║ ValidateTraceability
+╬════════════════
+​
+Traceability OK: 91 defined requirement IDs; 91 matrix rows validated.
+​
+════════════════════════════════════════════
+Target                  Status      Duration
+────────────────────────────────────────────
+ValidateTraceability    Succeeded     < 1sec
+────────────────────────────────────────────
+Total                                 < 1sec
+════════════════════════════════════════════
+​
+Build succeeded on 9/27/2026 4:49:08 PM. ＼（＾ᴗ＾）／

@@ -104,6 +104,7 @@ public class ServiceContractTests
         Assert.Contains(runner.Calls, c => c.FileName == "netsh" && c.Arguments.Contains("delete rule"));
     }
 
+    /// <summary>Missing service payload must fail before any process or install-directory mutation.</summary>
     [Fact]
     [Trait("Category", "ServiceContract")]
     public void TEST_MKP_007_Install_Fails_When_Service_Payload_Missing()
@@ -124,7 +125,8 @@ public class ServiceContractTests
         Assert.False(result.Success);
         Assert.Equal(3, result.ExitCode);
         Assert.Empty(result.CopiedFiles);
-        Assert.DoesNotContain(runner.Calls, c => c.FileName == "sc.exe");
+        Assert.Empty(runner.Calls);
+        Assert.False(Directory.Exists(root.InstallDir));
         Assert.DoesNotContain(logs, l => l.Contains("Service installed.", StringComparison.Ordinal));
     }
 

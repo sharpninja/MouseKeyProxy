@@ -1,0 +1,76 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TestRun id="15f37684-404a-4d9b-b7b2-83dc6508a991" name="SYSTEM@PAYTON-LEGION2 2026-09-27 15:37:54" runUser="PAYTON-LEGION2\kingd" xmlns="http://microsoft.com/schemas/VisualStudio/TeamTest/2010">
+  <Times creation="2026-09-27T15:37:54.6682866-05:00" queuing="2026-09-27T15:37:54.6682871-05:00" start="2026-09-27T15:37:51.4959202-05:00" finish="2026-09-27T15:37:54.6740679-05:00" />
+  <TestSettings name="default" id="31cbbc43-6776-4720-9b03-1be57057e59e">
+    <Deployment runDeploymentRoot="SYSTEM_PAYTON-LEGION2_2026-09-27_15_37_54" />
+  </TestSettings>
+  <Results>
+    <UnitTestResult executionId="b6886ff4-8e48-49e2-b764-cad9b9b7bf84" testId="7518c014-b05e-3294-e352-cbac16fa96f6" testName="MouseKeyProxy.Integration.PairingMtlsE2ETests.PairedPeer_InjectInput_Succeeds" computerName="PAYTON-LEGION2" duration="00:00:00.1491406" startTime="2026-09-27T15:37:53.5899882-05:00" endTime="2026-09-27T15:37:53.7392234-05:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="b6886ff4-8e48-49e2-b764-cad9b9b7bf84" />
+    <UnitTestResult executionId="250eaa64-4282-40be-971e-e661e41acb6c" testId="792a27bd-3979-6600-5d69-610e42441df6" testName="MouseKeyProxy.Integration.PairingMtlsE2ETests.RevokedPeer_InjectInput_IsRejected" computerName="PAYTON-LEGION2" duration="00:00:00.1253868" startTime="2026-09-27T15:37:54.4297686-05:00" endTime="2026-09-27T15:37:54.5552016-05:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="250eaa64-4282-40be-971e-e661e41acb6c" />
+    <UnitTestResult executionId="35980389-9952-44fc-97d6-34dbbd00bded" testId="6415edd0-b036-ea08-0900-3e1f5320abe7" testName="MouseKeyProxy.Integration.PairingMtlsE2ETests.PairedPeer_OpenSession_VersionMismatch_IsRejected" computerName="PAYTON-LEGION2" duration="00:00:00.1852729" startTime="2026-09-27T15:37:53.7397308-05:00" endTime="2026-09-27T15:37:53.9250625-05:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="35980389-9952-44fc-97d6-34dbbd00bded" />
+    <UnitTestResult executionId="63f11547-9594-424c-ab95-aefc107c1d17" testId="e2820138-6b11-287f-a906-9c47f41ab0c0" testName="MouseKeyProxy.Integration.PairingMtlsE2ETests.Unpaired_InjectInput_IsRejected" computerName="PAYTON-LEGION2" duration="00:00:00.0673237" startTime="2026-09-27T15:37:54.2309965-05:00" endTime="2026-09-27T15:37:54.2983639-05:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="63f11547-9594-424c-ab95-aefc107c1d17" />
+    <UnitTestResult executionId="038da378-d318-4c16-8a24-05998420bc04" testId="2701592f-2794-8313-6358-5360a7f0d818" testName="MouseKeyProxy.Integration.PairingMtlsE2ETests.OpenSession_Teardown_ClearsModifiers" computerName="PAYTON-LEGION2" duration="00:00:00.1301745" startTime="2026-09-27T15:37:54.2987186-05:00" endTime="2026-09-27T15:37:54.4289450-05:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="038da378-d318-4c16-8a24-05998420bc04" />
+    <UnitTestResult executionId="612a55bf-de29-477b-9c07-feccdac31292" testId="c68a4101-0eb3-ba54-a9ba-b6e78b641a03" testName="MouseKeyProxy.Integration.PairingMtlsE2ETests.PairedPeer_ChannelDisposal_PreservesSourceCredential" computerName="PAYTON-LEGION2" duration="00:00:00.1294770" startTime="2026-09-27T15:37:53.9255302-05:00" endTime="2026-09-27T15:37:54.0550520-05:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="612a55bf-de29-477b-9c07-feccdac31292" />
+    <UnitTestResult executionId="87966117-e690-4abc-937e-e5fcdfd07fff" testId="4b01aa3c-4e80-a3da-1a77-e6fe0730df5c" testName="MouseKeyProxy.Integration.PairingMtlsE2ETests.PairedPeer_ChannelOwnsCertificates_AfterSourceCredentialDisposed" computerName="PAYTON-LEGION2" duration="00:00:00.7435692" startTime="2026-09-27T15:37:52.8276786-05:00" endTime="2026-09-27T15:37:53.5822707-05:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="87966117-e690-4abc-937e-e5fcdfd07fff" />
+    <UnitTestResult executionId="f1b7cc8e-6f44-4e70-bda2-18e20f860925" testId="bb24be1b-d855-957e-c612-e52a28b16aba" testName="MouseKeyProxy.Integration.PairingMtlsE2ETests.PairedPeer_CredentialSurvivesSaveLoad_AndAuthenticates" computerName="PAYTON-LEGION2" duration="00:00:00.1749963" startTime="2026-09-27T15:37:54.0554474-05:00" endTime="2026-09-27T15:37:54.2304974-05:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="f1b7cc8e-6f44-4e70-bda2-18e20f860925" />
+  </Results>
+  <TestDefinitions>
+    <UnitTest name="MouseKeyProxy.Integration.PairingMtlsE2ETests.PairedPeer_ChannelOwnsCertificates_AfterSourceCredentialDisposed" storage="f:\github\mousekeyproxy\tests\mousekeyproxy.integration\bin\release\net10.0\mousekeyproxy.integration.dll" id="4b01aa3c-4e80-a3da-1a77-e6fe0730df5c">
+      <Execution id="87966117-e690-4abc-937e-e5fcdfd07fff" />
+      <TestMethod codeBase="F:\GitHub\MouseKeyProxy\tests\MouseKeyProxy.Integration\bin\Release\net10.0\MouseKeyProxy.Integration.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="MouseKeyProxy.Integration.PairingMtlsE2ETests" name="PairedPeer_ChannelOwnsCertificates_AfterSourceCredentialDisposed" />
+    </UnitTest>
+    <UnitTest name="MouseKeyProxy.Integration.PairingMtlsE2ETests.RevokedPeer_InjectInput_IsRejected" storage="f:\github\mousekeyproxy\tests\mousekeyproxy.integration\bin\release\net10.0\mousekeyproxy.integration.dll" id="792a27bd-3979-6600-5d69-610e42441df6">
+      <Execution id="250eaa64-4282-40be-971e-e661e41acb6c" />
+      <TestMethod codeBase="F:\GitHub\MouseKeyProxy\tests\MouseKeyProxy.Integration\bin\Release\net10.0\MouseKeyProxy.Integration.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="MouseKeyProxy.Integration.PairingMtlsE2ETests" name="RevokedPeer_InjectInput_IsRejected" />
+    </UnitTest>
+    <UnitTest name="MouseKeyProxy.Integration.PairingMtlsE2ETests.Unpaired_InjectInput_IsRejected" storage="f:\github\mousekeyproxy\tests\mousekeyproxy.integration\bin\release\net10.0\mousekeyproxy.integration.dll" id="e2820138-6b11-287f-a906-9c47f41ab0c0">
+      <Execution id="63f11547-9594-424c-ab95-aefc107c1d17" />
+      <TestMethod codeBase="F:\GitHub\MouseKeyProxy\tests\MouseKeyProxy.Integration\bin\Release\net10.0\MouseKeyProxy.Integration.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="MouseKeyProxy.Integration.PairingMtlsE2ETests" name="Unpaired_InjectInput_IsRejected" />
+    </UnitTest>
+    <UnitTest name="MouseKeyProxy.Integration.PairingMtlsE2ETests.PairedPeer_InjectInput_Succeeds" storage="f:\github\mousekeyproxy\tests\mousekeyproxy.integration\bin\release\net10.0\mousekeyproxy.integration.dll" id="7518c014-b05e-3294-e352-cbac16fa96f6">
+      <Execution id="b6886ff4-8e48-49e2-b764-cad9b9b7bf84" />
+      <TestMethod codeBase="F:\GitHub\MouseKeyProxy\tests\MouseKeyProxy.Integration\bin\Release\net10.0\MouseKeyProxy.Integration.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="MouseKeyProxy.Integration.PairingMtlsE2ETests" name="PairedPeer_InjectInput_Succeeds" />
+    </UnitTest>
+    <UnitTest name="MouseKeyProxy.Integration.PairingMtlsE2ETests.PairedPeer_CredentialSurvivesSaveLoad_AndAuthenticates" storage="f:\github\mousekeyproxy\tests\mousekeyproxy.integration\bin\release\net10.0\mousekeyproxy.integration.dll" id="bb24be1b-d855-957e-c612-e52a28b16aba">
+      <Execution id="f1b7cc8e-6f44-4e70-bda2-18e20f860925" />
+      <TestMethod codeBase="F:\GitHub\MouseKeyProxy\tests\MouseKeyProxy.Integration\bin\Release\net10.0\MouseKeyProxy.Integration.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="MouseKeyProxy.Integration.PairingMtlsE2ETests" name="PairedPeer_CredentialSurvivesSaveLoad_AndAuthenticates" />
+    </UnitTest>
+    <UnitTest name="MouseKeyProxy.Integration.PairingMtlsE2ETests.OpenSession_Teardown_ClearsModifiers" storage="f:\github\mousekeyproxy\tests\mousekeyproxy.integration\bin\release\net10.0\mousekeyproxy.integration.dll" id="2701592f-2794-8313-6358-5360a7f0d818">
+      <Execution id="038da378-d318-4c16-8a24-05998420bc04" />
+      <TestMethod codeBase="F:\GitHub\MouseKeyProxy\tests\MouseKeyProxy.Integration\bin\Release\net10.0\MouseKeyProxy.Integration.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="MouseKeyProxy.Integration.PairingMtlsE2ETests" name="OpenSession_Teardown_ClearsModifiers" />
+    </UnitTest>
+    <UnitTest name="MouseKeyProxy.Integration.PairingMtlsE2ETests.PairedPeer_OpenSession_VersionMismatch_IsRejected" storage="f:\github\mousekeyproxy\tests\mousekeyproxy.integration\bin\release\net10.0\mousekeyproxy.integration.dll" id="6415edd0-b036-ea08-0900-3e1f5320abe7">
+      <Execution id="35980389-9952-44fc-97d6-34dbbd00bded" />
+      <TestMethod codeBase="F:\GitHub\MouseKeyProxy\tests\MouseKeyProxy.Integration\bin\Release\net10.0\MouseKeyProxy.Integration.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="MouseKeyProxy.Integration.PairingMtlsE2ETests" name="PairedPeer_OpenSession_VersionMismatch_IsRejected" />
+    </UnitTest>
+    <UnitTest name="MouseKeyProxy.Integration.PairingMtlsE2ETests.PairedPeer_ChannelDisposal_PreservesSourceCredential" storage="f:\github\mousekeyproxy\tests\mousekeyproxy.integration\bin\release\net10.0\mousekeyproxy.integration.dll" id="c68a4101-0eb3-ba54-a9ba-b6e78b641a03">
+      <Execution id="612a55bf-de29-477b-9c07-feccdac31292" />
+      <TestMethod codeBase="F:\GitHub\MouseKeyProxy\tests\MouseKeyProxy.Integration\bin\Release\net10.0\MouseKeyProxy.Integration.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="MouseKeyProxy.Integration.PairingMtlsE2ETests" name="PairedPeer_ChannelDisposal_PreservesSourceCredential" />
+    </UnitTest>
+  </TestDefinitions>
+  <TestEntries>
+    <TestEntry testId="7518c014-b05e-3294-e352-cbac16fa96f6" executionId="b6886ff4-8e48-49e2-b764-cad9b9b7bf84" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="792a27bd-3979-6600-5d69-610e42441df6" executionId="250eaa64-4282-40be-971e-e661e41acb6c" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="6415edd0-b036-ea08-0900-3e1f5320abe7" executionId="35980389-9952-44fc-97d6-34dbbd00bded" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="e2820138-6b11-287f-a906-9c47f41ab0c0" executionId="63f11547-9594-424c-ab95-aefc107c1d17" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="2701592f-2794-8313-6358-5360a7f0d818" executionId="038da378-d318-4c16-8a24-05998420bc04" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="c68a4101-0eb3-ba54-a9ba-b6e78b641a03" executionId="612a55bf-de29-477b-9c07-feccdac31292" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="4b01aa3c-4e80-a3da-1a77-e6fe0730df5c" executionId="87966117-e690-4abc-937e-e5fcdfd07fff" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="bb24be1b-d855-957e-c612-e52a28b16aba" executionId="f1b7cc8e-6f44-4e70-bda2-18e20f860925" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+  </TestEntries>
+  <TestLists>
+    <TestList name="Results Not in a List" id="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestList name="All Loaded Results" id="19431567-8539-422a-85d7-44ee4e166bda" />
+  </TestLists>
+  <ResultSummary outcome="Completed">
+    <Counters total="8" executed="8" passed="8" failed="0" error="0" timeout="0" aborted="0" inconclusive="0" passedButRunAborted="0" notRunnable="0" notExecuted="0" disconnected="0" warning="0" completed="0" inProgress="0" pending="0" />
+    <Output>
+      <StdOut>[xUnit.net 00:00:00.00] xUnit.net VSTest Adapter v3.1.4+50e68bbb8b (64-bit .NET 10.0.12)&#xD;
+[xUnit.net 00:00:00.23]   Discovering: MouseKeyProxy.Integration&#xD;
+[xUnit.net 00:00:00.51]   Discovered:  MouseKeyProxy.Integration&#xD;
+[xUnit.net 00:00:00.74]   Starting:    MouseKeyProxy.Integration&#xD;
+[xUnit.net 00:00:02.54]   Finished:    MouseKeyProxy.Integration&#xD;
+</StdOut>
+    </Output>
+  </ResultSummary>
+</TestRun>

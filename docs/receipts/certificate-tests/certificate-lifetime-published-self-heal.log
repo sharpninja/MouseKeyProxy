@@ -1,0 +1,23 @@
+2026-08-11T11:44:38.7140266-05:00 probe preferred https://192.168.1.133:50051
+2026-08-11T11:44:38.7149431-05:00 mTLS OK on preferred endpoint
+2026-08-11T11:44:38.7152579-05:00 Self-heal: device channel OK (192.168.1.133).
+2026-08-12T10:20:58.8623789-05:00 probe preferred https://192.168.1.133:50051
+2026-08-12T10:20:58.8631812-05:00 mTLS OK on preferred endpoint
+2026-08-12T10:20:58.8634916-05:00 Self-heal: device channel OK (192.168.1.133).
+2026-09-27T14:55:44.7907978-05:00 mTLS probe failed for https://127.0.0.1:50051: Status(StatusCode="Internal", Detail="Error starting gRPC call. HttpRequestException: The SSL connection could not be established, see inner exception. AuthenticationException: The remote certificate was rejected by the provided RemoteCertificateValidationCallback.", DebugException="System.Net.Http.HttpRequestException: The SSL connection could not be established, see inner exception.")
+2026-09-27T14:55:44.8232292-05:00 mTLS probe failed for https://172.19.64.1:50051: Status(StatusCode="Internal", Detail="Error starting gRPC call. HttpRequestException: The SSL connection could not be established, see inner exception. AuthenticationException: The remote certificate was rejected by the provided RemoteCertificateValidationCallback.", DebugException="System.Net.Http.HttpRequestException: The SSL connection could not be established, see inner exception.")
+2026-09-27T14:55:44.8546742-05:00 mTLS probe failed for https://172.20.208.1:50051: Status(StatusCode="Internal", Detail="Error starting gRPC call. HttpRequestException: The SSL connection could not be established, see inner exception. AuthenticationException: The remote certificate was rejected by the provided RemoteCertificateValidationCallback.", DebugException="System.Net.Http.HttpRequestException: The SSL connection could not be established, see inner exception.")
+2026-09-27T14:55:46.3559149-05:00 probe preferred https://192.168.1.133:50051
+2026-09-27T14:55:46.3562906-05:00 preferred endpoint not reachable
+2026-09-27T14:55:46.3565870-05:00 probe alternate https://127.0.0.1:50051
+2026-09-27T14:55:46.3568890-05:00 alternate TCP open but mTLS failed: https://127.0.0.1:50051
+2026-09-27T14:55:46.3571236-05:00 probe alternate https://172.19.64.1:50051
+2026-09-27T14:55:46.3573662-05:00 alternate TCP open but mTLS failed: https://172.19.64.1:50051
+2026-09-27T14:55:46.3575898-05:00 probe alternate https://172.20.208.1:50051
+2026-09-27T14:55:46.3578425-05:00 alternate TCP open but mTLS failed: https://172.20.208.1:50051
+2026-09-27T14:55:46.3580890-05:00 probe alternate https://192.168.0.172:50051
+2026-09-27T14:55:46.3584275-05:00 mTLS OK on alternate endpoint
+2026-09-27T14:55:46.3588187-05:00 Self-heal: recovered via alternate endpoint (192.168.0.172).
+2026-09-27T16:45:55.7138617-05:00 probe preferred https://192.168.0.172:50051
+2026-09-27T16:45:55.7154520-05:00 mTLS OK on preferred endpoint
+2026-09-27T16:45:55.7160276-05:00 Self-heal: device channel OK (192.168.0.172).

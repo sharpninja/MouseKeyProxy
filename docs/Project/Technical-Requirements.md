@@ -52,7 +52,7 @@ Scope: layer-1+
 ## TR-MKP-HID-001
 
 **Pi Zero 2 .NET USB gadget HID backend** — The hardware backend must use Raspberry Pi OS Lite plus Linux configfs/libcomposite to expose keyboard and relative mouse HID gadget functions at /dev/hidg0 and /dev/hidg1, controlled by the mTLS MouseKeyProxy.Service on linux-arm64 (and/or the authenticated PiHid HTTP appliance). HID report descriptors written at provision time MUST be binary bytes (not shell-escaped ASCII text). Raspberry Pi OS /bin/sh is dash and does not interpret printf \xHH; provisioning must use bash or base64-decoded binary payloads and verify descriptor lengths (keyboard 63, mouse 52, first byte 0x05). On Pi Zero 2 W, config.txt must enable only dtoverlay=dwc2,dr_mode=peripheral (stock otg_mode and dr_mode=host must be disabled).
-**Covered by:** FR: FR-MKP-003, FR-MKP-012; TEST: TEST-MKP-003, TEST-MKP-005, TEST-MKP-009, TEST-MKP-023, TEST-MKP-024, TEST-MKP-026, TEST-MKP-028, TEST-MKP-029, TEST-MKP-027, TEST-MKP-030
+**Covered by:** FR: FR-MKP-003, FR-MKP-012; TEST: TEST-MKP-003, TEST-MKP-005, TEST-MKP-009, TEST-MKP-023, TEST-MKP-024, TEST-MKP-026, TEST-MKP-028, TEST-MKP-029, TEST-MKP-050, TEST-MKP-027, TEST-MKP-030
 **Status:** in_progress
 Scope: layer-1+
 **Acceptance Criteria:**
@@ -93,7 +93,7 @@ Scope: layer-1+
 ## TR-MKP-INPUT-001
 
 **Input support matrix and limits** — Document and enforce supported keyboard, mouse, focus, and window-control inputs. Treat DELETE, INSERT, HOME, END, PAGE UP, and PAGE DOWN as ordinary extended keys through capture and HID translation. Exclude the Secure Attention Sequence/Ctrl+Alt+Del, secure desktop, lock/login screens, and UIPI-blocked scenarios without misclassifying an ordinary DELETE press. Unsupported operations must return observable failures and release any captured local state. The Agent must show a transient Windows busy pointer on the host while remote input capture is active and restore the normal pointer after normal toggle-off, emergency release, disconnect or HID-loss fallback, watchdog fallback, startup cleanup, and application exit. Cursor-indicator failure must never block capture release.
-**Covered by:** FR: FR-HOTKEY-001, FR-MKP-001, FR-MKP-002, FR-MKP-003, FR-MKP-005; TEST: TEST-HOTKEY-001, TEST-MKP-001, TEST-MKP-008, TEST-MKP-012, TEST-MKP-023, TEST-MKP-024, TEST-MKP-003, TEST-MKP-005, TEST-MKP-009, TEST-MKP-026, TEST-MKP-028, TEST-MKP-029, TEST-MKP-010, TEST-MKP-011, TEST-MKP-014, TEST-MKP-020, TEST-MKP-025
+**Covered by:** FR: FR-HOTKEY-001, FR-MKP-001, FR-MKP-002, FR-MKP-003, FR-MKP-005; TEST: TEST-HOTKEY-001, TEST-MKP-001, TEST-MKP-008, TEST-MKP-012, TEST-MKP-023, TEST-MKP-024, TEST-MKP-003, TEST-MKP-005, TEST-MKP-009, TEST-MKP-026, TEST-MKP-028, TEST-MKP-029, TEST-MKP-050, TEST-MKP-010, TEST-MKP-011, TEST-MKP-014, TEST-MKP-020, TEST-MKP-025
 **Status:** in_progress
 Scope: layer-1+
 **Acceptance Criteria:**
@@ -132,7 +132,7 @@ Scope: layer-1+
 ## TR-MKP-RELI-001
 
 **Event reliability and failsafes** — Input events require sequence/ack handling, stuck-key cleanup, disconnect cleanup, emergency unclip hotkey, auto-release on exit, and local-only fallback. Safety deadlines: ClipCursor release within 2 seconds and reconnect give-up within 5 seconds unless configuration says otherwise.
-**Covered by:** FR: FR-HOTKEY-001, FR-MKP-001, FR-MKP-002, FR-MKP-003, FR-MKP-004, FR-MKP-005, FR-MKP-012; TEST: TEST-HOTKEY-001, TEST-MKP-001, TEST-MKP-008, TEST-MKP-012, TEST-MKP-023, TEST-MKP-024, TEST-MKP-003, TEST-MKP-005, TEST-MKP-009, TEST-MKP-026, TEST-MKP-028, TEST-MKP-029, TEST-MKP-004, TEST-MKP-006, TEST-MKP-010, TEST-MKP-011, TEST-MKP-014, TEST-MKP-020, TEST-MKP-025, TEST-MKP-027, TEST-MKP-030
+**Covered by:** FR: FR-HOTKEY-001, FR-MKP-001, FR-MKP-002, FR-MKP-003, FR-MKP-004, FR-MKP-005, FR-MKP-012; TEST: TEST-HOTKEY-001, TEST-MKP-001, TEST-MKP-008, TEST-MKP-012, TEST-MKP-023, TEST-MKP-024, TEST-MKP-003, TEST-MKP-005, TEST-MKP-009, TEST-MKP-026, TEST-MKP-028, TEST-MKP-029, TEST-MKP-050, TEST-MKP-004, TEST-MKP-006, TEST-MKP-010, TEST-MKP-011, TEST-MKP-014, TEST-MKP-020, TEST-MKP-025, TEST-MKP-027, TEST-MKP-030
 **Status:** completed
 Scope: layer-1+
 **Acceptance Criteria:**
@@ -152,9 +152,24 @@ Scope: layer-1+
 ## TR-MKP-SEC-001
 
 **Pairing auth and RPC authorization** — Discovery may use UDP broadcast and/or mDNS on LAN. Pairing must use a pairing code or ToFU flow and persist secret/certificate material securely. RPC authorization must reject unpaired, revoked, or bad-secret peers before any input/clipboard/focus effect. UPnP IGD/NAT port mapping is excluded.
-**Covered by:** FR: FR-MKP-003, FR-MKP-004, FR-MKP-005, FR-OWNERSHIP-001; TEST: TEST-MKP-003, TEST-MKP-005, TEST-MKP-009, TEST-MKP-023, TEST-MKP-024, TEST-MKP-026, TEST-MKP-028, TEST-MKP-029, TEST-MKP-004, TEST-MKP-006, TEST-MKP-012, TEST-MKP-010, TEST-MKP-011, TEST-MKP-014, TEST-MKP-020, TEST-MKP-025, TEST-MKP-002, TEST-OWNERSHIP-001
+**Covered by:** FR: FR-MKP-003, FR-MKP-004, FR-MKP-005, FR-OWNERSHIP-001; TEST: TEST-MKP-003, TEST-MKP-005, TEST-MKP-009, TEST-MKP-023, TEST-MKP-024, TEST-MKP-026, TEST-MKP-028, TEST-MKP-029, TEST-MKP-050, TEST-MKP-004, TEST-MKP-006, TEST-MKP-012, TEST-MKP-010, TEST-MKP-011, TEST-MKP-014, TEST-MKP-020, TEST-MKP-025, TEST-MKP-002, TEST-OWNERSHIP-001
 **Status:** completed
 Scope: layer-1+
+**Acceptance Criteria:**
+- [x] Reading an absent explicitly supplied custom token path returns null and never consults the machine mirror. (evidence: docs/receipts/20260927-tray-pairing-fixed.md; docs/receipts/certificate-tests/certificate-lifetime-full-green.log (404/0/0); final CODE GREEN AGREE99/99 and published Agent live pairing receipts. Only scoped AC satisfied; unrelated historical scope not claimed.)
+- [x] Writing an explicitly supplied custom token path round-trips its token without changing the machine mirror. (evidence: docs/receipts/20260927-tray-pairing-fixed.md; docs/receipts/certificate-tests/certificate-lifetime-full-green.log (404/0/0); final CODE GREEN AGREE99/99 and published Agent live pairing receipts. Only scoped AC satisfied; unrelated historical scope not claimed.)
+- [x] Default user token writes retain machine mirror support; LocalSystem default reads may fall back to that mirror. (evidence: docs/receipts/20260927-tray-pairing-fixed.md; docs/receipts/certificate-tests/certificate-lifetime-full-green.log (404/0/0); final CODE GREEN AGREE99/99 and published Agent live pairing receipts. Only scoped AC satisfied; unrelated historical scope not claimed.)
+
+## TR-MKP-SEC-002
+
+**Authenticated channel certificate lifetime** — Fix the observed certificate disposal regression under existing pairing and authenticated input behavior. Each authenticated channel must own independent client-certificate/private-key and trusted-CA certificate lifetimes; disposing or reloading source credentials must not invalidate live channels. Channel disposal must release owned resources without disposing caller certificates. Retain paired-CA validation and existing unpaired/revoked rejection.
+**Covered by:** FR: FR-MKP-003; TEST: TEST-MKP-003, TEST-MKP-005, TEST-MKP-009, TEST-MKP-023, TEST-MKP-024, TEST-MKP-026, TEST-MKP-028, TEST-MKP-029, TEST-MKP-050
+**Status:** completed
+Scope: layer-1+
+**Acceptance Criteria:**
+- [x] A real mTLS effect RPC succeeds after both source credential certificates are disposed after channel creation. (evidence: docs/receipts/20260927-tray-pairing-fixed.md; docs/receipts/certificate-tests/certificate-lifetime-full-green.log (404/0/0); final CODE GREEN AGREE99/99 and published Agent live pairing receipts. Only scoped AC satisfied; unrelated historical scope not claimed.)
+- [x] Disposing one authenticated channel leaves the caller credential usable by a new authenticated channel. (evidence: docs/receipts/20260927-tray-pairing-fixed.md; docs/receipts/certificate-tests/certificate-lifetime-full-green.log (404/0/0); final CODE GREEN AGREE99/99 and published Agent live pairing receipts. Only scoped AC satisfied; unrelated historical scope not claimed.)
+- [x] Existing unpaired, revoked and untrusted-peer tests remain passing; no validation bypass is introduced. (evidence: docs/receipts/20260927-tray-pairing-fixed.md; docs/receipts/certificate-tests/certificate-lifetime-full-green.log (404/0/0); final CODE GREEN AGREE99/99 and published Agent live pairing receipts. Only scoped AC satisfied; unrelated historical scope not claimed.)
 
 ## TR-MKP-SEC-PAIR-001
 

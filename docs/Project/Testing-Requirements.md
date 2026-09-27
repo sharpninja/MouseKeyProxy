@@ -44,6 +44,8 @@ Concurrent copies produce correct LIFO order, dedupe loops, preserve supported f
 
 `mkp service install` registers and starts the service; uninstall stops and removes it, reverses firewall changes, and rolls back partial failure.
 
+**Acceptance Criteria:**
+- [x] Missing service payload fails with exit3 before any process call, install directory creation, ACL change or payload copy. (evidence: docs/receipts/20260927-tray-pairing-fixed.md; docs/receipts/certificate-tests/certificate-lifetime-full-green.log (404/0/0); final CODE GREEN AGREE99/99 and published Agent live pairing receipts. Only scoped AC satisfied; unrelated historical scope not claimed.)
 
 ### TEST-MKP-008
 
@@ -69,6 +71,8 @@ LocateProcess and SetFocusByHwnd tests verify process lookup, HWND tree return s
 
 REPL and shared command tests verify the CLI is the canonical control surface, including pairing, pair status, agent status, service status, emergency release, logs, settings persistence, clipboard commands, remote-control commands, toggle commands, and structured errors.
 
+**Acceptance Criteria:**
+- [x] Canonical Agent toggle failures retain visible error details and nonzero exit behavior; obsolete null-transport harness strings are not required. (evidence: docs/receipts/20260927-tray-pairing-fixed.md; docs/receipts/certificate-tests/certificate-lifetime-full-green.log (404/0/0); final CODE GREEN AGREE99/99 and published Agent live pairing receipts. Only scoped AC satisfied; unrelated historical scope not claimed.)
 
 ### TEST-MKP-013
 
@@ -233,6 +237,15 @@ Verify authenticated gRPC management of the configured device thumb-drive or sha
 - [ ] Traversal, absolute-path, and link-escape attempts are rejected before filesystem access and cannot modify content outside the configured root.
 - [ ] Interrupted or rejected writes leave no partial destination and return the documented structured error.
 - [ ] Unpaired, revoked, and non-allowlisted callers cannot list metadata or read or mutate device content.
+
+### TEST-MKP-050
+
+Real TLS integration regression in PairingMtlsE2ETests: create authenticated channel then dispose source ClientCertificate and CaCertificate and prove InjectInput succeeds. Also prove channel disposal preserves caller credential usability through a second authenticated channel. Existing SecurityE2E negative cases must remain green. Red before implementation; Nuke Test gate zero failures and zero skips.
+
+**Acceptance Criteria:**
+- [x] PairedPeer_ChannelOwnsCertificates_AfterSourceCredentialDisposed is red before the fix and green after. (evidence: docs/receipts/20260927-tray-pairing-fixed.md; docs/receipts/certificate-tests/certificate-lifetime-full-green.log (404/0/0); final CODE GREEN AGREE99/99 and published Agent live pairing receipts. Only scoped AC satisfied; unrelated historical scope not claimed.)
+- [x] PairedPeer_ChannelDisposal_PreservesSourceCredential succeeds with real TLS. (evidence: docs/receipts/20260927-tray-pairing-fixed.md; docs/receipts/certificate-tests/certificate-lifetime-full-green.log (404/0/0); final CODE GREEN AGREE99/99 and published Agent live pairing receipts. Only scoped AC satisfied; unrelated historical scope not claimed.)
+- [x] Nuke Test passes with zero failures and zero skips in the default executed scope. (evidence: docs/receipts/20260927-tray-pairing-fixed.md; docs/receipts/certificate-tests/certificate-lifetime-full-green.log (404/0/0); final CODE GREEN AGREE99/99 and published Agent live pairing receipts. Only scoped AC satisfied; unrelated historical scope not claimed.)
 
 
 ## TEST-OWNERSHIP

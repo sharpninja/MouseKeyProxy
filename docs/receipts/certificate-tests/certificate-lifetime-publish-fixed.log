@@ -1,0 +1,105 @@
+PowerShell Core version 7.6.6
+Microsoft (R) .NET SDK version 10.0.401
+F:\GitHub\MouseKeyProxy\build\MouseKeyProxy.Build.csproj : warning NU1903: Package 'System.Security.Cryptography.Xml' 10.0.9 has a known high severity vulnerability, https://github.com/advisories/GHSA-23rf-6693-g89p
+F:\GitHub\MouseKeyProxy\build\MouseKeyProxy.Build.csproj : warning NU1903: Package 'System.Security.Cryptography.Xml' 10.0.9 has a known high severity vulnerability, https://github.com/advisories/GHSA-8q5v-6pqq-x66h
+F:\GitHub\MouseKeyProxy\build\MouseKeyProxy.Build.csproj : warning NU1903: Package 'System.Security.Cryptography.Xml' 10.0.9 has a known high severity vulnerability, https://github.com/advisories/GHSA-cvvh-rhrc-wg4q
+F:\GitHub\MouseKeyProxy\build\MouseKeyProxy.Build.csproj : warning NU1903: Package 'System.Security.Cryptography.Xml' 10.0.9 has a known high severity vulnerability, https://github.com/advisories/GHSA-g8r8-53c2-pm3f
+F:\GitHub\MouseKeyProxy\build\MouseKeyProxy.Build.csproj : warning NU1903: Package 'System.Security.Cryptography.Xml' 10.0.9 has a known high severity vulnerability, https://github.com/advisories/GHSA-mmjf-rqrv-855v
+F:\GitHub\MouseKeyProxy\build\MouseKeyProxy.Build.csproj : warning NU1903: Package 'System.Security.Cryptography.Xml' 10.0.9 has a known high severity vulnerability, https://github.com/advisories/GHSA-23rf-6693-g89p
+F:\GitHub\MouseKeyProxy\build\MouseKeyProxy.Build.csproj : warning NU1903: Package 'System.Security.Cryptography.Xml' 10.0.9 has a known high severity vulnerability, https://github.com/advisories/GHSA-8q5v-6pqq-x66h
+F:\GitHub\MouseKeyProxy\build\MouseKeyProxy.Build.csproj : warning NU1903: Package 'System.Security.Cryptography.Xml' 10.0.9 has a known high severity vulnerability, https://github.com/advisories/GHSA-cvvh-rhrc-wg4q
+F:\GitHub\MouseKeyProxy\build\MouseKeyProxy.Build.csproj : warning NU1903: Package 'System.Security.Cryptography.Xml' 10.0.9 has a known high severity vulnerability, https://github.com/advisories/GHSA-g8r8-53c2-pm3f
+F:\GitHub\MouseKeyProxy\build\MouseKeyProxy.Build.csproj : warning NU1903: Package 'System.Security.Cryptography.Xml' 10.0.9 has a known high severity vulnerability, https://github.com/advisories/GHSA-mmjf-rqrv-855v
+
+Build succeeded.
+
+F:\GitHub\MouseKeyProxy\build\MouseKeyProxy.Build.csproj : warning NU1903: Package 'System.Security.Cryptography.Xml' 10.0.9 has a known high severity vulnerability, https://github.com/advisories/GHSA-23rf-6693-g89p
+F:\GitHub\MouseKeyProxy\build\MouseKeyProxy.Build.csproj : warning NU1903: Package 'System.Security.Cryptography.Xml' 10.0.9 has a known high severity vulnerability, https://github.com/advisories/GHSA-8q5v-6pqq-x66h
+F:\GitHub\MouseKeyProxy\build\MouseKeyProxy.Build.csproj : warning NU1903: Package 'System.Security.Cryptography.Xml' 10.0.9 has a known high severity vulnerability, https://github.com/advisories/GHSA-cvvh-rhrc-wg4q
+F:\GitHub\MouseKeyProxy\build\MouseKeyProxy.Build.csproj : warning NU1903: Package 'System.Security.Cryptography.Xml' 10.0.9 has a known high severity vulnerability, https://github.com/advisories/GHSA-g8r8-53c2-pm3f
+F:\GitHub\MouseKeyProxy\build\MouseKeyProxy.Build.csproj : warning NU1903: Package 'System.Security.Cryptography.Xml' 10.0.9 has a known high severity vulnerability, https://github.com/advisories/GHSA-mmjf-rqrv-855v
+F:\GitHub\MouseKeyProxy\build\MouseKeyProxy.Build.csproj : warning NU1903: Package 'System.Security.Cryptography.Xml' 10.0.9 has a known high severity vulnerability, https://github.com/advisories/GHSA-23rf-6693-g89p
+F:\GitHub\MouseKeyProxy\build\MouseKeyProxy.Build.csproj : warning NU1903: Package 'System.Security.Cryptography.Xml' 10.0.9 has a known high severity vulnerability, https://github.com/advisories/GHSA-8q5v-6pqq-x66h
+F:\GitHub\MouseKeyProxy\build\MouseKeyProxy.Build.csproj : warning NU1903: Package 'System.Security.Cryptography.Xml' 10.0.9 has a known high severity vulnerability, https://github.com/advisories/GHSA-cvvh-rhrc-wg4q
+F:\GitHub\MouseKeyProxy\build\MouseKeyProxy.Build.csproj : warning NU1903: Package 'System.Security.Cryptography.Xml' 10.0.9 has a known high severity vulnerability, https://github.com/advisories/GHSA-g8r8-53c2-pm3f
+F:\GitHub\MouseKeyProxy\build\MouseKeyProxy.Build.csproj : warning NU1903: Package 'System.Security.Cryptography.Xml' 10.0.9 has a known high severity vulnerability, https://github.com/advisories/GHSA-mmjf-rqrv-855v
+    10 Warning(s)
+    0 Error(s)
+
+Time Elapsed 00:00:01.87
+​
+███╗   ██╗██╗   ██╗██╗  ██╗███████╗
+████╗  ██║██║   ██║██║ ██╔╝██╔════╝
+██╔██╗ ██║██║   ██║█████╔╝ █████╗  
+██║╚██╗██║██║   ██║██╔═██╗ ██╔══╝  
+██║ ╚████║╚██████╔╝██║  ██╗███████╗
+╚═╝  ╚═══╝ ╚═════╝ ╚═╝  ╚═╝╚══════╝
+​
+NUKE Execution Engine version 9.0.4 (Windows,.NETCoreApp,Version=v10.0)
+​
+​
+╬════════════
+║ Restore
+╬═══
+​
+Tool 'gitversion.tool' (version '6.8.0') was restored. Available commands: dotnet-gitversion
+Tool 'nuke.globaltool' (version '10.1.0') was restored. Available commands: nuke
+
+Restore was successful.
+  Determining projects to restore...
+  All projects are up-to-date for restore.
+​
+╬════════════
+║ Compile
+╬═══
+​
+  MouseKeyProxy.Common -> F:\GitHub\MouseKeyProxy\src\MouseKeyProxy.Common\bin\Release\net10.0\MouseKeyProxy.Common.dll
+  MouseKeyProxy.Compliance.Tests -> F:\GitHub\MouseKeyProxy\tests\MouseKeyProxy.Compliance.Tests\bin\Release\net10.0\MouseKeyProxy.Compliance.Tests.dll
+  MouseKeyProxy.WindowProbe -> F:\GitHub\MouseKeyProxy\tests\MouseKeyProxy.WindowProbe\bin\Release\net10.0-windows\MouseKeyProxy.WindowProbe.dll
+  MouseKeyProxy.Network -> F:\GitHub\MouseKeyProxy\src\MouseKeyProxy.Network\bin\Release\net10.0\MouseKeyProxy.Network.dll
+  MouseKeyProxy.Common.Tests -> F:\GitHub\MouseKeyProxy\tests\MouseKeyProxy.Common.Tests\bin\Release\net10.0\MouseKeyProxy.Common.Tests.dll
+  MouseKeyProxy.PiHid -> F:\GitHub\MouseKeyProxy\src\MouseKeyProxy.PiHid\bin\Release\net10.0\MouseKeyProxy.PiHid.dll
+  MouseKeyProxy.Commands -> F:\GitHub\MouseKeyProxy\src\MouseKeyProxy.Commands\bin\Release\net10.0\MouseKeyProxy.Commands.dll
+  MouseKeyProxy.Service -> F:\GitHub\MouseKeyProxy\src\MouseKeyProxy.Service\bin\Release\net10.0\MouseKeyProxy.Service.dll
+  MouseKeyProxy.PiHid.Tests -> F:\GitHub\MouseKeyProxy\tests\MouseKeyProxy.PiHid.Tests\bin\Release\net10.0\MouseKeyProxy.PiHid.Tests.dll
+  MouseKeyProxy.Repl -> F:\GitHub\MouseKeyProxy\src\MouseKeyProxy.Repl\bin\Release\net10.0\MouseKeyProxy.Repl.dll
+  MouseKeyProxy.Agent -> F:\GitHub\MouseKeyProxy\src\MouseKeyProxy.Agent\bin\Release\net10.0-windows\MouseKeyProxy.Agent.dll
+  MouseKeyProxy.Commands.Tests -> F:\GitHub\MouseKeyProxy\tests\MouseKeyProxy.Commands.Tests\bin\Release\net10.0\MouseKeyProxy.Commands.Tests.dll
+  MouseKeyProxy.Repl.Tests -> F:\GitHub\MouseKeyProxy\tests\MouseKeyProxy.Repl.Tests\bin\Release\net10.0\MouseKeyProxy.Repl.Tests.dll
+  MouseKeyProxy.Integration -> F:\GitHub\MouseKeyProxy\tests\MouseKeyProxy.Integration\bin\Release\net10.0\MouseKeyProxy.Integration.dll
+  MouseKeyProxy.Bootstrap -> F:\GitHub\MouseKeyProxy\src\MouseKeyProxy.Bootstrap\bin\Release\net10.0\MouseKeyProxy.Bootstrap.dll
+  MouseKeyProxy.Service.Tests -> F:\GitHub\MouseKeyProxy\tests\MouseKeyProxy.Service.Tests\bin\Release\net10.0\MouseKeyProxy.Service.Tests.dll
+  MouseKeyProxy.Agent.Tests -> F:\GitHub\MouseKeyProxy\tests\MouseKeyProxy.Agent.Tests\bin\Release\net10.0-windows\MouseKeyProxy.Agent.Tests.dll
+
+Build succeeded.
+    0 Warning(s)
+    0 Error(s)
+
+Time Elapsed 00:00:16.46
+​
+╬═════════════════
+║ PublishAgent
+╬════════
+​
+  Determining projects to restore...
+  Restored F:\GitHub\MouseKeyProxy\src\MouseKeyProxy.Commands\MouseKeyProxy.Commands.csproj (in 994 ms).
+  Restored F:\GitHub\MouseKeyProxy\src\MouseKeyProxy.Common\MouseKeyProxy.Common.csproj (in 994 ms).
+  Restored F:\GitHub\MouseKeyProxy\src\MouseKeyProxy.Network\MouseKeyProxy.Network.csproj (in 994 ms).
+  Restored F:\GitHub\MouseKeyProxy\src\MouseKeyProxy.Agent\MouseKeyProxy.Agent.csproj (in 994 ms).
+  MouseKeyProxy.Common -> F:\GitHub\MouseKeyProxy\src\MouseKeyProxy.Common\bin\Release\net10.0\MouseKeyProxy.Common.dll
+  MouseKeyProxy.Network -> F:\GitHub\MouseKeyProxy\src\MouseKeyProxy.Network\bin\Release\net10.0\MouseKeyProxy.Network.dll
+  MouseKeyProxy.Commands -> F:\GitHub\MouseKeyProxy\src\MouseKeyProxy.Commands\bin\Release\net10.0\MouseKeyProxy.Commands.dll
+  MouseKeyProxy.Agent -> F:\GitHub\MouseKeyProxy\src\MouseKeyProxy.Agent\bin\Release\net10.0-windows\win-x64\MouseKeyProxy.Agent.dll
+  MouseKeyProxy.Agent -> F:\GitHub\MouseKeyProxy\output\payloads\agent\
+​
+═══════════════════════════════════════
+Target             Status      Duration
+───────────────────────────────────────
+Restore            Succeeded       0:05
+Compile            Succeeded       0:20
+PublishAgent       Succeeded       0:17
+───────────────────────────────────────
+Total                              0:44
+═══════════════════════════════════════
+​
+Build succeeded on 9/27/2026 4:45:39 PM. ＼（＾ᴗ＾）／

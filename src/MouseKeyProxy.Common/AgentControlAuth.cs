@@ -63,8 +63,8 @@ public static class AgentControlTokenStore
             : Path.Combine(root, "MouseKeyProxy", "agent-control.token");
     }
 
-    /// <summary>Writes the token to <paramref name="path"/> with owner-only permissions.</summary>
-    /// <param name="path">The token file path.</param>
+    /// <summary>Writes the token to <paramref name="path"/>; only the normalized default path updates the machine mirror.</summary>
+    /// <param name="path">The token file path; custom paths remain isolated from the machine mirror.</param>
     /// <param name="token">The token to persist.</param>
     public static void Write(string path, string token)
     {
@@ -72,8 +72,12 @@ public static class AgentControlTokenStore
         ArgumentException.ThrowIfNullOrWhiteSpace(token);
 
         WriteCore(path, token);
+        if (!IsDefaultPath(path))
+        {
+            return;
+        }
 
-        // Mirror for LocalSystem service → user-session agent IPC (Windows).
+        // Mirror default user tokens for LocalSystem service IPC (Windows).
         var machine = MachinePath();
         if (!string.IsNullOrWhiteSpace(machine) &&
             !string.Equals(Path.GetFullPath(path), Path.GetFullPath(machine), StringComparison.OrdinalIgnoreCase))
@@ -89,8 +93,8 @@ public static class AgentControlTokenStore
         }
     }
 
-    /// <summary>Reads the token from <paramref name="path"/>, or null when the file is absent.</summary>
-    /// <param name="path">The token file path.</param>
+    /// <summary>Reads the requested token; only a missing normalized default path may fall back to the machine mirror.</summary>
+    /// <param name="path">The token file path; absent custom paths return null.</param>
     /// <returns>The token, or null.</returns>
     public static string? Read(string path)
     {
@@ -100,7 +104,12 @@ public static class AgentControlTokenStore
             return direct;
         }
 
-        // Service (LocalSystem) has a different LocalAppData; fall back to the machine mirror.
+        if (!IsDefaultPath(path))
+        {
+            return null;
+        }
+
+        // Service (LocalSystem) has a different default LocalAppData; use the machine mirror.
         var machine = MachinePath();
         if (!string.IsNullOrWhiteSpace(machine) &&
             !string.Equals(path, machine, StringComparison.OrdinalIgnoreCase))
@@ -109,6 +118,29 @@ public static class AgentControlTokenStore
         }
 
         return null;
+    }
+
+    /// <summary>Checks normalized default-path identity using the platform's path comparison rules.</summary>
+    /// <param name="path">The requested token path.</param>
+    /// <returns>True only for the current user's default token path.</returns>
+    private static bool IsDefaultPath(string path)
+    {
+        if (string.IsNullOrWhiteSpace(path))
+        {
+            return false;
+        }
+
+        try
+        {
+            var comparison = OperatingSystem.IsWindows()
+                ? StringComparison.OrdinalIgnoreCase
+                : StringComparison.Ordinal;
+            return string.Equals(Path.GetFullPath(path), Path.GetFullPath(DefaultPath()), comparison);
+        }
+        catch (Exception ex) when (ex is ArgumentException or NotSupportedException or PathTooLongException)
+        {
+            return false;
+        }
     }
 
     private static void WriteCore(string path, string token)

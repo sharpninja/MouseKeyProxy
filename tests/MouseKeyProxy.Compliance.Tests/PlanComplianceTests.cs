@@ -1,5 +1,3 @@
-using System.Text.RegularExpressions;
-
 namespace MouseKeyProxy.Compliance.Tests;
 
 public class PlanComplianceTests
@@ -81,8 +79,10 @@ public class PlanComplianceTests
         var transportSrc = File.ReadAllText(Path.Combine(RepoRoot, "src", "MouseKeyProxy.Commands", "BidiSessionTransport.cs"));
         Assert.Contains("SentFrames", transportSrc);
         var replSrc = File.ReadAllText(Path.Combine(RepoRoot, "src", "MouseKeyProxy.Repl", "Program.cs"));
-        Assert.Contains("toggle FAILED", replSrc);
-        Assert.Matches(new Regex(@"nullTransport|null!"), replSrc);
+        Assert.Contains("AgentControlPipe.ToggleForwarding", replSrc);
+        Assert.Contains("[AGENT toggle] failed:", replSrc);
+        Assert.Contains("return response.Ok ? 0 : 1;", replSrc);
+        Assert.Contains("AGENT_IPC_UNAVAILABLE", replSrc);
         var verify = File.ReadAllText(Path.Combine(RepoRoot, "scripts", "verify-goal.ps1"));
         Assert.Contains("test-", verify);
         Assert.Contains("verif-", verify);

@@ -29,11 +29,15 @@ public sealed class PairingMtlsE2ETests : IAsyncLifetime
     private RecordingInjector _injector = null!;
     private int _port;
 
+    /// <summary>Unique fixture-owned database, separate from the installed service configuration.</summary>
+    private readonly string _configPath = System.IO.Path.Combine(
+        System.IO.Path.GetTempPath(), $"mkp-pairing-{Guid.NewGuid():N}.db");
+
     private string Address => $"https://127.0.0.1:{_port}";
 
     private static CancellationToken Ct => TestContext.Current.CancellationToken;
 
-    /// <summary>Boots the real service host on a free loopback port with a recording injector.</summary>
+    /// <summary>Boots the real TLS host with a recording injector and isolated configuration.</summary>
     public async ValueTask InitializeAsync()
     {
         _port = GetFreePort();
@@ -46,14 +50,29 @@ public sealed class PairingMtlsE2ETests : IAsyncLifetime
             port: _port,
             certificateAuthority: _ca,
             pairedPeerStore: _store,
-            configureServices: services => services.AddSingleton<IInputInjector>(_injector),
+            configureServices: services =>
+            {
+                services.AddSingleton<IInputInjector>(_injector);
+                services.AddSingleton<IApplianceConfigStore>(_ => new LiteDbApplianceConfigStore(_configPath));
+            },
             useWindowsServiceLifetime: false);
 
         await _app.StartAsync();
     }
 
-    /// <summary>Shuts the host down.</summary>
-    public async ValueTask DisposeAsync() => await _app.StopAsync();
+    /// <summary>Stops and disposes the host, then removes only the fixture-owned database.</summary>
+    public async ValueTask DisposeAsync()
+    {
+        try
+        {
+            await _app.StopAsync();
+        }
+        finally
+        {
+            await _app.DisposeAsync();
+            System.IO.File.Delete(_configPath);
+        }
+    }
 
     /// <summary>An unpaired peer that presents no client certificate is rejected before any injection.</summary>
     [Fact]
@@ -80,7 +99,7 @@ public sealed class PairingMtlsE2ETests : IAsyncLifetime
     [Trait("Category", "SecurityE2E")]
     public async Task PairedPeer_InjectInput_Succeeds()
     {
-        var code = _store.IssuePairingCode(TimeSpan.FromMinutes(5));
+        var code = IssuePairingCode();
         var credential = await PairingClient.PairAsync(Address, "peer-e2e", code, cancellationToken: Ct);
 
         using var channel = PairingClient.CreateAuthenticatedChannel(Address, credential);
@@ -98,6 +117,64 @@ public sealed class PairingMtlsE2ETests : IAsyncLifetime
     }
 
     /// <summary>
+    /// TR-MKP-SEC-002 / TEST-MKP-050: disposing the caller's certificates after channel creation
+    /// must not invalidate the channel's client identity or paired-CA validation on its first TLS call.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "SecurityE2E")]
+    public async Task PairedPeer_ChannelOwnsCertificates_AfterSourceCredentialDisposed()
+    {
+        var code = IssuePairingCode();
+        var credential = await PairingClient.PairAsync(Address, "peer-source-disposal", code, cancellationToken: Ct);
+        using var sourceClientCertificate = credential.ClientCertificate;
+        using var sourceCaCertificate = credential.CaCertificate;
+        using var channel = PairingClient.CreateAuthenticatedChannel(Address, credential);
+
+        sourceClientCertificate.Dispose();
+        sourceCaCertificate.Dispose();
+
+        var client = new Wire.MouseKeyProxy.MouseKeyProxyClient(channel);
+        var result = await client.InjectInputAsync(new Wire.InjectInputRequest
+        {
+            ProtocolVersion = "v1",
+            PeerId = credential.PeerId,
+            Events = { new Wire.InputEvent { Kind = Wire.InputKind.KeyDown, Vk = 0x43 } },
+        }, deadline: DateTime.UtcNow.AddSeconds(5), cancellationToken: Ct);
+
+        Assert.True(result.Ok);
+        Assert.Contains(_injector.Batches.SelectMany(b => b), e => e.Vk == 0x43);
+    }
+
+    /// <summary>
+    /// TR-MKP-SEC-002 / TEST-MKP-050: channel disposal must leave caller-owned certificates
+    /// and their private key usable for a subsequent authenticated channel.
+    /// </summary>
+    [Fact]
+    [Trait("Category", "SecurityE2E")]
+    public async Task PairedPeer_ChannelDisposal_PreservesSourceCredential()
+    {
+        var code = IssuePairingCode();
+        var credential = await PairingClient.PairAsync(Address, "peer-channel-disposal", code, cancellationToken: Ct);
+        using var sourceClientCertificate = credential.ClientCertificate;
+        using var sourceCaCertificate = credential.CaCertificate;
+
+        PairingClient.CreateAuthenticatedChannel(Address, credential).Dispose();
+        Assert.True(sourceClientCertificate.HasPrivateKey);
+
+        using var channel = PairingClient.CreateAuthenticatedChannel(Address, credential);
+        var client = new Wire.MouseKeyProxy.MouseKeyProxyClient(channel);
+        var result = await client.InjectInputAsync(new Wire.InjectInputRequest
+        {
+            ProtocolVersion = "v1",
+            PeerId = credential.PeerId,
+            Events = { new Wire.InputEvent { Kind = Wire.InputKind.KeyDown, Vk = 0x44 } },
+        }, deadline: DateTime.UtcNow.AddSeconds(5), cancellationToken: Ct);
+
+        Assert.True(result.Ok);
+        Assert.Contains(_injector.Batches.SelectMany(b => b), e => e.Vk == 0x44);
+    }
+
+    /// <summary>
     /// TR-MKP-SEC-001: the field pairing path. After pairing, the credential is persisted via
     /// <see cref="PeerCredentialStore.Save"/> and reloaded, then used to open an authenticated channel
     /// and inject. This reproduces the operator flow (mkp pair discover), which the in-memory pairing
@@ -108,7 +185,7 @@ public sealed class PairingMtlsE2ETests : IAsyncLifetime
     [Trait("Category", "SecurityE2E")]
     public async Task PairedPeer_CredentialSurvivesSaveLoad_AndAuthenticates()
     {
-        var code = _store.IssuePairingCode(TimeSpan.FromMinutes(5));
+        var code = IssuePairingCode();
         var credential = await PairingClient.PairAsync(Address, "peer-persist", code, cancellationToken: Ct);
 
         var path = System.IO.Path.Combine(System.IO.Path.GetTempPath(), $"mkp-cred-{Guid.NewGuid():N}.bin");
@@ -147,7 +224,7 @@ public sealed class PairingMtlsE2ETests : IAsyncLifetime
     [Trait("Category", "SecurityE2E")]
     public async Task RevokedPeer_InjectInput_IsRejected()
     {
-        var code = _store.IssuePairingCode(TimeSpan.FromMinutes(5));
+        var code = IssuePairingCode();
         var credential = await PairingClient.PairAsync(Address, "peer-revoke", code, cancellationToken: Ct);
 
         Assert.True(_store.Revoke("peer-revoke"));
@@ -171,7 +248,7 @@ public sealed class PairingMtlsE2ETests : IAsyncLifetime
     [Trait("Category", "SecurityE2E")]
     public async Task PairedPeer_OpenSession_VersionMismatch_IsRejected()
     {
-        var code = _store.IssuePairingCode(TimeSpan.FromMinutes(5));
+        var code = IssuePairingCode();
         var credential = await PairingClient.PairAsync(Address, "peer-ver", code, cancellationToken: Ct);
 
         using var channel = PairingClient.CreateAuthenticatedChannel(Address, credential);
@@ -201,7 +278,7 @@ public sealed class PairingMtlsE2ETests : IAsyncLifetime
     [Trait("Category", "SecurityE2E")]
     public async Task OpenSession_Teardown_ClearsModifiers()
     {
-        var code = _store.IssuePairingCode(TimeSpan.FromMinutes(5));
+        var code = IssuePairingCode();
         var credential = await PairingClient.PairAsync(Address, "peer-teardown", code, cancellationToken: Ct);
 
         using var channel = PairingClient.CreateAuthenticatedChannel(Address, credential);
@@ -215,6 +292,20 @@ public sealed class PairingMtlsE2ETests : IAsyncLifetime
 
         // Teardown ran: a modifier-clear batch (all KEY_UP) was injected on the receiving host.
         Assert.Contains(_injector.Batches, b => b.Count > 0 && b.TrueForAll(e => e.Kind == InputKind.KEY_UP));
+    }
+
+    /// <summary>Mints a code through the real bootstrap RPC and the host's configured issuer.</summary>
+    private string IssuePairingCode()
+    {
+        using var channel = Grpc.Net.Client.GrpcChannel.ForAddress(Address, InsecureClientOptions());
+        var client = new Wire.MouseKeyProxy.MouseKeyProxyClient(channel);
+        var response = client.RequestPairingCode(new Wire.RequestPairingCodeRequest
+        {
+            ProtocolVersion = "v1",
+            TtlSeconds = 300,
+        }, deadline: DateTime.UtcNow.AddSeconds(5), cancellationToken: Ct);
+        Assert.True(response.Success);
+        return response.PairingCode;
     }
 
     private static Grpc.Net.Client.GrpcChannelOptions InsecureClientOptions()
