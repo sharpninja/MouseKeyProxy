@@ -72,7 +72,7 @@ Device paths are overridable via `MKP_HID_KEYBOARD_DEVICE` / `MKP_HID_MOUSE_DEVI
 
 - Keyboard mapping (`HidKeyboardUsage`) covers letters, digits, F-keys, arrows, editing keys, **US OEM punctuation** (comma, period, slash, brackets, quotes, etc.), and common numpad keys.
 - Before writing HID reports, the injector checks UDC host-link state (`HidLinkHealth`). When the gadget is not attached, inject fails with `DEVICE_HID_DISCONNECTED` so the control-host Agent can restore local control immediately.
-- A Connected mTLS Agent state is independent of the USB HID link. For `UDC state=not attached`, inspect the Pi's `/sys/class/udc/*/state`, the gadget's bound `UDC`, the target host's USB enumeration, and the data-capable OTG cable. On a Zero 2W, the inner USB-C beside mini-HDMI is data/OTG and the outer USB-C is power. A zero-event RPC can succeed without testing a HID write; use a real input event for the final hardware check. Keep pairing state under `/var/lib/mousekeyproxy/` intact.
+- A Connected mTLS Agent state is independent of the USB HID link. For `UDC state=not attached`, inspect the Pi's `/sys/class/udc/*/state`, the gadget's bound `UDC`, the target host's USB enumeration, and the data-capable OTG cable. On a Zero 2W, the inner USB-C beside mini-HDMI is data/OTG and the outer USB-C is power. Neither an empty RPC nor a zero-delta MouseMove writes a HID report; use a nonzero input event and observe the target for the final hardware check. Keep pairing state under `/var/lib/mousekeyproxy/` intact.
 - Pairing state on appliance lives under `/var/lib/mousekeyproxy/` (preserve across binary updates).
 
 ## Verify (on-hardware, env-gated)

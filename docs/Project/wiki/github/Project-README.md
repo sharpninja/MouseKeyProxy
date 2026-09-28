@@ -31,7 +31,7 @@ mkp pair status
 mkp toggle
 ```
 
-Pairing and USB input are separate checks. A Connected tray status proves the authenticated network channel, while control transfer also requires the Pi's USB gadget to enumerate on the target computer. On the Orange Pi Zero 2W, connect the inner USB-C data/OTG port beside mini-HDMI to the target with a data-capable cable; power the outer USB-C port. See [HID link troubleshooting](docs/USER-GUIDE.md#hid-link-loss) if `mkp toggle` cannot transfer control.
+Pairing and USB input are separate checks. A Connected tray status proves the authenticated network channel, while control transfer also requires the Pi's USB gadget to enumerate on the target computer. On the Orange Pi Zero 2W, connect the inner USB-C data/OTG port beside mini-HDMI to the target with a data-capable cable; power the outer USB-C port. A zero-event RPC or zero-delta mouse move does not write a HID report; verify with a small nonzero move and visible target response. See [HID link troubleshooting](docs/USER-GUIDE.md#hid-link-loss) if `mkp toggle` cannot transfer control.
 
 An older installed `mkp` may still use a direct gRPC toggle. If it prints `[REAL bidi via transport]` instead of `[AGENT toggle]`, use the tray hotkey or dashboard until a matching CLI is installed; see the [CLI version check](docs/USER-GUIDE.md#cli-version-check).
 

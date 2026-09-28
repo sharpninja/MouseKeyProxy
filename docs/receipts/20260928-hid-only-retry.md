@@ -1,0 +1,9 @@
+# 2026-09-28 HID-only retry
+
+The tray Agent stayed paired to `https://192.168.0.172:50051`. At 20:28 UTC, `mkp agent status --json` returned `remoteState: Connected` and `forwardingActive: true`; a 10-packet `Test-Connection` received 10/10 replies with a 2.60 ms average.
+
+The paired Pi's `ConfigureDevice` response at 20:16:31 UTC confirmed keyboard and mouse enabled with filesystem mass storage disabled. OMARCHY re-enumerated the Pi on USB port 1-12 as keyboard and mouse, without the usb-storage function. At 20:33:00 UTC, `journalctl -k` showed zero `usb 1-12: USB disconnect` entries since 20:16:32 UTC and `/sys/bus/usb/devices/1-12` was present. The tray `forwarder.log` had 76 lines, with its last error at 15:00:38 CDT (20:00:38 UTC), before the reconfiguration.
+
+At 20:24 UTC, a paired nonzero MouseMove (`dx=+8`) returned `ok:true`, and OMARCHY's Hyprland cursor position changed from `(751,338)` to `(757,338)`. A reverse `dx=-8` also returned `ok:true`. Unlike the earlier zero-delta probes, the nonzero events cause `PiHidEncoder.EncodeMouseMove` to emit a HID report. Cursor movement is supportive but not conclusive end-to-end evidence because the user may have moved the pointer concurrently. Visible tray-Agent keyboard and mouse control is awaiting the user's confirmation.
+
+Disabling mass storage and the subsequent absence of disconnects are correlated; the precise cause of earlier USB flapping is not established. `ConfigureDevice` changes the coordinator's runtime state but does not write `IApplianceConfigStore`, while `ServiceHost` seeds the coordinator from that store at startup, so this HID-only setting may revert after Pi service restart. Do not claim a durable fix from this retry alone.
