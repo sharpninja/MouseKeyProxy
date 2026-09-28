@@ -8,4 +8,12 @@ The user confirmed the cable is on the Pi Zero 2W's inner data/OTG USB-C port an
 
 `GetDeviceConfiguration` returned keyboard and mouse enabled and file-share enabled at 22:21:27 UTC. This shows requested gadget configuration, not target enumeration. OMARCHY is PAYTON-DESKTOP per MCP memory. Host SSH to OMARCHY at 192.168.0.149 stalled before authentication, so target USB enumeration was not inspected. The Pi SSH login was unavailable; its current sysfs gadget binding and service logs were not read directly. The physical USB cause is therefore not yet confirmed, and control transfer is not verified.
 
-Do not reset pairing or mark the HID transfer fixed on the basis of Agent Connected state or a zero-event RPC. Recheck after a known data-capable cable change, then verify Pi UDC state and OMARCHY USB enumeration if the one-event probe still fails.
+At that point, Agent Connected state and a zero-event RPC were insufficient to verify HID transfer. The next check was a one-event probe after the port change, with Pi UDC state and OMARCHY USB enumeration still needed if that probe failed.
+
+## Retest, 2026-09-27 23:41 UTC
+
+An authenticated one-event neutral zero-delta MouseMove probe at 2026-09-27T23:41:02.5144208Z returned `ok:true`, an empty error, and `message:ok`. This exercised the Pi's real HID report-write path, which the earlier zero-event RPC did not. The physical change that allowed this is unknown; the user asked for a retest after changing the OMARCHY USB port, but did not confirm a cable replacement.
+
+The current Release CLI `toggle` returned `[AGENT toggle] ok=True` with forwarding enabled. `agent status --json` then reported Connected and `forwardingActive:true`. `emergency-release --json` succeeded, restoring local input; the subsequent Agent status remained Connected with `forwardingActive:false`. These results verify the local Agent control path, paired network channel, and Pi HID write. They do not establish that OMARCHY enumerated the gadget or visibly responded to input.
+
+The globally installed `mkp` 0.5.5 was older than the current source. Running `mkp toggle --help` unexpectedly executed its direct gRPC toggle, printed `[REAL bidi via transport] toggle FAILED` with a remote certificate rejection, and left Agent status Connected with forwarding off. For an installed CLI that prints this prefix, use the tray hotkey or dashboard until a matching CLI is installed. Do not reset a working tray pairing based on this older CLI result.

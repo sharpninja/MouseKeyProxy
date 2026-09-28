@@ -33,6 +33,8 @@ mkp toggle
 
 Pairing and USB input are separate checks. A Connected tray status proves the authenticated network channel, while control transfer also requires the Pi's USB gadget to enumerate on the target computer. On the Orange Pi Zero 2W, connect the inner USB-C data/OTG port beside mini-HDMI to the target with a data-capable cable; power the outer USB-C port. See [HID link troubleshooting](docs/USER-GUIDE.md#hid-link-loss) if `mkp toggle` cannot transfer control.
 
+An older installed `mkp` may still use a direct gRPC toggle. If it prints `[REAL bidi via transport]` instead of `[AGENT toggle]`, use the tray hotkey or dashboard until a matching CLI is installed; see the [CLI version check](docs/USER-GUIDE.md#cli-version-check).
+
 Default configured toggle: **Ctrl+Win+F1**. Default configured emergency release: **Ctrl+Alt+F3**. Both are configurable via the agent hotkey config under `%LOCALAPPDATA%\MouseKeyProxy\hotkey-config.json`. As fixed safety fallbacks, **F1 with any two of Ctrl, Alt, and Win** activates the remote toggle and **F3 with any two** triggers emergency release.
 
 ## Features

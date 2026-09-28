@@ -99,6 +99,10 @@ mkp open-logs
 
 `mkp toggle` drives the **local tray Agent** (same as **Ctrl+Win+F1** / dashboard Toggle): it starts or stops remote input capture. Confirm with `mkp pair status` that `Forwarding: active=True` before expecting keyboard/mouse on the target. CLI inject probes (`mkp inject-text`, `mkp set-mouse`) exercise the paired gRPC path without turning capture on.
 
+### CLI version check
+
+The current source routes `mkp toggle` through the local tray Agent. Check the installed CLI with `mkp --version` and use `mkp --help` only as the first argument. An older installed `MouseKeyProxy.Repl` 0.5.5 used a direct gRPC toggle: its output began `[REAL bidi via transport]`, and `mkp toggle --help` could execute the toggle instead of showing help. If you see that output, use **Ctrl+Win+F1** or the tray dashboard Toggle until a CLI built from the current source is installed. Do not infer that pairing has failed from that old CLI's certificate error; check `mkp agent status --json` and the tray logs.
+
 ### Agent startup self-heal
 
 On every tray Agent start, a background **self-heal** runs (does not auto-enable remote capture):
